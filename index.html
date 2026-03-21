@@ -1408,6 +1408,31 @@ function toggleChallenge() {
     challengeState.score = 0;
     challengeState.targetCenter = REFERENCE_DVX;
     challengeState.targetHalfWidth = Math.abs(REFERENCE_DVX) * 0.20;
+
+    // Always start from default asymmetric amps so timing offsets have
+    // meaningful leverage — the reference target was computed with these amps.
+    // Reset delta to all-zeros: the player has to find the right timing.
+    const def = PRESETS['default'];
+    currentP.mu = def.mu; currentP.kd = def.kd;
+    currentP.gradient = def.gradient;
+    currentP.amp = [...def.amp];
+    currentP.aText = def.amp.join(',');
+    currentP.delta = [0, 0, 0, 0, 0, 0];
+    currentP.deltaText = '0,0,0,0,0,0';
+    // Sync sliders/inputs
+    document.getElementById('muSlider').value = currentP.mu;
+    document.getElementById('muVal').textContent = currentP.mu;
+    document.getElementById('kdSlider').value = currentP.kd;
+    document.getElementById('kdVal').textContent = currentP.kd;
+    document.getElementById('gradSlider').value = currentP.gradient;
+    document.getElementById('gradVal').textContent = currentP.gradient;
+    document.getElementById('ampText').value = currentP.aText;
+    document.getElementById('deltaText').value = currentP.deltaText;
+    transitData = simulate(currentP);
+    transitData = augmentWithHistory(transitData, currentP);
+    updateStatsPanel();
+    lastPresetName = 'default';
+
     challengeState.lockedParams = readParams();
 
     // Disable all sliders/inputs except deltaText
