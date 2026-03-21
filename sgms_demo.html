@@ -1,0 +1,1325 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGMS — Spin-Gyro Magnetic Steering</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0a0f;
+  color: #c0c8d8;
+  font-family: system-ui, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#topbar {
+  background: #111118;
+  border-bottom: 1px solid #223;
+  padding: 6px 14px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+#topbar h1 {
+  font-size: 14px;
+  font-weight: 600;
+  color: #79c0ff;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+#topbar h1 span { color: #f2cc60; }
+.top-btn {
+  background: #1a1a2e;
+  border: 1px solid #334;
+  color: #c0c8d8;
+  padding: 4px 12px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.top-btn:hover { background: #2a2a4e; }
+#presetWrapper { position: relative; }
+#presetDropdown {
+  display: none;
+  position: absolute;
+  right: 0; top: 100%;
+  background: #111118;
+  border: 1px solid #334;
+  z-index: 100;
+  min-width: 220px;
+  border-radius: 4px;
+  overflow: hidden;
+}
+#presetDropdown.open { display: block; }
+.preset-item {
+  padding: 8px 12px;
+  cursor: pointer;
+  font-size: 12px;
+  color: #c0c8d8;
+  transition: background 0.1s;
+}
+.preset-item:hover { background: #1e1e3a; color: #79c0ff; }
+
+#mainArea {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+#canvasWrap {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  background: #000;
+}
+#threeCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+#insetCanvas {
+  position: absolute;
+  bottom: 70px;
+  left: 12px;
+  background: rgba(10,10,20,0.85);
+  border: 1px solid #334;
+  border-radius: 4px;
+  display: none;
+}
+#overlayLabels {
+  position: absolute;
+  top: 10px; left: 10px;
+  pointer-events: none;
+  font-family: 'Courier New', monospace;
+  font-size: 12px;
+}
+.ol-red { color: #ff7b72; }
+.ol-blue { color: #79c0ff; }
+.ol-line { margin-bottom: 3px; }
+
+#rightPanel {
+  width: 280px;
+  flex-shrink: 0;
+  background: #111118;
+  border-left: 1px solid #223;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  padding: 10px;
+  gap: 8px;
+}
+.panel-section {
+  border: 1px solid #223;
+  border-radius: 6px;
+  padding: 8px 10px;
+}
+.section-title {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #7ee787;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  border-bottom: 1px solid #223;
+  padding-bottom: 4px;
+}
+.param-row {
+  display: flex;
+  flex-direction: column;
+  margin-bottom: 8px;
+}
+.param-label {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  color: #8899aa;
+  margin-bottom: 3px;
+}
+.param-label span { color: #f2cc60; font-family: 'Courier New', monospace; }
+input[type=range] {
+  width: 100%;
+  accent-color: #79c0ff;
+  cursor: pointer;
+}
+input[type=text] {
+  width: 100%;
+  background: #0d0d1a;
+  border: 1px solid #334;
+  color: #f2cc60;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  padding: 3px 6px;
+  border-radius: 3px;
+}
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 11px;
+  margin-bottom: 5px;
+}
+.stat-label { color: #8899aa; }
+.stat-val { font-family: 'Courier New', monospace; color: #c0c8d8; }
+.stat-val.neg { color: #ff7b72; }
+.stat-val.pos { color: #7ee787; }
+.stat-val.amber { color: #f2cc60; }
+.rim-safe { color: #7ee787; }
+.rim-caution { color: #f2cc60; }
+.rim-high { color: #ff9944; }
+.rim-burst { color: #ff4444; }
+
+#bottomBar {
+  background: #111118;
+  border-top: 1px solid #223;
+  padding: 7px 12px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+}
+.btn {
+  background: #1a1a2e;
+  border: 1px solid #334;
+  color: #c0c8d8;
+  padding: 5px 13px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+  white-space: nowrap;
+}
+.btn:hover:not(:disabled) { background: #2a2a4e; border-color: #79c0ff; }
+.btn:disabled { opacity: 0.4; cursor: not-allowed; }
+.btn.fire { border-color: #f2cc60; color: #f2cc60; }
+.btn.fire:hover:not(:disabled) { background: #2a1a00; }
+#statusBar {
+  flex: 1;
+  font-size: 11px;
+  color: #556;
+  font-family: 'Courier New', monospace;
+  min-width: 0;
+}
+#signNote {
+  font-size: 10px;
+  color: #445;
+  margin-top: 4px;
+}
+#validateBadge {
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  display: none;
+}
+.badge-green { background: #1a2e1a; color: #7ee787; border: 1px solid #7ee787; }
+.badge-amber { background: #2e2a00; color: #f2cc60; border: 1px solid #f2cc60; }
+.badge-red   { background: #2e0000; color: #ff7b72; border: 1px solid #ff7b72; }
+#warningBanner {
+  display: none;
+  font-size: 11px;
+  padding: 3px 8px;
+  border-radius: 3px;
+  margin-top: 4px;
+}
+#modeLabel {
+  font-size: 10px;
+  color: #556677;
+  text-align: center;
+  margin-top: 3px;
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>SGMS — <span>Spin-Gyro Magnetic Steering</span></h1>
+  <button class="top-btn" id="modeBtn" onclick="cycleMode()">MODE: FORCES</button>
+  <div id="presetWrapper">
+    <button class="top-btn" id="presetBtn" onclick="togglePresetMenu()">PRESET ▾</button>
+    <div id="presetDropdown">
+      <div class="preset-item" onclick="applyPresetByName('default')">Default (asymmetric)</div>
+      <div class="preset-item" onclick="applyPresetByName('symmetric')">Symmetric (zero steering)</div>
+      <div class="preset-item" onclick="applyPresetByName('flipped')">Flipped (sign check)</div>
+      <div class="preset-item" onclick="applyPresetByName('zero_mu')">Zero dipole (no force)</div>
+      <div class="preset-item" onclick="applyPresetByName('high_drag')">High drag (efficiency demo)</div>
+      <div class="preset-item" onclick="applyPresetByName('max_gradient')">Max gradient (hardware limit)</div>
+    </div>
+  </div>
+</div>
+
+<div id="mainArea">
+  <div id="canvasWrap">
+    <canvas id="threeCanvas"></canvas>
+    <canvas id="insetCanvas" width="160" height="240"></canvas>
+    <div id="overlayLabels"></div>
+  </div>
+
+  <div id="rightPanel">
+    <div class="panel-section">
+      <div class="section-title">Parameters</div>
+
+      <div class="param-row">
+        <div class="param-label">μ (magnetic moment) <span id="muVal">60</span> A·m²</div>
+        <input type="range" id="muSlider" min="0" max="200" step="1" value="60" oninput="onSlider('mu',this.value,'muVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">RPM <span id="rpmVal">50000</span></div>
+        <input type="range" id="rpmSlider" min="1000" max="150000" step="1000" value="50000" oninput="onSlider('rpm',this.value,'rpmVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">k_drag <span id="kdVal">0</span></div>
+        <input type="range" id="kdSlider" min="0" max="0.2" step="0.005" value="0" oninput="onSlider('kd',this.value,'kdVal',3)">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Gradient (T/m) <span id="gradVal">50</span></div>
+        <input type="range" id="gradSlider" min="1" max="200" step="1" value="50" oninput="onSlider('gradient',this.value,'gradVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">v_z0 (m/s) <span id="vzVal">15000</span></div>
+        <input type="range" id="vzSlider" min="1000" max="50000" step="500" value="15000" oninput="onSlider('vz0',this.value,'vzVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">σ pulse (µs) <span id="sigVal">50</span></div>
+        <input type="range" id="sigSlider" min="5" max="200" step="5" value="50" oninput="onSlider('sigma_us',this.value,'sigVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Amplitudes (comma sep)</div>
+        <input type="text" id="ampText" value="1.0,1.1,1.2,1.0,0.9,0.8" oninput="onTextParam('amp',this.value)">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Timing offsets (µs)</div>
+        <input type="text" id="deltaText" value="0,2,-1,1,-2,0" oninput="onTextParam('delta',this.value)">
+      </div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Stats</div>
+      <div class="stat-row"><span class="stat-label">Δvx (physics)</span><span class="stat-val" id="s_dvx">—</span></div>
+      <div class="stat-row"><span class="stat-label">Δvz (drag loss)</span><span class="stat-val" id="s_dvz">—</span></div>
+      <div class="stat-row"><span class="stat-label">Displacement x</span><span class="stat-val" id="s_dx">—</span></div>
+      <div class="stat-row"><span class="stat-label">Impulse |p|</span><span class="stat-val" id="s_imp">—</span></div>
+      <div class="stat-row"><span class="stat-label">Steering η</span><span class="stat-val" id="s_eta">—</span></div>
+      <div class="stat-row"><span class="stat-label">Peak force</span><span class="stat-val" id="s_pkf">—</span></div>
+      <div class="stat-row"><span class="stat-label">E_loss</span><span class="stat-val" id="s_eloss">—</span></div>
+      <hr style="border-color:#223; margin: 4px 0">
+      <div class="stat-row"><span class="stat-label">Rim speed</span><span class="stat-val" id="s_rim">—</span></div>
+      <div id="warningBanner"></div>
+      <div id="signNote">Physics: −x = force toward −x<br>Scene: ball bends +x (flipped)</div>
+      <div id="validateBadge"></div>
+    </div>
+  </div>
+</div>
+
+<div id="bottomBar">
+  <button class="btn fire" id="fireBtn" onclick="onFire()">▶ FIRE</button>
+  <button class="btn" onclick="onReset()">RESET</button>
+  <button class="btn" id="slowBtn" onclick="toggleSlow()">SLOW 0.1×</button>
+  <button class="btn" onclick="applyPresetByName('symmetric')">SYMMETRIC</button>
+  <button class="btn" onclick="onValidate()">VALIDATE</button>
+  <button class="btn" onclick="onShare()">SHARE</button>
+  <div id="statusBar">Ready — press FIRE to launch.</div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
+<script>
+// ============================================================
+// INLINE ORBIT CONTROLS
+// ============================================================
+function makeOrbitControls(camera, domElement) {
+  let isDragging = false, lastX = 0, lastY = 0;
+  let theta = 0.4, phi = Math.PI / 3, radius = 14;
+  function update() {
+    camera.position.set(
+      radius * Math.sin(phi) * Math.sin(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.cos(theta)
+    );
+    camera.lookAt(0, 0, 0);
+  }
+  update();
+  domElement.addEventListener('mousedown', e => { isDragging = true; lastX = e.clientX; lastY = e.clientY; });
+  domElement.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    theta -= (e.clientX - lastX) * 0.01;
+    phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi - (e.clientY - lastY) * 0.01));
+    lastX = e.clientX; lastY = e.clientY; update();
+  });
+  domElement.addEventListener('mouseup', () => isDragging = false);
+  domElement.addEventListener('mouseleave', () => isDragging = false);
+  domElement.addEventListener('wheel', e => { radius = Math.max(5, Math.min(40, radius + e.deltaY * 0.02)); update(); }, { passive: true });
+  return { update, getTheta: () => theta, getPhi: () => phi, getRadius: () => radius,
+           setView: (t,p,r) => { theta=t; phi=p; radius=r; update(); } };
+}
+
+// ============================================================
+// PHYSICS KERNEL
+// ============================================================
+function makeSegCenters(P) {
+  const L = P.zend - P.zstart;
+  const centers = [];
+  for (let i = 0; i < P.nseg; i++) {
+    centers.push(P.zstart + L / (2 * P.nseg) + i * L / P.nseg);
+  }
+  return centers;
+}
+
+function spatialGaussian(z, zi, ell) {
+  const q = Math.exp(-((z - zi) ** 2) / (2 * ell ** 2));
+  const dq = q * (-(z - zi) / ell ** 2);
+  return { q, dq };
+}
+
+function temporalPulse(t, t_arr, delta_s, sigma_s) {
+  return Math.exp(-((t - t_arr - delta_s) ** 2) / (2 * sigma_s ** 2));
+}
+
+function fieldModel(t, z, P) {
+  const segZ = makeSegCenters(P);
+  const sigma_s = P.sigma_us * 1e-6;
+  let Bx = 0, dBxdz = 0;
+  for (let i = 0; i < P.nseg; i++) {
+    const zi = segZ[i];
+    const t_arr = (zi - P.zstart) / P.vz0;
+    const { q, dq } = spatialGaussian(z, zi, P.ell);
+    const p = temporalPulse(t, t_arr, P.delta[i], sigma_s);
+    const B_amp = P.amp[i] * P.gradient * P.ell;
+    Bx += B_amp * p * q;
+    dBxdz += B_amp * p * dq;
+  }
+  return { Bx, dBxdz };
+}
+
+function dragEnvelope(t, z, P) {
+  const segZ = makeSegCenters(P);
+  const sigma_s = P.sigma_us * 1e-6;
+  let g = 0;
+  for (let i = 0; i < P.nseg; i++) {
+    const zi = segZ[i];
+    const t_arr = (zi - P.zstart) / P.vz0;
+    const q = Math.exp(-((z - zi) ** 2) / (2 * P.ell ** 2));
+    const p = temporalPulse(t, t_arr, P.delta[i], sigma_s);
+    g += p * p * q * q;
+  }
+  return g;
+}
+
+function rhs(t, y, P) {
+  const [x, yy, z, vx, vy, vz, sx, sy, sz] = y;
+  const { Bx, dBxdz } = fieldModel(t, z, P);
+  const g = dragEnvelope(t, z, P);
+  const Fx = P.mu * sz * dBxdz;
+  const Fz = -(P.kd * g * vz) - (P.kq * g * vz * Math.abs(vz));
+  return [vx, vy, vz, Fx / P.m, 0, Fz / P.m, 0, 0, 0];
+}
+
+function rk4Step(t, y, dt, P) {
+  const k1 = rhs(t, y, P);
+  const k2 = rhs(t + dt / 2, y.map((yi, i) => yi + dt / 2 * k1[i]), P);
+  const k3 = rhs(t + dt / 2, y.map((yi, i) => yi + dt / 2 * k2[i]), P);
+  const k4 = rhs(t + dt,     y.map((yi, i) => yi + dt * k3[i]), P);
+  return y.map((yi, i) => yi + dt / 6 * (k1[i] + 2 * k2[i] + 2 * k3[i] + k4[i]));
+}
+
+function simulate(P) {
+  const dt = P.dt_us * 1e-6;
+  const t_transit = (P.zend - P.zstart) / P.vz0;
+  const t_end = t_transit * P.tmargin;
+
+  let y = [0, 0, P.zstart, 0, 0, P.vz0, 0, 0, 1.0];
+  let t = 0;
+
+  const T = [], X = [], Z = [], VX = [], VZ = [], BX = [], DBXDZ = [], FX = [], FZ = [], G_ARR = [];
+
+  while (t <= t_end) {
+    const { Bx, dBxdz } = fieldModel(t, y[2], P);
+    const g = dragEnvelope(t, y[2], P);
+    const Fx = P.mu * y[8] * dBxdz;
+    const Fz_drag = -(P.kd * g * y[5]) - (P.kq * g * y[5] * Math.abs(y[5]));
+
+    T.push(t); X.push(y[0]); Z.push(y[2]);
+    VX.push(y[3]); VZ.push(y[5]);
+    BX.push(Bx); DBXDZ.push(dBxdz); FX.push(Fx); FZ.push(Fz_drag); G_ARR.push(g);
+
+    y = rk4Step(t, y, dt, P);
+    t += dt;
+  }
+
+  let exitIdx = 0;
+  let minDist = Infinity;
+  for (let i = 0; i < Z.length; i++) {
+    const d = Math.abs(Z[i] - P.zend);
+    if (d < minDist) { minDist = d; exitIdx = i; }
+  }
+
+  const delta_vx = VX[exitIdx] - VX[0];
+  const delta_vz = VZ[exitIdx] - VZ[0];
+  const delta_x  = X[exitIdx] - X[0];
+  const impulse  = P.m * Math.abs(delta_vx);
+  const eta = (P.kd === 0 && P.kq === 0) ? Infinity : (Math.abs(delta_vx) / (Math.abs(delta_vz) + 1e-12));
+  const E_loss = 0.5 * P.m * (P.vz0 ** 2 - VZ[exitIdx] ** 2);
+  const peakFx = FX.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
+
+  return {
+    T, X, Z, VX, VZ, BX, DBXDZ, FX, FZ, G_ARR,
+    exitIdx,
+    metrics: { delta_vx, delta_vz, delta_x, impulse, eta, E_loss, peakFx }
+  };
+}
+
+// ============================================================
+// DEFAULTS & PRESETS
+// ============================================================
+const P_DEFAULTS = {
+  m: 2.0, r: 0.046, mu: 60.0,
+  rpm: 50000, vz0: 15000,
+  nseg: 6, zstart: 1.0, zend: 9.0,
+  ell: 1.0, gradient: 50.0,
+  sigma_us: 50, dt_us: 0.25,
+  tmargin: 1.5, kd: 0, kq: 0,
+  amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
+  delta: [0, 2, -1, 1, -2, 0].map(d => d * 1e-6),
+  aText: '1.0,1.1,1.2,1.0,0.9,0.8',
+  deltaText: '0,2,-1,1,-2,0',
+};
+
+const PRESETS = {
+  default: {
+    label: 'Default (asymmetric)',
+    mu: 60, rpm: 50000, kd: 0, gradient: 50,
+    amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
+    delta_us: [0, 2, -1, 1, -2, 0],
+  },
+  symmetric: {
+    label: 'Symmetric (zero steering)',
+    mu: 60, rpm: 50000, kd: 0, gradient: 50,
+    amp: [1, 1, 1, 1, 1, 1],
+    delta_us: [0, 0, 0, 0, 0, 0],
+  },
+  flipped: {
+    label: 'Flipped (sign check)',
+    mu: 60, rpm: 50000, kd: 0, gradient: 50,
+    amp: [0.8, 0.9, 1.0, 1.2, 1.1, 1.0],
+    delta_us: [0, -2, 1, -1, 2, 0],
+  },
+  zero_mu: {
+    label: 'Zero dipole (no force)',
+    mu: 0, rpm: 50000, kd: 0, gradient: 50,
+    amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
+    delta_us: [0, 2, -1, 1, -2, 0],
+  },
+  high_drag: {
+    label: 'High drag (efficiency demo)',
+    mu: 60, rpm: 50000, kd: 0.05, gradient: 50,
+    amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
+    delta_us: [0, 2, -1, 1, -2, 0],
+  },
+  max_gradient: {
+    label: 'Max gradient (hardware limit)',
+    mu: 120, rpm: 50000, kd: 0, gradient: 50,
+    amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
+    delta_us: [0, 2, -1, 1, -2, 0],
+  },
+};
+
+let REFERENCE = { delta_vx: null, impulse: null, delta_x: null };
+
+// ============================================================
+// CURRENT PARAMS STATE
+// ============================================================
+let currentP = Object.assign({}, P_DEFAULTS);
+currentP.amp = [...P_DEFAULTS.amp];
+currentP.delta = [...P_DEFAULTS.delta];
+
+function buildP(src) {
+  return Object.assign({}, src, {
+    amp: [...src.amp],
+    delta: [...src.delta],
+  });
+}
+
+// ============================================================
+// THREE.JS SETUP
+// ============================================================
+const canvas = document.getElementById('threeCanvas');
+const renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+renderer.setPixelRatio(window.devicePixelRatio);
+renderer.setClearColor(0x000000);
+
+const scene = new THREE.Scene();
+scene.background = new THREE.Color(0x000000);
+
+const camera = new THREE.PerspectiveCamera(50, 1, 0.01, 500);
+const orbitControls = makeOrbitControls(camera, canvas);
+
+// Lighting
+scene.add(new THREE.AmbientLight(0x223344, 0.5));
+const pointLight1 = new THREE.PointLight(0x4488ff, 1.5, 30);
+pointLight1.position.set(0, 5, 0);
+scene.add(pointLight1);
+const ballLight = new THREE.PointLight(0xff6600, 0.8, 20);
+scene.add(ballLight);
+
+// Stars
+(function makeStars() {
+  const geo = new THREE.BufferGeometry();
+  const positions = new Float32Array(800 * 3);
+  for (let i = 0; i < 800; i++) {
+    const theta = Math.random() * Math.PI * 2;
+    const phi2 = Math.acos(2 * Math.random() - 1);
+    const r = 80 + Math.random() * 20;
+    positions[i * 3]     = r * Math.sin(phi2) * Math.cos(theta);
+    positions[i * 3 + 1] = r * Math.cos(phi2);
+    positions[i * 3 + 2] = r * Math.sin(phi2) * Math.sin(theta);
+  }
+  geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
+  scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
+})();
+
+// Coils
+const coilMeshes = [];
+const COIL_COLOR_DEFAULT = new THREE.Color(0x445566);
+const COIL_EMISSIVE_DEFAULT = new THREE.Color(0x112233);
+const COIL_EMISSIVE_ACTIVE = new THREE.Color(0x0088ff);
+
+function buildCoils(P) {
+  coilMeshes.forEach(m => scene.remove(m));
+  coilMeshes.length = 0;
+  const segZ = makeSegCenters(P);
+  const cx = (P.zstart + P.zend) / 2;
+  segZ.forEach(zi => {
+    const geo = new THREE.TorusGeometry(0.4, 0.05, 8, 24);
+    const mat = new THREE.MeshStandardMaterial({
+      color: COIL_COLOR_DEFAULT.clone(),
+      emissive: COIL_EMISSIVE_DEFAULT.clone(),
+      emissiveIntensity: 0.6,
+      metalness: 0.7, roughness: 0.3
+    });
+    const mesh = new THREE.Mesh(geo, mat);
+    mesh.position.set(0, 0, zi - cx);
+    mesh.rotation.x = Math.PI / 2; // so torus ring is in x-y plane, z through hole
+    scene.add(mesh);
+    coilMeshes.push(mesh);
+  });
+}
+
+// Ball
+const ballGeo = new THREE.SphereGeometry(0.18, 32, 32);
+const ballMat = new THREE.MeshStandardMaterial({
+  color: 0xccaa44,
+  emissive: 0x442200,
+  emissiveIntensity: 0.3,
+  metalness: 0.8, roughness: 0.2
+});
+const ballMesh = new THREE.Mesh(ballGeo, ballMat);
+scene.add(ballMesh);
+
+// Trail
+const MAX_TRAIL = 8000;
+const trailPositions = new Float32Array(MAX_TRAIL * 3);
+const trailGeo = new THREE.BufferGeometry();
+trailGeo.setAttribute('position', new THREE.BufferAttribute(trailPositions, 3));
+const trailMat = new THREE.LineBasicMaterial({ color: 0xffaa00, vertexColors: false });
+const trailLine = new THREE.Line(trailGeo, trailMat);
+scene.add(trailLine);
+
+// Ghost trail (symmetric comparison)
+const ghostPositions = new Float32Array(MAX_TRAIL * 3);
+const ghostGeo = new THREE.BufferGeometry();
+ghostGeo.setAttribute('position', new THREE.BufferAttribute(ghostPositions, 3));
+const ghostMat = new THREE.LineBasicMaterial({ color: 0x226622 });
+const ghostLine = new THREE.Line(ghostGeo, ghostMat);
+ghostLine.visible = false;
+scene.add(ghostLine);
+
+// Force arrows (Mode 0)
+const arrowRed = new THREE.ArrowHelper(
+  new THREE.Vector3(1, 0, 0),
+  new THREE.Vector3(0, 0, 0),
+  1, 0xff3333, 0.25, 0.15
+);
+arrowRed.visible = false;
+scene.add(arrowRed);
+
+const arrowBlue = new THREE.ArrowHelper(
+  new THREE.Vector3(0, 0, -1),
+  new THREE.Vector3(0, 0, 0),
+  1, 0x3399ff, 0.25, 0.15
+);
+arrowBlue.visible = false;
+scene.add(arrowBlue);
+
+// Field streamlines (Mode 2)
+const streamlineGroup = new THREE.Group();
+streamlineGroup.visible = false;
+scene.add(streamlineGroup);
+
+// Coordinate mapping
+const EXAGGERATION = 8000;
+function physicsToScene(x, z, P) {
+  const cx = (P.zstart + P.zend) / 2;
+  return new THREE.Vector3(
+    -x * EXAGGERATION,
+    0,
+    z - cx
+  );
+}
+
+// ============================================================
+// MODE MANAGEMENT
+// ============================================================
+let currentMode = 0; // 0=FORCES, 1=TRAJECTORY, 2=FIELD
+const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
+
+function cycleMode() {
+  currentMode = (currentMode + 1) % 3;
+  document.getElementById('modeBtn').textContent = 'MODE: ' + MODE_NAMES[currentMode];
+  applyMode();
+}
+
+function applyMode() {
+  const inset = document.getElementById('insetCanvas');
+  const ol = document.getElementById('overlayLabels');
+
+  if (currentMode === 0) {
+    inset.style.display = 'none';
+    streamlineGroup.visible = false;
+    orbitControls.setView(0.4, Math.PI / 3, 14);
+    if (transitData) {
+      arrowRed.visible = true;
+    }
+  } else if (currentMode === 1) {
+    inset.style.display = transitData ? 'block' : 'none';
+    streamlineGroup.visible = false;
+    arrowRed.visible = false;
+    arrowBlue.visible = false;
+    ol.innerHTML = '';
+    orbitControls.setView(0, Math.PI / 2, 18);
+    if (transitData) drawInset(transitData);
+  } else if (currentMode === 2) {
+    inset.style.display = 'none';
+    arrowRed.visible = false;
+    arrowBlue.visible = false;
+    ol.innerHTML = '';
+    buildStreamlines();
+    streamlineGroup.visible = true;
+    orbitControls.setView(0, 0.05, 20);
+  }
+}
+
+function buildStreamlines() {
+  while (streamlineGroup.children.length) streamlineGroup.remove(streamlineGroup.children[0]);
+  const P = buildP(currentP);
+  const segZ = makeSegCenters(P);
+  const cx = (P.zstart + P.zend) / 2;
+  const t_mid = (P.zend - P.zstart) / (2 * P.vz0);
+  const nLines = 40;
+
+  for (let li = 0; li < nLines; li++) {
+    const yOff = -2 + (li / (nLines - 1)) * 4;
+    const pts = [];
+    let maxB = 0;
+    const zSteps = 60;
+    for (let zi = 0; zi <= zSteps; zi++) {
+      const z = P.zstart + (zi / zSteps) * (P.zend - P.zstart);
+      const { Bx } = fieldModel(t_mid, z, P);
+      maxB = Math.max(maxB, Math.abs(Bx));
+      pts.push(new THREE.Vector3(yOff, Bx * 0.4, z - cx));
+    }
+    const geo2 = new THREE.BufferGeometry().setFromPoints(pts);
+    const strength = Math.min(maxB / 50, 1);
+    const col = new THREE.Color().setHSL(0.6 - strength * 0.5, 0.9, 0.5);
+    streamlineGroup.add(new THREE.Line(geo2, new THREE.LineBasicMaterial({ color: col })));
+  }
+}
+
+// ============================================================
+// ANIMATION STATE
+// ============================================================
+let transitData = null;
+let ghostData = null;
+let frameIndex = 0;
+let isPlaying = false;
+let isSlow = false;
+let lastPresetName = null;
+
+function updateBallPosition(idx) {
+  const P = buildP(currentP);
+  const pos = physicsToScene(transitData.X[idx], transitData.Z[idx], P);
+  ballMesh.position.copy(pos);
+  ballLight.position.copy(pos);
+}
+
+function updateTrail(idx) {
+  const P = buildP(currentP);
+  const count = Math.min(idx + 1, MAX_TRAIL);
+  const start = Math.max(0, idx + 1 - MAX_TRAIL);
+  for (let i = 0; i < count; i++) {
+    const si = start + i;
+    const pos = physicsToScene(transitData.X[si], transitData.Z[si], P);
+    trailPositions[i * 3]     = pos.x;
+    trailPositions[i * 3 + 1] = pos.y;
+    trailPositions[i * 3 + 2] = pos.z;
+  }
+  trailGeo.setDrawRange(0, count);
+  trailGeo.attributes.position.needsUpdate = true;
+}
+
+function updateCoilGlow(idx) {
+  const P = buildP(currentP);
+  const segZ = makeSegCenters(P);
+  const t = transitData.T[idx];
+  const z = transitData.Z[idx];
+  const sigma_s = P.sigma_us * 1e-6;
+
+  coilMeshes.forEach((mesh, i) => {
+    const zi = segZ[i];
+    const t_arr = (zi - P.zstart) / P.vz0;
+    const pulse = temporalPulse(t, t_arr, P.delta[i], sigma_s);
+    const { q } = spatialGaussian(z, zi, P.ell);
+    const active = pulse * q > 0.05;
+    mesh.material.emissive.copy(active ? COIL_EMISSIVE_ACTIVE : COIL_EMISSIVE_DEFAULT);
+    mesh.material.emissiveIntensity = active ? (1.5 + pulse * 1.5) : 0.6;
+  });
+}
+
+function updateForceArrows(idx) {
+  const P = buildP(currentP);
+  const Fx = transitData.FX[idx];
+  const Fz = transitData.FZ[idx];
+  const ballPos = ballMesh.position.clone();
+
+  // Red arrow: lateral force in scene +x direction
+  const peakFx = transitData.metrics.peakFx || 1;
+  const fxLen = Math.min(Math.abs(Fx) / (peakFx + 1e-12) * 3, 3);
+  arrowRed.position.copy(ballPos);
+  if (fxLen > 0.01) {
+    // Physics -x → scene +x; positive Fx in physics → negative in scene
+    // The force bends toward -x in physics which is +x in scene
+    const dir = Fx < 0 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(-1, 0, 0);
+    arrowRed.setDirection(dir);
+    arrowRed.setLength(fxLen, Math.min(0.25, fxLen * 0.3), Math.min(0.15, fxLen * 0.2));
+    arrowRed.visible = (currentMode === 0);
+  } else {
+    arrowRed.visible = false;
+  }
+
+  // Blue arrow: drag force
+  const fzLen = Math.min(Math.abs(Fz) / (peakFx + 1e-12) * 3, 3);
+  arrowBlue.position.copy(ballPos);
+  if (fzLen > 0.01 && (P.kd > 0 || P.kq > 0)) {
+    arrowBlue.setDirection(new THREE.Vector3(0, 0, -1));
+    arrowBlue.setLength(fzLen, Math.min(0.25, fzLen * 0.3), Math.min(0.15, fzLen * 0.2));
+    arrowBlue.visible = (currentMode === 0);
+  } else {
+    arrowBlue.visible = false;
+  }
+
+  // Overlay labels
+  if (currentMode === 0) {
+    const ol = document.getElementById('overlayLabels');
+    const fxN = Math.abs(Fx).toFixed(1);
+    const fzN = Math.abs(Fz).toFixed(2);
+    const etaStr = (P.kd === 0 && P.kq === 0) ? '∞ (drag off)' : (Math.abs(Fx) / (Math.abs(Fz) + 1e-12)).toFixed(1) + '×';
+    ol.innerHTML = `
+      <div class="ol-line ol-red">Lateral force: ${fxN} N</div>
+      <div class="ol-line ol-blue">${P.kd === 0 && P.kq === 0 ? 'Drag: 0 (k_drag=0)' : 'Drag force: ' + fzN + ' N'}</div>
+      <div class="ol-line" style="color:#8899aa">η = ${etaStr} more lateral${P.kd === 0 && P.kq === 0 ? '' : ' than drag'}</div>
+    `;
+  }
+}
+
+function updateStatsLive(idx) {
+  const P = buildP(currentP);
+  if (!transitData) return;
+  const m = transitData.metrics;
+  const dvxSign = m.delta_vx < 0 ? 'neg' : 'pos';
+  document.getElementById('s_dvx').textContent = m.delta_vx.toExponential(4) + ' m/s';
+  document.getElementById('s_dvx').className = 'stat-val ' + dvxSign;
+  document.getElementById('s_dvz').textContent = m.delta_vz.toExponential(4) + ' m/s';
+  const dx_um = m.delta_x * 1e6;
+  document.getElementById('s_dx').textContent = dx_um.toFixed(1) + ' µm';
+  document.getElementById('s_dx').className = 'stat-val ' + (dx_um < 0 ? 'neg' : 'pos');
+  document.getElementById('s_imp').textContent = m.impulse.toExponential(4) + ' N·s';
+  if (P.kd === 0 && P.kq === 0) {
+    document.getElementById('s_eta').textContent = '∞ (drag off)';
+    document.getElementById('s_eta').className = 'stat-val amber';
+  } else {
+    document.getElementById('s_eta').textContent = m.eta.toFixed(2) + '×';
+    document.getElementById('s_eta').className = 'stat-val';
+  }
+  document.getElementById('s_pkf').textContent = m.peakFx.toFixed(1) + ' N';
+  document.getElementById('s_eloss').textContent = m.E_loss.toFixed(2) + ' J';
+}
+
+function showFinalStats() {
+  setStatus('Transit complete. Δvx = ' + (transitData.metrics.delta_vx * 1000).toFixed(4) + ' mm/s');
+  checkBoreField(transitData);
+  if (currentMode === 1) {
+    document.getElementById('insetCanvas').style.display = 'block';
+    drawInset(transitData);
+  }
+}
+
+// ============================================================
+// BUTTONS
+// ============================================================
+function onFire() {
+  const P = buildP(currentP);
+  setStatus('Simulating...');
+  setTimeout(() => {
+    transitData = simulate(P);
+    updateStatsLive(0);
+    frameIndex = 0;
+    isPlaying = true;
+    trailGeo.setDrawRange(0, 0);
+    buildCoils(P);
+    updateBallPosition(0);
+    if (currentMode === 0) arrowRed.visible = true;
+    if (currentMode === 1) {
+      document.getElementById('insetCanvas').style.display = 'none';
+    }
+    setStatus('Launching...');
+  }, 10);
+}
+
+function onReset() {
+  isPlaying = false;
+  frameIndex = 0;
+  transitData = null;
+  trailGeo.setDrawRange(0, 0);
+  trailGeo.attributes.position.needsUpdate = true;
+  arrowRed.visible = false;
+  arrowBlue.visible = false;
+  document.getElementById('overlayLabels').innerHTML = '';
+  document.getElementById('insetCanvas').style.display = 'none';
+  const P = buildP(currentP);
+  const pos = physicsToScene(0, P.zstart, P);
+  ballMesh.position.copy(pos);
+  ballLight.position.copy(pos);
+  coilMeshes.forEach(m => {
+    m.material.emissive.copy(COIL_EMISSIVE_DEFAULT);
+    m.material.emissiveIntensity = 0.6;
+  });
+  setStatus('Reset — press FIRE to launch.');
+}
+
+function toggleSlow() {
+  isSlow = !isSlow;
+  document.getElementById('slowBtn').textContent = isSlow ? 'SLOW: ON' : 'SLOW 0.1×';
+}
+
+function applyPresetByName(name) {
+  document.getElementById('presetDropdown').classList.remove('open');
+  const preset = PRESETS[name];
+  if (!preset) return;
+
+  // If applying symmetric, save current asymmetric trail as ghost
+  if (name === 'symmetric' && transitData) {
+    saveGhostTrail(transitData);
+  } else if (name !== 'symmetric') {
+    ghostLine.visible = false;
+  }
+
+  currentP.mu = preset.mu;
+  currentP.rpm = preset.rpm;
+  currentP.kd = preset.kd;
+  if (preset.gradient !== undefined) currentP.gradient = preset.gradient;
+  currentP.amp = [...preset.amp];
+  currentP.delta = preset.delta_us.map(d => d * 1e-6);
+  currentP.aText = preset.amp.join(',');
+  currentP.deltaText = preset.delta_us.join(',');
+
+  // Update sliders & inputs
+  document.getElementById('muSlider').value = currentP.mu;
+  document.getElementById('muVal').textContent = currentP.mu;
+  document.getElementById('rpmSlider').value = currentP.rpm;
+  document.getElementById('rpmVal').textContent = currentP.rpm;
+  document.getElementById('kdSlider').value = currentP.kd;
+  document.getElementById('kdVal').textContent = currentP.kd.toFixed(3);
+  document.getElementById('gradSlider').value = currentP.gradient;
+  document.getElementById('gradVal').textContent = currentP.gradient;
+  document.getElementById('ampText').value = currentP.aText;
+  document.getElementById('deltaText').value = currentP.deltaText;
+
+  lastPresetName = name;
+  checkRimSpeed(currentP);
+  onFire();
+}
+
+function saveGhostTrail(td) {
+  const P = buildP(currentP);
+  const count = Math.min(td.T.length, MAX_TRAIL);
+  for (let i = 0; i < count; i++) {
+    const pos = physicsToScene(td.X[i], td.Z[i], P);
+    ghostPositions[i * 3]     = pos.x;
+    ghostPositions[i * 3 + 1] = pos.y;
+    ghostPositions[i * 3 + 2] = pos.z;
+  }
+  ghostGeo.setDrawRange(0, count);
+  ghostGeo.attributes.position.needsUpdate = true;
+  ghostLine.visible = true;
+}
+
+function onValidate() {
+  setStatus('Validating...');
+  setTimeout(() => {
+    const P1 = buildP(currentP);
+    P1.dt_us = 0.25;
+    const P2 = buildP(currentP);
+    P2.dt_us = 0.50;
+
+    const r1 = simulate(P1);
+    const r2 = simulate(P2);
+
+    const dvx1 = r1.metrics.delta_vx;
+    const dvx2 = r2.metrics.delta_vx;
+    const convergence = Math.abs(dvx1 - dvx2) / (Math.abs(dvx1) + 1e-12) * 100;
+
+    let msg = `dt convergence: ${convergence.toFixed(3)}%`;
+    let cls = 'badge-green';
+    let icon = '✓';
+
+    if (convergence > 5) {
+      cls = 'badge-red';
+      icon = '✗';
+      msg = `dt convergence: ${convergence.toFixed(1)}% (poor)`;
+    } else if (convergence > 2) {
+      cls = 'badge-amber';
+      icon = '⚠';
+      msg = `dt convergence: ${convergence.toFixed(1)}% (acceptable)`;
+    }
+
+    // Check against reference if params match defaults
+    let refCheck = '';
+    if (REFERENCE.delta_vx !== null) {
+      const refErr = Math.abs(dvx1 - REFERENCE.delta_vx) / (Math.abs(REFERENCE.delta_vx) + 1e-12) * 100;
+      if (refErr < 0.1) {
+        refCheck = ' | ref match ✓';
+      } else {
+        refCheck = ` | ref diff: ${refErr.toFixed(2)}%`;
+      }
+    }
+
+    const badge = document.getElementById('validateBadge');
+    badge.textContent = `${icon} Physics kernel ${convergence < 2 ? 'validated' : 'warning'} — ${msg}${refCheck}`;
+    badge.className = 'badge-green ' + cls;
+    badge.style.display = 'inline-block';
+    badge.style.marginTop = '6px';
+
+    setStatus(`Validate done. Δvx(fine)=${dvx1.toExponential(4)}, Δvx(coarse)=${dvx2.toExponential(4)}`);
+  }, 10);
+}
+
+function onShare() {
+  const url = buildShareURL();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => setStatus('URL copied to clipboard!'));
+  } else {
+    prompt('Share URL:', url);
+  }
+}
+
+function buildShareURL() {
+  const base = window.location.href.split('?')[0];
+  return `${base}?mu=${currentP.mu}&kd=${currentP.kd}&rpm=${currentP.rpm}`;
+}
+
+function togglePresetMenu() {
+  document.getElementById('presetDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('presetWrapper').contains(e.target)) {
+    document.getElementById('presetDropdown').classList.remove('open');
+  }
+});
+
+// ============================================================
+// SLIDER / INPUT HANDLERS
+// ============================================================
+function onSlider(key, val, labelId, decimals) {
+  const v = parseFloat(val);
+  currentP[key] = v;
+  document.getElementById(labelId).textContent = decimals !== undefined ? v.toFixed(decimals) : v;
+  checkRimSpeed(currentP);
+}
+
+function onTextParam(key, val) {
+  if (key === 'amp') {
+    const arr = val.split(',').map(Number).filter(n => !isNaN(n));
+    if (arr.length === currentP.nseg) {
+      currentP.amp = arr;
+      currentP.aText = val;
+    }
+  } else if (key === 'delta') {
+    const arr = val.split(',').map(Number).filter(n => !isNaN(n));
+    if (arr.length === currentP.nseg) {
+      currentP.delta = arr.map(d => d * 1e-6);
+      currentP.deltaText = val;
+    }
+  }
+}
+
+// ============================================================
+// RIM SPEED CHECK
+// ============================================================
+function checkRimSpeed(P) {
+  const rimSpeed = (2 * Math.PI * (P.rpm / 60)) * P.r;
+  const el = document.getElementById('s_rim');
+  const fireBtn = document.getElementById('fireBtn');
+
+  const rs = rimSpeed.toFixed(0);
+  if (rimSpeed >= 1000) {
+    el.innerHTML = `<span class="rim-burst">${rs} m/s ✗ BURST — FIRE DISABLED</span>`;
+    fireBtn.disabled = true;
+  } else if (rimSpeed >= 900) {
+    el.innerHTML = `<span class="rim-high">${rs} m/s ● HIGH RISK</span>`;
+    fireBtn.disabled = false;
+  } else if (rimSpeed >= 600) {
+    el.innerHTML = `<span class="rim-caution">${rs} m/s ● CAUTION</span>`;
+    fireBtn.disabled = false;
+  } else {
+    el.innerHTML = `<span class="rim-safe">${rs} m/s ● SAFE</span>`;
+    fireBtn.disabled = false;
+  }
+}
+
+// ============================================================
+// BORE FIELD WARNING
+// ============================================================
+function checkBoreField(td) {
+  const maxDB = Math.max(...td.DBXDZ.map(Math.abs));
+  const B_edge = maxDB * 0.25;
+  const wb = document.getElementById('warningBanner');
+  if (B_edge > 50) {
+    wb.textContent = '✗ Unrealistic fields — reduce gradient';
+    wb.style.background = '#2e0000';
+    wb.style.color = '#ff7b72';
+    wb.style.border = '1px solid #ff7b72';
+    wb.style.display = 'block';
+  } else if (B_edge > 20) {
+    wb.textContent = '⚠ Peak gradient implies bore-edge field > 20 T — check realism';
+    wb.style.background = '#2e2a00';
+    wb.style.color = '#f2cc60';
+    wb.style.border = '1px solid #f2cc60';
+    wb.style.display = 'block';
+  } else {
+    wb.style.display = 'none';
+  }
+}
+
+// ============================================================
+// INSET CANVAS (Mode 1)
+// ============================================================
+function drawInset(td) {
+  const canvas2 = document.getElementById('insetCanvas');
+  const ctx = canvas2.getContext('2d');
+  const W = canvas2.width, H = canvas2.height;
+  ctx.clearRect(0, 0, W, H);
+
+  const PAD = { l: 38, r: 10, t: 10, b: 28 };
+  const pW = W - PAD.l - PAD.r;
+  const pH = H - PAD.t - PAD.b;
+
+  const minZ = Math.min(...td.Z);
+  const maxZ = Math.max(...td.Z);
+  const allX_um = td.X.map(x => x * 1e6);
+  const minX = Math.min(...allX_um);
+  const maxX = Math.max(...allX_um);
+  const rangeX = Math.max(Math.abs(minX), Math.abs(maxX), 0.01) * 2;
+
+  const zToCanvas = z => PAD.l + (z - minZ) / (maxZ - minZ + 1e-12) * pW;
+  const xToCanvas = x => PAD.t + pH - (x - (-rangeX / 2)) / rangeX * pH;
+
+  // Background grid
+  ctx.strokeStyle = '#1a1a2e';
+  ctx.lineWidth = 0.5;
+  for (let gi = 0; gi <= 4; gi++) {
+    const gx = PAD.l + gi / 4 * pW;
+    ctx.beginPath(); ctx.moveTo(gx, PAD.t); ctx.lineTo(gx, PAD.t + pH); ctx.stroke();
+    const gy = PAD.t + gi / 4 * pH;
+    ctx.beginPath(); ctx.moveTo(PAD.l, gy); ctx.lineTo(PAD.l + pW, gy); ctx.stroke();
+  }
+
+  // Axes
+  ctx.strokeStyle = '#334455';
+  ctx.lineWidth = 1;
+  ctx.beginPath();
+  ctx.moveTo(PAD.l, PAD.t); ctx.lineTo(PAD.l, PAD.t + pH);
+  ctx.moveTo(PAD.l, PAD.t + pH); ctx.lineTo(PAD.l + pW, PAD.t + pH);
+  ctx.stroke();
+
+  // Ghost trail
+  if (ghostLine.visible) {
+    ctx.beginPath();
+    ctx.strokeStyle = '#226622';
+    ctx.lineWidth = 1;
+    const gCount = ghostGeo.drawRange.count;
+    for (let i = 0; i < Math.min(gCount, td.T.length); i++) {
+      const zi = td.Z[i];
+      const xi_um = ghostPositions[i * 3] / (-EXAGGERATION) * 1e6; // reverse scene flip
+      const cx2 = zToCanvas(zi);
+      const cy2 = xToCanvas(xi_um);
+      if (i === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
+    }
+    ctx.stroke();
+  }
+
+  // Main trail
+  ctx.beginPath();
+  ctx.strokeStyle = '#ffaa00';
+  ctx.lineWidth = 1.5;
+  const N = td.T.length;
+  for (let i = 0; i < N; i++) {
+    const cx2 = zToCanvas(td.Z[i]);
+    const cy2 = xToCanvas(allX_um[i]);
+    if (i === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
+  }
+  ctx.stroke();
+
+  // Final point label
+  const finalX = allX_um[td.exitIdx];
+  const fxC = zToCanvas(td.Z[td.exitIdx]);
+  const fyC = xToCanvas(finalX);
+  ctx.fillStyle = '#ff7b72';
+  ctx.beginPath();
+  ctx.arc(fxC, fyC, 3, 0, Math.PI * 2);
+  ctx.fill();
+  ctx.fillStyle = '#ff7b72';
+  ctx.font = '9px Courier New';
+  ctx.fillText(finalX.toFixed(1) + ' µm', Math.max(PAD.l + 2, fxC - 28), Math.max(PAD.t + 10, fyC - 5));
+
+  // Axis labels
+  ctx.fillStyle = '#667788';
+  ctx.font = '9px Courier New';
+  ctx.fillText('z (m)', PAD.l + pW / 2 - 10, H - 4);
+  ctx.save();
+  ctx.translate(10, PAD.t + pH / 2);
+  ctx.rotate(-Math.PI / 2);
+  ctx.fillText('x (µm)', -14, 0);
+  ctx.restore();
+
+  // Tick labels
+  ctx.fillStyle = '#556677';
+  ctx.font = '8px Courier New';
+  ctx.fillText(minZ.toFixed(0), PAD.l, PAD.t + pH + 14);
+  ctx.fillText(maxZ.toFixed(0), PAD.l + pW - 8, PAD.t + pH + 14);
+}
+
+// ============================================================
+// STATUS
+// ============================================================
+function setStatus(msg) {
+  document.getElementById('statusBar').textContent = msg;
+}
+
+// ============================================================
+// URL PARAMS
+// ============================================================
+function loadFromURL() {
+  const params = new URLSearchParams(window.location.search);
+  if (params.has('preset')) {
+    const name = params.get('preset');
+    if (PRESETS[name]) applyPresetByName(name);
+    return;
+  }
+  if (params.has('mu')) {
+    currentP.mu = parseFloat(params.get('mu'));
+    document.getElementById('muSlider').value = currentP.mu;
+    document.getElementById('muVal').textContent = currentP.mu;
+  }
+  if (params.has('kd')) {
+    currentP.kd = parseFloat(params.get('kd'));
+    document.getElementById('kdSlider').value = currentP.kd;
+    document.getElementById('kdVal').textContent = currentP.kd.toFixed(3);
+  }
+  if (params.has('rpm')) {
+    currentP.rpm = parseFloat(params.get('rpm'));
+    document.getElementById('rpmSlider').value = currentP.rpm;
+    document.getElementById('rpmVal').textContent = currentP.rpm;
+  }
+}
+
+// ============================================================
+// RESIZE
+// ============================================================
+function onResize() {
+  const wrap = document.getElementById('canvasWrap');
+  const W = wrap.clientWidth;
+  const H = wrap.clientHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H;
+  camera.updateProjectionMatrix();
+}
+window.addEventListener('resize', onResize);
+
+// ============================================================
+// RENDER LOOP
+// ============================================================
+function renderLoop() {
+  requestAnimationFrame(renderLoop);
+
+  if (isPlaying && transitData) {
+    const stepsPerFrame = isSlow ? 1 :
+      Math.max(1, Math.ceil(transitData.T.length / (4.0 * 60)));
+    frameIndex = Math.min(frameIndex + stepsPerFrame, transitData.T.length - 1);
+    updateBallPosition(frameIndex);
+    updateTrail(frameIndex);
+    updateCoilGlow(frameIndex);
+    if (currentMode === 0) updateForceArrows(frameIndex);
+    updateStatsLive(frameIndex);
+    if (frameIndex >= transitData.T.length - 1) {
+      isPlaying = false;
+      showFinalStats();
+    }
+  }
+
+  ballMesh.rotation.y += 0.04;
+  renderer.render(scene, camera);
+}
+
+// ============================================================
+// INIT
+// ============================================================
+function init() {
+  onResize();
+
+  // Set reference by running default simulation
+  const Pref = buildP(P_DEFAULTS);
+  const refResult = simulate(Pref);
+  REFERENCE.delta_vx = refResult.metrics.delta_vx;
+  REFERENCE.impulse  = refResult.metrics.impulse;
+  REFERENCE.delta_x  = refResult.metrics.delta_x;
+
+  // Show reference badge quietly
+  const badge = document.getElementById('validateBadge');
+  badge.textContent = `Ref Δvx = ${REFERENCE.delta_vx.toExponential(4)} m/s — press VALIDATE to check`;
+  badge.className = 'badge-green';
+  badge.style.display = 'inline-block';
+  badge.style.marginTop = '6px';
+
+  // Build initial coils
+  buildCoils(buildP(currentP));
+  checkRimSpeed(currentP);
+
+  // Place ball at start
+  const P = buildP(currentP);
+  const startPos = physicsToScene(0, P.zstart, P);
+  ballMesh.position.copy(startPos);
+  ballLight.position.copy(startPos);
+
+  // Load URL params
+  loadFromURL();
+
+  // Start render
+  renderLoop();
+  setStatus('Ready — press FIRE to launch.');
+}
+
+init();
+</script>
+</body>
+</html>
