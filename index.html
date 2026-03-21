@@ -1891,20 +1891,22 @@ function checkRimSpeed(P) {
   const rimSpeed = (2 * Math.PI * (P.rpm / 60)) * P.r;
   const el = document.getElementById('s_rim');
   const fireBtn = document.getElementById('fireBtn');
+  const mobileFireBtn = document.getElementById('mobileFireBtn');
 
   const rs = rimSpeed.toFixed(0);
+  const setDisabled = v => { fireBtn.disabled = v; if (mobileFireBtn) mobileFireBtn.disabled = v; };
   if (rimSpeed >= 1000) {
     el.innerHTML = '<span class="rim-burst">' + rs + ' m/s ✗ BURST — FIRE DISABLED</span>';
-    fireBtn.disabled = true;
+    setDisabled(true);
   } else if (rimSpeed >= 900) {
     el.innerHTML = '<span class="rim-high">' + rs + ' m/s ● HIGH RISK</span>';
-    fireBtn.disabled = false;
+    setDisabled(false);
   } else if (rimSpeed >= 600) {
     el.innerHTML = '<span class="rim-caution">' + rs + ' m/s ● CAUTION</span>';
-    fireBtn.disabled = false;
+    setDisabled(false);
   } else {
     el.innerHTML = '<span class="rim-safe">' + rs + ' m/s ● SAFE</span>';
-    fireBtn.disabled = false;
+    setDisabled(false);
   }
 }
 
