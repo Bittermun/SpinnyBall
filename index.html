@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <title>SGMS — Spin-Gyro Magnetic Steering</title>
 <style>
 * { box-sizing: border-box; margin: 0; padding: 0; }
@@ -331,6 +331,7 @@ input[type=text] {
     transform: translateY(calc(100% - 180px));
     transition: transform 0.3s ease;
     z-index: 50;
+    padding-bottom: env(safe-area-inset-bottom, 0px);
   }
   #mobileSheet.expanded  { transform: translateY(0); }
   #mobileSheet.collapsed { transform: translateY(calc(100% - 48px)); }
@@ -606,6 +607,7 @@ function makeOrbitControls(camera, domElement) {
     }
     if (e.touches.length === 2) {
       isDragging = false;
+      touchStartTime = 0; // prevent pinch-release from triggering tap heuristic
       const dx = e.touches[0].clientX - e.touches[1].clientX;
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       lastPinchDist = Math.sqrt(dx*dx + dy*dy);
@@ -906,6 +908,8 @@ function resetAnimation() {
 
 function saveGhostTrail() {
   if (!transitData || !transitData.displayX) return;
+  if (transitData._ghostSaved) return;  // prevent double-save on auto-fire + manual fire
+  transitData._ghostSaved = true;
   ghostTrails.unshift({
     displayX: Float32Array.from(transitData.displayX),
     sceneZ:   Float32Array.from(transitData.sceneZ),
@@ -1616,7 +1620,10 @@ function onReset() {
 
 function toggleSlow() {
   isSlow = !isSlow;
-  document.getElementById('slowBtn').textContent = isSlow ? 'SLOW: ON' : 'SLOW 0.1×';
+  const label = isSlow ? 'SLOW: ON' : 'SLOW 0.1×';
+  document.getElementById('slowBtn').textContent = label;
+  const mb = document.getElementById('mobileSlowBtn');
+  if (mb) mb.textContent = label;
 }
 
 function applyPresetByName(name) {
@@ -1779,6 +1786,11 @@ function toggleChallenge() {
     document.getElementById('gradVal').textContent = currentP.gradient;
     document.getElementById('ampText').value = currentP.aText;
     document.getElementById('deltaText').value = currentP.deltaText;
+    // Sync mobile sheet sliders
+    const _cs = [['muSlider2','muVal2',currentP.mu,null],['kdSlider2','kdVal2',currentP.kd,3],['gradSlider2','gradVal2',currentP.gradient,null]];
+    _cs.forEach(([sid,vid,val,dec]) => { const s=document.getElementById(sid); const v=document.getElementById(vid); if(s)s.value=val; if(v)v.textContent=dec!=null?val.toFixed(dec):val; });
+    const at2=document.getElementById('ampText2'); if(at2)at2.value=currentP.aText;
+    const dt2=document.getElementById('deltaText2'); if(dt2)dt2.value=currentP.deltaText;
     transitData = simulate(currentP);
     transitData = augmentWithHistory(transitData, currentP);
     updateStatsPanel();
@@ -1795,6 +1807,8 @@ function toggleChallenge() {
 
     btn.textContent = 'EXIT CHALLENGE';
     btn.classList.add('challenge-active');
+    const mbtn = document.getElementById('mobileChallengeBtn');
+    if (mbtn) { mbtn.textContent = 'EXIT CHALLENGE'; mbtn.classList.add('challenge-active'); }
 
     document.getElementById('scoreDisplay').style.display = 'block';
     document.getElementById('challengeOverlay').style.display = 'block';
@@ -1810,6 +1824,8 @@ function toggleChallenge() {
     });
     btn.textContent = 'CHALLENGE';
     btn.classList.remove('challenge-active');
+    const mbtn2 = document.getElementById('mobileChallengeBtn');
+    if (mbtn2) { mbtn2.textContent = 'CHALLENGE'; mbtn2.classList.remove('challenge-active'); }
     document.getElementById('scoreDisplay').style.display = 'none';
     document.getElementById('challengeOverlay').style.display = 'none';
     // Restore locked params
