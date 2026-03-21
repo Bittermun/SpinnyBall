@@ -266,6 +266,96 @@ input[type=text] {
   color: #f2cc60;
   z-index: 20;
 }
+/* ── Efficiency Mode Panel ─────────────────────────────── */
+#efficiencyPanel {
+  display: none;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 28px;
+  background: #0a0a0f;
+  color: #c0c8d8;
+  font-family: system-ui, sans-serif;
+  padding: 40px;
+  width: 100%;
+  height: 100%;
+  position: absolute;
+  top: 0; left: 0;
+  z-index: 5;
+}
+#effHeader {
+  font-size: 12px;
+  letter-spacing: 0.12em;
+  color: #8b949e;
+  text-transform: uppercase;
+}
+#effBars {
+  display: flex;
+  gap: 64px;
+  align-items: flex-end;
+  height: 280px;
+}
+.eff-col {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 10px;
+  width: 90px;
+}
+.eff-bar-wrap {
+  flex: 1;
+  width: 100%;
+  display: flex;
+  align-items: flex-end;
+  background: #1c2030;
+  border-radius: 4px 4px 0 0;
+  overflow: hidden;
+}
+.eff-bar {
+  width: 100%;
+  border-radius: 4px 4px 0 0;
+  transition: height 0.8s ease-out;
+  height: 0%;
+}
+#latBar  { background: #3fb950; }
+#dragBar { background: #f85149; }
+.eff-label {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  color: #8b949e;
+  text-transform: uppercase;
+}
+.eff-value { font-size: 13px; font-family: monospace; color: #c0c8d8; }
+#effStreamRow {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  font-size: 12px;
+  width: 100%;
+  max-width: 520px;
+}
+.eff-stream-label { color: #8b949e; white-space: nowrap; }
+#effStreamBar {
+  flex: 1;
+  height: 10px;
+  background: #1c2030;
+  border-radius: 3px;
+  overflow: hidden;
+}
+#effStreamFill {
+  height: 100%;
+  background: #79c0ff;
+  transition: width 0.8s ease-out;
+  width: 0%;
+}
+#effStreamVal { font-family: monospace; color: #79c0ff; white-space: nowrap; }
+#effRatio {
+  font-size: 17px;
+  color: #f2cc60;
+  text-align: center;
+  max-width: 520px;
+  line-height: 1.6;
+}
 </style>
 </head>
 <body>
@@ -294,6 +384,27 @@ input[type=text] {
     <div id="centerResultText"></div>
     <div id="challengeOverlay"></div>
     <div id="scoreDisplay"></div>
+    <div id="efficiencyPanel">
+      <div id="effHeader">EFFICIENCY COMPARISON</div>
+      <div id="effBars">
+        <div class="eff-col">
+          <div class="eff-bar-wrap"><div class="eff-bar" id="latBar"></div></div>
+          <div class="eff-label">LATERAL</div>
+          <div class="eff-value" id="latVal">—</div>
+        </div>
+        <div class="eff-col">
+          <div class="eff-bar-wrap"><div class="eff-bar" id="dragBar"></div></div>
+          <div class="eff-label">DRAG</div>
+          <div class="eff-value" id="dragVal">—</div>
+        </div>
+      </div>
+      <div id="effStreamRow">
+        <span class="eff-stream-label">Stream speed retained</span>
+        <div id="effStreamBar"><div id="effStreamFill"></div></div>
+        <span id="effStreamVal">—</span>
+      </div>
+      <div id="effRatio">—</div>
+    </div>
   </div>
 
   <div id="rightPanel">
@@ -897,10 +1008,10 @@ function updateCoilFlash(idx) {
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
-const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
+const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD', 'EFFICIENCY'];
 
 function cycleMode() {
-  currentMode = (currentMode + 1) % 3;
+  currentMode = (currentMode + 1) % 4;
   document.getElementById('modeBtn').textContent = 'MODE: ' + MODE_NAMES[currentMode];
   applyMode();
 }
@@ -932,6 +1043,29 @@ function applyMode() {
     if (dipoleGroup) dipoleGroup.visible = true;
     if (streamlineGroup) streamlineGroup.visible = false;
     orbitControls.setView(0.5, Math.PI / 3, 16); // side-angle: rings as ellipses + field lines around ball
+  } else if (currentMode === 3) {
+    // EFFICIENCY mode: hide 3D canvas, show comparison panel
+    inset.style.display = 'none';
+    if (arrowRed)  arrowRed.visible  = false;
+    if (arrowBlue) arrowBlue.visible = false;
+    if (dipoleGroup)     dipoleGroup.visible     = false;
+    if (streamlineGroup) streamlineGroup.visible = false;
+    ol.innerHTML = '';
+    renderer.domElement.style.display = 'none';
+    document.getElementById('efficiencyPanel').style.display = 'flex';
+    // Reset bars to 0% so CSS transition always animates from bottom
+    document.getElementById('latBar').style.height        = '0%';
+    document.getElementById('dragBar').style.height       = '0%';
+    document.getElementById('effStreamFill').style.width  = '0%';
+    // 50ms delay gives the CSS reset a frame to apply before animating up
+    setTimeout(updateEfficiencyPanel, 50);
+  }
+
+  // Always hide efficiency panel when not in mode 3
+  // (ensures modes 0-2 restore the canvas even if mode 3 was active)
+  if (currentMode !== 3) {
+    renderer.domElement.style.display = '';
+    document.getElementById('efficiencyPanel').style.display = 'none';
   }
 }
 
@@ -1080,6 +1214,79 @@ function showFinalStats() {
   if (challengeState.active) {
     evaluateChallengeResult(transitData.metrics.delta_vx);
   }
+  if (currentMode === 3) updateEfficiencyPanel();
+}
+
+// ── Efficiency panel helpers ────────────────────────────────
+function logBarFrac(E, logMin, logMax) {
+  // Returns 0.04–1.0 for bar height fraction.
+  // Floor at 0.04 so the lateral bar is always a visible sliver.
+  if (E <= 0 || logMax <= logMin) return 0.04;
+  const frac = (Math.log10(E) - logMin) / (logMax - logMin);
+  return Math.max(0.04, Math.min(1.0, frac));
+}
+
+function formatJoules(E) {
+  if (E <= 0)   return '0 J';
+  if (E < 1e-9) return (E * 1e12).toFixed(1) + ' pJ';
+  if (E < 1e-6) return (E * 1e9).toFixed(2) + ' nJ';
+  if (E < 1e-3) return (E * 1e6).toFixed(2) + ' uJ';
+  if (E < 1)    return (E * 1e3).toFixed(2) + ' mJ';
+  return E.toFixed(2) + ' J';
+}
+
+function updateEfficiencyPanel() {
+  // Guard: bail out gracefully if simulation hasn't produced valid data
+  if (!transitData
+      || transitData.exitIdx === undefined
+      || !transitData.VZ
+      || transitData.VZ.length <= transitData.exitIdx
+      || !transitData.metrics) {
+    return; // HTML defaults show "—" placeholders
+  }
+
+  const m        = currentP.m;
+  const vz0_snap = transitData.VZ[0];               // vz0 from sim snapshot
+  const dvx      = transitData.metrics.delta_vx;
+  const vzf      = transitData.VZ[transitData.exitIdx];
+
+  // Zero-steering guard
+  if (Math.abs(dvx) < 1e-15) {
+    document.getElementById('latVal').textContent   = '0 J';
+    document.getElementById('dragVal').textContent  = '0 J';
+    document.getElementById('effRatio').textContent = 'No steering applied';
+    document.getElementById('latBar').style.height        = '4%';
+    document.getElementById('dragBar').style.height       = '4%';
+    document.getElementById('effStreamFill').style.width  = '100%';
+    document.getElementById('effStreamVal').textContent   = vz0_snap.toFixed(1) + ' m/s';
+    return;
+  }
+
+  const E_lat  = 0.5 * m * dvx * dvx;
+  const E_drag = m * vz0_snap * Math.abs(dvx);
+  const ratio  = E_drag / E_lat;  // = 2 * vz0 / |dvx|
+
+  const logMin = Math.log10(Math.max(E_lat,  1e-40)) - 1.0;
+  const logMax = Math.log10(Math.max(E_drag, 1e-40)) + 0.5;
+
+  document.getElementById('latBar').style.height  =
+    (logBarFrac(E_lat,  logMin, logMax) * 100) + '%';
+  document.getElementById('dragBar').style.height =
+    (logBarFrac(E_drag, logMin, logMax) * 100) + '%';
+
+  document.getElementById('latVal').textContent  = formatJoules(E_lat);
+  document.getElementById('dragVal').textContent = formatJoules(E_drag);
+
+  const stream_retained = vzf / vz0_snap;
+  document.getElementById('effStreamFill').style.width =
+    (stream_retained * 100).toFixed(4) + '%';
+  document.getElementById('effStreamVal').textContent = vzf.toFixed(1) + ' m/s';
+
+  const ratioStr = ratio >= 1e6
+    ? (ratio / 1e6).toFixed(2) + ' million'
+    : Math.round(ratio).toLocaleString();
+  document.getElementById('effRatio').textContent =
+    'Lateral steering is ' + ratioStr + 'x more energy-efficient than drag braking';
 }
 
 function showCenterResult(dvx) {
