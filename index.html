@@ -290,6 +290,108 @@ input[type=text] {
 #epyDragBar { background: #f85149; }
 .epy-val { color: #c0c8d8; min-width: 52px; text-align: right; font-size: 10px; }
 #epyRatio { color: #f2cc60; text-align: center; margin-top: 7px; border-top: 1px solid #223; padding-top: 6px; font-size: 10px; line-height: 1.5; }
+
+/* ── Mobile layout (≤768px) ──────────────────────────────── */
+@media (max-width: 768px) {
+  #rightPanel { display: none; }
+  #bottomBar  { display: none; }
+
+  #mainArea { flex-direction: column; position: relative; }
+
+  #mobileActionBar {
+    display: flex;
+    align-items: center;
+    background: #111118;
+    border-top: 1px solid #223;
+    padding: 6px 12px;
+    gap: 8px;
+    flex-shrink: 0;
+    z-index: 10;
+  }
+  #mobileStatus {
+    flex: 1;
+    font-size: 11px;
+    color: #556;
+    font-family: 'Courier New', monospace;
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  #mobileSheet {
+    display: flex;
+    flex-direction: column;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    background: #111118;
+    border-top: 1px solid #334;
+    border-radius: 12px 12px 0 0;
+    height: 85vh;
+    transform: translateY(calc(100% - 180px));
+    transition: transform 0.3s ease;
+    z-index: 50;
+  }
+  #mobileSheet.expanded  { transform: translateY(0); }
+  #mobileSheet.collapsed { transform: translateY(calc(100% - 48px)); }
+
+  #sheetHandle {
+    width: 40px; height: 4px;
+    background: #445;
+    border-radius: 2px;
+    margin: 10px auto 8px;
+    flex-shrink: 0;
+    touch-action: none;
+    cursor: grab;
+  }
+
+  #sheetSecondaryRow {
+    display: flex;
+    gap: 6px;
+    padding: 0 10px 8px;
+    flex-wrap: wrap;
+    flex-shrink: 0;
+  }
+
+  #sheetContent {
+    overflow-y: auto;
+    flex: 1;
+    padding: 0 10px 20px;
+    touch-action: pan-y;
+  }
+
+  #insetCanvas {
+    bottom: auto;
+    top: 10px;
+    left: 10px;
+  }
+
+  #scoreDisplay {
+    top: 50px;
+    right: 8px;
+    font-size: 11px;
+    padding: 6px 8px;
+  }
+
+  #efficiencyPanel { padding: 16px 12px; gap: 14px; }
+  #effBars { height: 120px; gap: 24px; }
+  .eff-col { width: 70px; }
+  #effStreamRow { font-size: 11px; }
+  #effRatio { font-size: 13px; }
+
+  .btn, .top-btn { min-height: 44px; padding: 10px 16px; font-size: 13px; }
+  input[type=range] { height: 28px; }
+  .param-label   { font-size: 13px; }
+  .stat-row      { font-size: 12px; }
+  .section-title { font-size: 11px; }
+  #topbar h1 { font-size: 12px; }
+  #topbar    { padding: 4px 10px; gap: 6px; }
+}
+
+@media (min-width: 769px) {
+  #mobileActionBar { display: none; }
+  #mobileSheet     { display: none; }
+}
 </style>
 </head>
 <body>
@@ -389,6 +491,13 @@ input[type=text] {
   </div>
 </div>
 
+<!-- Mobile action bar: FIRE + RESET + status (hidden on desktop) -->
+<div id="mobileActionBar">
+  <button class="btn fire" id="mobileFireBtn" onclick="onFire()">&#9654; FIRE</button>
+  <button class="btn" onclick="onReset()">RESET</button>
+  <span id="mobileStatus">Ready &#8212; press FIRE to launch.</span>
+</div>
+
 <div id="bottomBar">
   <button class="btn fire" id="fireBtn" onclick="onFire()">&#9654; FIRE</button>
   <button class="btn" onclick="onReset()">RESET</button>
@@ -481,6 +590,65 @@ function makeOrbitControls(camera, domElement) {
   domElement.addEventListener('mouseup', () => isDragging = false);
   domElement.addEventListener('mouseleave', () => isDragging = false);
   domElement.addEventListener('wheel', e => { radius = Math.max(5, Math.min(40, radius + e.deltaY * 0.02)); update(); }, { passive: true });
+
+  // Touch orbit controls
+  let lastPinchDist = 0;
+  let touchStartX = 0, touchStartY = 0, touchStartTime = 0;
+
+  domElement.addEventListener('touchstart', e => {
+    if (e.touches.length === 1) {
+      isDragging = true;
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+      touchStartX = lastX;
+      touchStartY = lastY;
+      touchStartTime = Date.now();
+    }
+    if (e.touches.length === 2) {
+      isDragging = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      lastPinchDist = Math.sqrt(dx*dx + dy*dy);
+    }
+  }, { passive: true });
+
+  domElement.addEventListener('touchmove', e => {
+    if (e.touches.length === 1 && isDragging) {
+      theta -= (e.touches[0].clientX - lastX) * 0.01;
+      phi = Math.max(0.1, Math.min(Math.PI - 0.1,
+            phi - (e.touches[0].clientY - lastY) * 0.01));
+      lastX = e.touches[0].clientX;
+      lastY = e.touches[0].clientY;
+      update();
+    } else if (e.touches.length === 2) {
+      isDragging = false;
+      const dx = e.touches[0].clientX - e.touches[1].clientX;
+      const dy = e.touches[0].clientY - e.touches[1].clientY;
+      const dist = Math.sqrt(dx*dx + dy*dy);
+      if (lastPinchDist > 0) {
+        radius = Math.max(5, Math.min(40, radius - (dist - lastPinchDist) * 0.05));
+        update();
+      }
+      lastPinchDist = dist;
+    }
+  }, { passive: true });
+
+  domElement.addEventListener('touchend', e => {
+    if (e.touches.length === 0) {
+      const moved = Math.abs(e.changedTouches[0].clientX - touchStartX) +
+                    Math.abs(e.changedTouches[0].clientY - touchStartY);
+      if (Date.now() - touchStartTime < 200 && moved < 10) {
+        const sheet = document.getElementById('mobileSheet');
+        if (sheet && !sheet.classList.contains('collapsed')) {
+          sheet.classList.remove('expanded');
+          sheet.classList.add('collapsed');
+        }
+      }
+      isDragging = false;
+      lastPinchDist = 0;
+    }
+  }, { passive: true });
+
   return { update, getTheta: () => theta, getPhi: () => phi, getRadius: () => radius,
            setView: (t,p,r) => { theta=t; phi=p; radius=r; update(); } };
 }
@@ -1145,6 +1313,15 @@ function updateStatsPanel() {
   }
   document.getElementById('s_pkf').textContent = m.peakFx.toFixed(1) + ' N';
   document.getElementById('s_eloss').textContent = m.E_loss.toFixed(2) + ' J';
+  // Mirror to mobile sheet stats
+  ['dvx','dvz','dx','imp','eta','pkf','eloss','rim'].forEach(key => {
+    const src = document.getElementById('s_' + key);
+    const dst = document.getElementById('s_' + key + '2');
+    if (src && dst) { dst.textContent = src.textContent; dst.className = src.className; }
+  });
+  const wb  = document.getElementById('warningBanner');
+  const wb2 = document.getElementById('warningBanner2');
+  if (wb && wb2) { wb2.innerHTML = wb.innerHTML; wb2.style.cssText = wb.style.cssText; }
 }
 
 function showFinalStats() {
@@ -1461,6 +1638,24 @@ function applyPresetByName(name) {
   document.getElementById('ampText').value = currentP.aText;
   document.getElementById('deltaText').value = currentP.deltaText;
 
+  // Sync mobile sheet sliders
+  const _mobileSync = [
+    ['muSlider2','muVal2', currentP.mu, null],
+    ['rpmSlider2','rpmVal2', currentP.rpm, null],
+    ['kdSlider2','kdVal2', currentP.kd, 3],
+    ['gradSlider2','gradVal2', currentP.gradient, null],
+  ];
+  _mobileSync.forEach(([sliderId, valId, val, dec]) => {
+    const s = document.getElementById(sliderId);
+    const v = document.getElementById(valId);
+    if (s) s.value = val;
+    if (v) v.textContent = dec != null ? val.toFixed(dec) : val;
+  });
+  const ampText2 = document.getElementById('ampText2');
+  const deltaText2 = document.getElementById('deltaText2');
+  if (ampText2) ampText2.value = currentP.aText;
+  if (deltaText2) deltaText2.value = currentP.deltaText;
+
   lastPresetName = name;
   onParamChange();
 }
@@ -1585,8 +1780,9 @@ function toggleChallenge() {
 
     challengeState.lockedParams = readParams();
 
-    // Disable all sliders/inputs except deltaText
-    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText'].forEach(id => {
+    // Disable all sliders/inputs except deltaText (desktop + mobile)
+    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText',
+     'muSlider2','rpmSlider2','kdSlider2','gradSlider2','vzSlider2','sigSlider2','ampText2'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.disabled = true;
     });
@@ -1601,7 +1797,8 @@ function toggleChallenge() {
   } else {
     // Restore
     challengeState.active = false;
-    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText'].forEach(id => {
+    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText',
+     'muSlider2','rpmSlider2','kdSlider2','gradSlider2','vzSlider2','sigSlider2','ampText2'].forEach(id => {
       const el = document.getElementById(id);
       if (el) el.disabled = false;
     });
@@ -1718,6 +1915,8 @@ function checkBoreField(td) {
 // ============================================================
 function setStatus(msg) {
   document.getElementById('statusBar').textContent = msg;
+  const ms = document.getElementById('mobileStatus');
+  if (ms) ms.textContent = msg;
 }
 
 // ============================================================
@@ -1990,10 +2189,111 @@ function init() {
   // Apply mode visuals then auto-fire
   applyMode();
   autoFire();
+  initSheetDrag();
   setStatus('Ready — launching...');
+}
+
+// ============================================================
+// MOBILE — sheet drag
+// ============================================================
+function initSheetDrag() {
+  const sheet  = document.getElementById('mobileSheet');
+  const handle = document.getElementById('sheetHandle');
+  if (!sheet || !handle) return;
+
+  let startY = 0, startTranslate = 0;
+
+  function getTranslate() {
+    const matrix = new DOMMatrixReadOnly(window.getComputedStyle(sheet).transform);
+    return matrix.m42;
+  }
+
+  handle.addEventListener('touchstart', e => {
+    startY = e.touches[0].clientY;
+    startTranslate = getTranslate();
+    sheet.style.transition = 'none';
+  }, { passive: true });
+
+  handle.addEventListener('touchmove', e => {
+    const dy = e.touches[0].clientY - startY;
+    const newY = Math.max(0, startTranslate + dy);
+    sheet.style.transform = `translateY(${newY}px)`;
+  }, { passive: true });
+
+  handle.addEventListener('touchend', e => {
+    sheet.style.transition = '';
+    const dy = e.changedTouches[0].clientY - startY;
+    sheet.classList.remove('expanded', 'collapsed');
+    sheet.style.transform = '';
+    if (dy < -60)     sheet.classList.add('expanded');
+    else if (dy > 60) sheet.classList.add('collapsed');
+  }, { passive: true });
 }
 
 // init() is called by the Three.js onload handler above — do not call here
 </script>
+
+<!-- Mobile bottom sheet (hidden on desktop) -->
+<div id="mobileSheet">
+  <div id="sheetHandle"></div>
+  <div id="sheetSecondaryRow">
+    <button class="btn" id="mobileSlowBtn" onclick="toggleSlow()">SLOW 0.1&#215;</button>
+    <button class="btn" onclick="applyPresetByName('symmetric')">SYMMETRIC</button>
+    <button class="btn" onclick="onValidate()">VALIDATE</button>
+    <button class="btn" onclick="onShare()">SHARE</button>
+    <button class="btn" id="mobileChallengeBtn" onclick="toggleChallenge()">CHALLENGE</button>
+  </div>
+  <div id="sheetContent">
+    <div class="panel-section">
+      <div class="section-title">Parameters</div>
+      <div class="param-row">
+        <div class="param-label">&#956; (magnetic moment) <span id="muVal2">60</span> A&#183;m&#178;</div>
+        <input type="range" id="muSlider2" min="0" max="200" step="1" value="60" oninput="document.getElementById('muSlider').value=this.value;onSlider('mu',this.value,'muVal');document.getElementById('muVal2').textContent=this.value">
+      </div>
+      <div class="param-row">
+        <div class="param-label">RPM <span id="rpmVal2">50000</span></div>
+        <input type="range" id="rpmSlider2" min="1000" max="150000" step="1000" value="50000" oninput="document.getElementById('rpmSlider').value=this.value;onSlider('rpm',this.value,'rpmVal');document.getElementById('rpmVal2').textContent=this.value">
+      </div>
+      <div class="param-row">
+        <div class="param-label">k_drag <span id="kdVal2">0</span></div>
+        <input type="range" id="kdSlider2" min="0" max="0.2" step="0.005" value="0" oninput="document.getElementById('kdSlider').value=this.value;onSlider('kd',this.value,'kdVal',3);document.getElementById('kdVal2').textContent=parseFloat(this.value).toFixed(3)">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Gradient (T/m) <span id="gradVal2">50</span></div>
+        <input type="range" id="gradSlider2" min="1" max="200" step="1" value="50" oninput="document.getElementById('gradSlider').value=this.value;onSlider('gradient',this.value,'gradVal');document.getElementById('gradVal2').textContent=this.value">
+      </div>
+      <div class="param-row">
+        <div class="param-label">v_z0 (m/s) <span id="vzVal2">15000</span></div>
+        <input type="range" id="vzSlider2" min="1000" max="50000" step="500" value="15000" oninput="document.getElementById('vzSlider').value=this.value;onSlider('vz0',this.value,'vzVal');document.getElementById('vzVal2').textContent=this.value">
+      </div>
+      <div class="param-row">
+        <div class="param-label">&#963; pulse (&#956;s) <span id="sigVal2">50</span></div>
+        <input type="range" id="sigSlider2" min="5" max="200" step="5" value="50" oninput="document.getElementById('sigSlider').value=this.value;onSlider('sigma_us',this.value,'sigVal');document.getElementById('sigVal2').textContent=this.value">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Amplitudes (comma sep)</div>
+        <input type="text" id="ampText2" value="1.0,1.1,1.2,1.0,0.9,0.8" oninput="document.getElementById('ampText').value=this.value;onTextParamDebounced('amp',this.value)">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Timing offsets (&#956;s)</div>
+        <input type="text" id="deltaText2" value="0,2,-1,1,-2,0" oninput="document.getElementById('deltaText').value=this.value;onTextParamDebounced('delta',this.value)">
+      </div>
+    </div>
+    <div class="panel-section">
+      <div class="section-title">Stats</div>
+      <div class="stat-row"><span class="stat-label">&#916;vx (physics)</span><span class="stat-val" id="s_dvx2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">&#916;vz (drag loss)</span><span class="stat-val" id="s_dvz2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Displacement x</span><span class="stat-val" id="s_dx2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Impulse |p|</span><span class="stat-val" id="s_imp2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Steering &#951;</span><span class="stat-val" id="s_eta2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Peak force</span><span class="stat-val" id="s_pkf2">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">E_loss</span><span class="stat-val" id="s_eloss2">&#8212;</span></div>
+      <hr style="border-color:#223; margin: 4px 0">
+      <div class="stat-row"><span class="stat-label">Rim speed</span><span class="stat-val" id="s_rim2">&#8212;</span></div>
+      <div id="warningBanner2"></div>
+    </div>
+  </div>
+</div>
+
 </body>
 </html>
