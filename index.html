@@ -266,96 +266,30 @@ input[type=text] {
   color: #f2cc60;
   z-index: 20;
 }
-/* ── Efficiency Mode Panel ─────────────────────────────── */
-#efficiencyPanel {
+/* ── Energy Panel (floating overlay, bottom-left of canvas) */
+#energyPanel {
   display: none;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 28px;
-  background: #0a0a0f;
-  color: #c0c8d8;
-  font-family: system-ui, sans-serif;
-  padding: 40px;
-  width: 100%;
-  height: 100%;
   position: absolute;
-  top: 0; left: 0;
-  z-index: 5;
-}
-#effHeader {
-  font-size: 12px;
-  letter-spacing: 0.12em;
-  color: #8b949e;
-  text-transform: uppercase;
-}
-#effBars {
-  display: flex;
-  gap: 64px;
-  align-items: flex-end;
-  height: 280px;
-}
-.eff-col {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 10px;
-  width: 90px;
-}
-.eff-bar-wrap {
-  flex: 1;
-  width: 100%;
-  display: flex;
-  align-items: flex-end;
-  background: #1c2030;
-  border-radius: 4px 4px 0 0;
-  overflow: hidden;
-}
-.eff-bar {
-  width: 100%;
-  border-radius: 4px 4px 0 0;
-  transition: height 0.8s ease-out;
-  height: 0%;
-}
-#latBar  { background: #3fb950; }
-#dragBar { background: #f85149; }
-.eff-label {
+  bottom: 12px; left: 12px;
+  background: rgba(10,10,15,0.92);
+  border: 1px solid #334;
+  border-radius: 6px;
+  padding: 12px 14px;
+  z-index: 10;
   font-size: 11px;
-  letter-spacing: 0.08em;
-  color: #8b949e;
-  text-transform: uppercase;
+  font-family: monospace;
+  color: #c0c8d8;
+  min-width: 230px;
+  pointer-events: none;
 }
-.eff-value { font-size: 13px; font-family: monospace; color: #c0c8d8; }
-#effStreamRow {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  font-size: 12px;
-  width: 100%;
-  max-width: 520px;
-}
-.eff-stream-label { color: #8b949e; white-space: nowrap; }
-#effStreamBar {
-  flex: 1;
-  height: 10px;
-  background: #1c2030;
-  border-radius: 3px;
-  overflow: hidden;
-}
-#effStreamFill {
-  height: 100%;
-  background: #79c0ff;
-  transition: width 0.8s ease-out;
-  width: 0%;
-}
-#effStreamVal { font-family: monospace; color: #79c0ff; white-space: nowrap; }
-#effRatio {
-  font-size: 17px;
-  color: #f2cc60;
-  text-align: center;
-  max-width: 520px;
-  line-height: 1.6;
-}
+.epy-row { display: flex; align-items: center; gap: 8px; margin-bottom: 5px; }
+.epy-label { color: #8b949e; width: 80px; flex-shrink: 0; font-size: 10px; letter-spacing: 0.06em; text-transform: uppercase; }
+.epy-bar-wrap { flex: 1; height: 7px; background: #1c2030; border-radius: 2px; overflow: hidden; }
+.epy-bar { height: 100%; border-radius: 2px; transition: width 0.6s ease-out; width: 0%; }
+#epyLatBar  { background: #3fb950; }
+#epyDragBar { background: #f85149; }
+.epy-val { color: #c0c8d8; min-width: 52px; text-align: right; font-size: 10px; }
+#epyRatio { color: #f2cc60; text-align: center; margin-top: 7px; border-top: 1px solid #223; padding-top: 6px; font-size: 10px; line-height: 1.5; }
 </style>
 </head>
 <body>
@@ -384,26 +318,18 @@ input[type=text] {
     <div id="centerResultText"></div>
     <div id="challengeOverlay"></div>
     <div id="scoreDisplay"></div>
-    <div id="efficiencyPanel">
-      <div id="effHeader">EFFICIENCY COMPARISON</div>
-      <div id="effBars">
-        <div class="eff-col">
-          <div class="eff-bar-wrap"><div class="eff-bar" id="latBar"></div></div>
-          <div class="eff-label">LATERAL</div>
-          <div class="eff-value" id="latVal">—</div>
-        </div>
-        <div class="eff-col">
-          <div class="eff-bar-wrap"><div class="eff-bar" id="dragBar"></div></div>
-          <div class="eff-label">DRAG</div>
-          <div class="eff-value" id="dragVal">—</div>
-        </div>
+    <div id="energyPanel">
+      <div class="epy-row">
+        <span class="epy-label">Lateral</span>
+        <div class="epy-bar-wrap"><div class="epy-bar" id="epyLatBar"></div></div>
+        <span class="epy-val" id="epyLatVal">—</span>
       </div>
-      <div id="effStreamRow">
-        <span class="eff-stream-label">Stream speed retained</span>
-        <div id="effStreamBar"><div id="effStreamFill"></div></div>
-        <span id="effStreamVal">—</span>
+      <div class="epy-row">
+        <span class="epy-label">Drag equiv.</span>
+        <div class="epy-bar-wrap"><div class="epy-bar" id="epyDragBar"></div></div>
+        <span class="epy-val" id="epyDragVal">—</span>
       </div>
-      <div id="effRatio">—</div>
+      <div id="epyRatio">—</div>
     </div>
   </div>
 
@@ -471,6 +397,7 @@ input[type=text] {
   <button class="btn" onclick="onValidate()">VALIDATE</button>
   <button class="btn" onclick="onShare()">SHARE</button>
   <button class="btn" id="challengeBtn" onclick="toggleChallenge()">CHALLENGE</button>
+  <button class="btn" id="energyBtn" onclick="toggleEnergy()">ENERGY</button>
   <div id="statusBar">Ready &#8212; press FIRE to launch.</div>
 </div>
 
@@ -803,8 +730,46 @@ function resetAnimation() {
   if (typeof visualEffectsManager !== 'undefined') visualEffectsManager.reset();
 }
 
+function saveGhostTrail() {
+  if (!transitData || !transitData.displayX) return;
+  ghostTrails.unshift({
+    displayX: Float32Array.from(transitData.displayX),
+    sceneZ:   Float32Array.from(transitData.sceneZ),
+  });
+  if (ghostTrails.length > MAX_GHOSTS) ghostTrails.pop();
+  rebuildGhostLines();
+}
+
+function rebuildGhostLines() {
+  if (!scene) return;
+  ghostLines.forEach(l => scene.remove(l));
+  ghostLines = [];
+  const opacities = [0.30, 0.18, 0.08];
+  ghostTrails.forEach((ghost, i) => {
+    const n = ghost.displayX.length;
+    const pos = new Float32Array(n * 3);
+    for (let j = 0; j < n; j++) {
+      pos[j*3]   = ghost.displayX[j];
+      pos[j*3+1] = 0;
+      pos[j*3+2] = ghost.sceneZ[j];
+    }
+    const geo = new THREE.BufferGeometry();
+    geo.setAttribute('position', new THREE.BufferAttribute(pos, 3));
+    const mat = new THREE.LineBasicMaterial({
+      color: 0x4488cc,
+      transparent: true,
+      opacity: opacities[i] ?? 0.08,
+    });
+    const line = new THREE.Line(geo, mat);
+    scene.add(line);
+    ghostLines.push(line);
+  });
+}
+
 function autoFire() {
   if (!transitData) return;
+  saveGhostTrail();          // archive previous run before overwriting
+  transitData._statsShown = false;
   frameCursor = 0;
   currentFrameIndex = 0;
   isAnimating = true;
@@ -830,6 +795,10 @@ let ballMesh;
 let trailGeo, trailMat, trailLine;
 let arrowRed, arrowBlue;
 let streamlineGroup;
+// Ghost trails (up to 3 previous runs, fading with age)
+const MAX_GHOSTS = 3;
+let ghostTrails = []; // [{displayX, sceneZ}, ...]
+let ghostLines  = []; // THREE.Line objects in scene
 let COIL_COLOR_DEFAULT, COIL_EMISSIVE_DEFAULT, COIL_EMISSIVE_ACTIVE;
 
 const coilMeshes = [];
@@ -1008,10 +977,10 @@ function updateCoilFlash(idx) {
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
-const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD', 'EFFICIENCY'];
+const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
 
 function cycleMode() {
-  currentMode = (currentMode + 1) % 4;
+  currentMode = (currentMode + 1) % 3;
   document.getElementById('modeBtn').textContent = 'MODE: ' + MODE_NAMES[currentMode];
   applyMode();
 }
@@ -1043,29 +1012,6 @@ function applyMode() {
     if (dipoleGroup) dipoleGroup.visible = true;
     if (streamlineGroup) streamlineGroup.visible = false;
     orbitControls.setView(0.5, Math.PI / 3, 16); // side-angle: rings as ellipses + field lines around ball
-  } else if (currentMode === 3) {
-    // EFFICIENCY mode: hide 3D canvas, show comparison panel
-    inset.style.display = 'none';
-    if (arrowRed)  arrowRed.visible  = false;
-    if (arrowBlue) arrowBlue.visible = false;
-    if (dipoleGroup)     dipoleGroup.visible     = false;
-    if (streamlineGroup) streamlineGroup.visible = false;
-    ol.innerHTML = '';
-    renderer.domElement.style.display = 'none';
-    document.getElementById('efficiencyPanel').style.display = 'flex';
-    // Reset bars to 0% so CSS transition always animates from bottom
-    document.getElementById('latBar').style.height        = '0%';
-    document.getElementById('dragBar').style.height       = '0%';
-    document.getElementById('effStreamFill').style.width  = '0%';
-    // 50ms delay gives the CSS reset a frame to apply before animating up
-    setTimeout(updateEfficiencyPanel, 50);
-  }
-
-  // Always hide efficiency panel when not in mode 3
-  // (ensures modes 0-2 restore the canvas even if mode 3 was active)
-  if (currentMode !== 3) {
-    renderer.domElement.style.display = '';
-    document.getElementById('efficiencyPanel').style.display = 'none';
   }
 }
 
@@ -1214,16 +1160,17 @@ function showFinalStats() {
   if (challengeState.active) {
     evaluateChallengeResult(transitData.metrics.delta_vx);
   }
-  if (currentMode === 3) updateEfficiencyPanel();
+  updateEnergyPanel();
 }
 
-// ── Efficiency panel helpers ────────────────────────────────
-function logBarFrac(E, logMin, logMax) {
-  // Returns 0.04–1.0 for bar height fraction.
-  // Floor at 0.04 so the lateral bar is always a visible sliver.
-  if (E <= 0 || logMax <= logMin) return 0.04;
-  const frac = (Math.log10(E) - logMin) / (logMax - logMin);
-  return Math.max(0.04, Math.min(1.0, frac));
+// ── Energy panel (floating overlay) ────────────────────────
+let energyVisible = false;
+
+function toggleEnergy() {
+  energyVisible = !energyVisible;
+  document.getElementById('energyPanel').style.display = energyVisible ? 'block' : 'none';
+  document.getElementById('energyBtn').classList.toggle('active', energyVisible);
+  if (energyVisible) updateEnergyPanel();
 }
 
 function formatJoules(E) {
@@ -1235,58 +1182,48 @@ function formatJoules(E) {
   return E.toFixed(2) + ' J';
 }
 
-function updateEfficiencyPanel() {
-  // Guard: bail out gracefully if simulation hasn't produced valid data
+function updateEnergyPanel() {
+  if (!energyVisible) return;
   if (!transitData
       || transitData.exitIdx === undefined
       || !transitData.VZ
       || transitData.VZ.length <= transitData.exitIdx
-      || !transitData.metrics) {
-    return; // HTML defaults show "—" placeholders
-  }
+      || !transitData.metrics) return;
 
   const m        = currentP.m;
-  const vz0_snap = transitData.VZ[0];               // vz0 from sim snapshot
+  const vz0_snap = transitData.VZ[0];
   const dvx      = transitData.metrics.delta_vx;
-  const vzf      = transitData.VZ[transitData.exitIdx];
 
-  // Zero-steering guard
   if (Math.abs(dvx) < 1e-15) {
-    document.getElementById('latVal').textContent   = '0 J';
-    document.getElementById('dragVal').textContent  = '0 J';
-    document.getElementById('effRatio').textContent = 'No steering applied';
-    document.getElementById('latBar').style.height        = '4%';
-    document.getElementById('dragBar').style.height       = '4%';
-    document.getElementById('effStreamFill').style.width  = '100%';
-    document.getElementById('effStreamVal').textContent   = vz0_snap.toFixed(1) + ' m/s';
+    document.getElementById('epyLatVal').textContent  = '0 J';
+    document.getElementById('epyDragVal').textContent = '0 J';
+    document.getElementById('epyRatio').textContent   = 'No steering applied';
+    document.getElementById('epyLatBar').style.width  = '4%';
+    document.getElementById('epyDragBar').style.width = '4%';
     return;
   }
 
   const E_lat  = 0.5 * m * dvx * dvx;
   const E_drag = m * vz0_snap * Math.abs(dvx);
-  const ratio  = E_drag / E_lat;  // = 2 * vz0 / |dvx|
+  const ratio  = E_drag / E_lat;
 
-  const logMin = Math.log10(Math.max(E_lat,  1e-40)) - 1.0;
-  const logMax = Math.log10(Math.max(E_drag, 1e-40)) + 0.5;
+  // Log-scale bar widths: drag = 100%, lateral = fraction of log range
+  const logMin = Math.log10(Math.max(E_lat,  1e-40)) - 0.5;
+  const logMax = Math.log10(Math.max(E_drag, 1e-40)) + 0.1;
+  const latFrac = logMin < logMax
+    ? Math.max(0.03, (Math.log10(E_lat) - logMin) / (logMax - logMin))
+    : 0.03;
 
-  document.getElementById('latBar').style.height  =
-    (logBarFrac(E_lat,  logMin, logMax) * 100) + '%';
-  document.getElementById('dragBar').style.height =
-    (logBarFrac(E_drag, logMin, logMax) * 100) + '%';
-
-  document.getElementById('latVal').textContent  = formatJoules(E_lat);
-  document.getElementById('dragVal').textContent = formatJoules(E_drag);
-
-  const stream_retained = vzf / vz0_snap;
-  document.getElementById('effStreamFill').style.width =
-    (stream_retained * 100).toFixed(4) + '%';
-  document.getElementById('effStreamVal').textContent = vzf.toFixed(1) + ' m/s';
+  document.getElementById('epyLatBar').style.width  = (latFrac * 100).toFixed(1) + '%';
+  document.getElementById('epyDragBar').style.width = '100%';
+  document.getElementById('epyLatVal').textContent  = formatJoules(E_lat);
+  document.getElementById('epyDragVal').textContent = formatJoules(E_drag);
 
   const ratioStr = ratio >= 1e6
-    ? (ratio / 1e6).toFixed(2) + ' million'
+    ? (ratio / 1e6).toFixed(1) + 'M'
     : Math.round(ratio).toLocaleString();
-  document.getElementById('effRatio').textContent =
-    'Lateral steering is ' + ratioStr + 'x more energy-efficient than drag braking';
+  document.getElementById('epyRatio').textContent =
+    'Lateral is ' + ratioStr + 'x more efficient than drag';
 }
 
 function showCenterResult(dvx) {
@@ -1445,6 +1382,7 @@ function drawInsetProgressive(td, upToIdx) {
 // BUTTONS
 // ============================================================
 function onFire() {
+  saveGhostTrail();
   if (!transitData) {
     currentP = readParams();
     transitData = simulate(currentP);
@@ -1453,6 +1391,7 @@ function onFire() {
     checkBoreField(transitData);
     updateModeAssets();
   }
+  transitData._statsShown = false;
   frameCursor = 0;
   currentFrameIndex = 0;
   isAnimating = true;
@@ -1905,11 +1844,15 @@ function renderLoop(now) {
     }
     updateOverlayText(currentFrameIndex);
 
-    // Stop at array exit (exitIdx), not at end of tmargin tail
-    if (currentFrameIndex >= transitData.exitIdx) {
-      currentFrameIndex = transitData.exitIdx;
-      isAnimating = false;
+    // Fire stats when ball exits coil array (exitIdx)
+    if (!transitData._statsShown && currentFrameIndex >= transitData.exitIdx) {
+      transitData._statsShown = true;
       showFinalStats();
+    }
+    // Let ball continue into space until end of simulation data, then stop
+    if (currentFrameIndex >= transitData.T.length - 1) {
+      currentFrameIndex = transitData.T.length - 1;
+      isAnimating = false;
     }
   }
 
