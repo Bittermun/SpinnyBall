@@ -196,6 +196,7 @@ input[type=text] {
 .btn:disabled { opacity: 0.4; cursor: not-allowed; }
 .btn.fire { border-color: #f2cc60; color: #f2cc60; }
 .btn.fire:hover:not(:disabled) { background: #2a1a00; }
+.btn.challenge-active { border-color: #ff7b72; color: #ff7b72; }
 #statusBar {
   flex: 1;
   font-size: 11px;
@@ -230,6 +231,41 @@ input[type=text] {
   text-align: center;
   margin-top: 3px;
 }
+#centerResultText {
+  display: none;
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 28px;
+  font-family: monospace;
+  color: #7ee787;
+  text-shadow: 0 0 20px #7ee787;
+  pointer-events: none;
+  text-align: center;
+  z-index: 20;
+}
+#challengeOverlay {
+  display: none;
+  position: absolute;
+  top: 0; left: 0;
+  width: 100%; height: 100%;
+  pointer-events: none;
+  z-index: 15;
+}
+#scoreDisplay {
+  display: none;
+  position: absolute;
+  top: 10px; right: 10px;
+  background: rgba(10,10,20,0.85);
+  border: 1px solid #334;
+  border-radius: 4px;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-family: monospace;
+  color: #f2cc60;
+  z-index: 20;
+}
 </style>
 </head>
 <body>
@@ -238,7 +274,7 @@ input[type=text] {
   <h1>SGMS — <span>Spin-Gyro Magnetic Steering</span></h1>
   <button class="top-btn" id="modeBtn" onclick="cycleMode()">MODE: FORCES</button>
   <div id="presetWrapper">
-    <button class="top-btn" id="presetBtn" onclick="togglePresetMenu()">PRESET ▾</button>
+    <button class="top-btn" id="presetBtn" onclick="togglePresetMenu()">PRESET &#9662;</button>
     <div id="presetDropdown">
       <div class="preset-item" onclick="applyPresetByName('default')">Default (asymmetric)</div>
       <div class="preset-item" onclick="applyPresetByName('symmetric')">Symmetric (zero steering)</div>
@@ -253,8 +289,11 @@ input[type=text] {
 <div id="mainArea">
   <div id="canvasWrap">
     <canvas id="threeCanvas"></canvas>
-    <canvas id="insetCanvas" width="160" height="240"></canvas>
+    <canvas id="insetCanvas" width="220" height="320"></canvas>
     <div id="overlayLabels"></div>
+    <div id="centerResultText"></div>
+    <div id="challengeOverlay"></div>
+    <div id="scoreDisplay"></div>
   </div>
 
   <div id="rightPanel">
@@ -262,7 +301,7 @@ input[type=text] {
       <div class="section-title">Parameters</div>
 
       <div class="param-row">
-        <div class="param-label">μ (magnetic moment) <span id="muVal">60</span> A·m²</div>
+        <div class="param-label">&#956; (magnetic moment) <span id="muVal">60</span> A&#183;m&#178;</div>
         <input type="range" id="muSlider" min="0" max="200" step="1" value="60" oninput="onSlider('mu',this.value,'muVal')">
       </div>
       <div class="param-row">
@@ -282,62 +321,90 @@ input[type=text] {
         <input type="range" id="vzSlider" min="1000" max="50000" step="500" value="15000" oninput="onSlider('vz0',this.value,'vzVal')">
       </div>
       <div class="param-row">
-        <div class="param-label">σ pulse (µs) <span id="sigVal">50</span></div>
+        <div class="param-label">&#963; pulse (&#956;s) <span id="sigVal">50</span></div>
         <input type="range" id="sigSlider" min="5" max="200" step="5" value="50" oninput="onSlider('sigma_us',this.value,'sigVal')">
       </div>
       <div class="param-row">
         <div class="param-label">Amplitudes (comma sep)</div>
-        <input type="text" id="ampText" value="1.0,1.1,1.2,1.0,0.9,0.8" oninput="onTextParam('amp',this.value)">
+        <input type="text" id="ampText" value="1.0,1.1,1.2,1.0,0.9,0.8" oninput="onTextParamDebounced('amp',this.value)">
       </div>
       <div class="param-row">
-        <div class="param-label">Timing offsets (µs)</div>
-        <input type="text" id="deltaText" value="0,2,-1,1,-2,0" oninput="onTextParam('delta',this.value)">
+        <div class="param-label">Timing offsets (&#956;s)</div>
+        <input type="text" id="deltaText" value="0,2,-1,1,-2,0" oninput="onTextParamDebounced('delta',this.value)">
       </div>
     </div>
 
     <div class="panel-section">
       <div class="section-title">Stats</div>
-      <div class="stat-row"><span class="stat-label">Δvx (physics)</span><span class="stat-val" id="s_dvx">—</span></div>
-      <div class="stat-row"><span class="stat-label">Δvz (drag loss)</span><span class="stat-val" id="s_dvz">—</span></div>
-      <div class="stat-row"><span class="stat-label">Displacement x</span><span class="stat-val" id="s_dx">—</span></div>
-      <div class="stat-row"><span class="stat-label">Impulse |p|</span><span class="stat-val" id="s_imp">—</span></div>
-      <div class="stat-row"><span class="stat-label">Steering η</span><span class="stat-val" id="s_eta">—</span></div>
-      <div class="stat-row"><span class="stat-label">Peak force</span><span class="stat-val" id="s_pkf">—</span></div>
-      <div class="stat-row"><span class="stat-label">E_loss</span><span class="stat-val" id="s_eloss">—</span></div>
+      <div class="stat-row"><span class="stat-label">&#916;vx (physics)</span><span class="stat-val" id="s_dvx">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">&#916;vz (drag loss)</span><span class="stat-val" id="s_dvz">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Displacement x</span><span class="stat-val" id="s_dx">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Impulse |p|</span><span class="stat-val" id="s_imp">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Steering &#951;</span><span class="stat-val" id="s_eta">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Peak force</span><span class="stat-val" id="s_pkf">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">E_loss</span><span class="stat-val" id="s_eloss">&#8212;</span></div>
       <hr style="border-color:#223; margin: 4px 0">
-      <div class="stat-row"><span class="stat-label">Rim speed</span><span class="stat-val" id="s_rim">—</span></div>
+      <div class="stat-row"><span class="stat-label">Rim speed</span><span class="stat-val" id="s_rim">&#8212;</span></div>
       <div id="warningBanner"></div>
-      <div id="signNote">Physics: −x = force toward −x<br>Scene: ball bends +x (flipped)</div>
+      <div id="signNote">Physics: &#8722;x = force toward &#8722;x<br>Scene: ball bends +x (flipped)</div>
       <div id="validateBadge"></div>
     </div>
   </div>
 </div>
 
 <div id="bottomBar">
-  <button class="btn fire" id="fireBtn" onclick="onFire()">▶ FIRE</button>
+  <button class="btn fire" id="fireBtn" onclick="onFire()">&#9654; FIRE</button>
   <button class="btn" onclick="onReset()">RESET</button>
-  <button class="btn" id="slowBtn" onclick="toggleSlow()">SLOW 0.1×</button>
+  <button class="btn" id="slowBtn" onclick="toggleSlow()">SLOW 0.1&#215;</button>
   <button class="btn" onclick="applyPresetByName('symmetric')">SYMMETRIC</button>
   <button class="btn" onclick="onValidate()">VALIDATE</button>
   <button class="btn" onclick="onShare()">SHARE</button>
-  <div id="statusBar">Ready — press FIRE to launch.</div>
+  <button class="btn" id="challengeBtn" onclick="toggleChallenge()">CHALLENGE</button>
+  <div id="statusBar">Ready &#8212; press FIRE to launch.</div>
 </div>
 
 <script>
 // ============================================================
+// STEP 0 — Constants
+// ============================================================
+const BALL_SCENE_RADIUS   = 0.12;
+const COIL_RING_RADIUS    = 0.50;
+const COIL_TUBE_RADIUS    = 0.06;
+const FORCE_ARROW_SCALE   = 0.0003;   // scene units per Newton
+const TRAIL_X_EXAGGERATION = 8000;
+const TARGET_ANIM_SECONDS  = 2.5;
+const REFERENCE_DVX        = -0.00416; // hardcoded validated reference (m/s)
+
+// ============================================================
 // STATE — declared first to avoid temporal dead zone errors
 // ============================================================
-let transitData = null;
-let ghostData   = null;
-let frameIndex  = 0;
-let isPlaying   = false;
-let isSlow      = false;
-let currentMode = 0; // 0=FORCES, 1=TRAJECTORY, 2=FIELD
+let transitData    = null;
+let frameCursor    = 0;
+let currentFrameIndex = 0;
+let isAnimating    = false;
+let isSlow         = false;
+let currentMode    = 0; // 0=FORCES, 1=TRAJECTORY, 2=FIELD
 let lastPresetName = null;
+let lastRenderTime = 0;
+let lastAsymmetricData = null;
+let prevPulseState = [];
+let dipoleGroup    = null;
+let userHasInteracted = false;
+
+// Debounce timer for text inputs
+let textDebounceTimer = null;
+
+// Challenge state
+let challengeState = {
+  active: false,
+  score: 0,
+  targetCenter: -0.00416,
+  targetHalfWidth: 0.00416 * 0.20,
+  lockedParams: null
+};
 
 // ============================================================
 // THREE.JS — load dynamically so init() fires only after ready
-// Works from file://, http://, and https:// equally
 // ============================================================
 (function loadThree() {
   const s = document.createElement('script');
@@ -381,7 +448,7 @@ function makeOrbitControls(camera, domElement) {
 }
 
 // ============================================================
-// PHYSICS KERNEL
+// PHYSICS KERNEL — character-for-character identical
 // ============================================================
 function makeSegCenters(P) {
   const L = P.zend - P.zstart;
@@ -550,8 +617,6 @@ const PRESETS = {
   },
 };
 
-let REFERENCE = { delta_vx: null, impulse: null, delta_x: null };
-
 // ============================================================
 // CURRENT PARAMS STATE
 // ============================================================
@@ -567,25 +632,98 @@ function buildP(src) {
 }
 
 // ============================================================
+// STEP 1 — readParams + onParamChange pipeline
+// ============================================================
+function readParams() {
+  const P = Object.assign({}, P_DEFAULTS);
+  P.mu       = parseFloat(document.getElementById('muSlider').value);
+  P.rpm      = parseFloat(document.getElementById('rpmSlider').value);
+  P.kd       = parseFloat(document.getElementById('kdSlider').value);
+  P.gradient = parseFloat(document.getElementById('gradSlider').value);
+  P.vz0      = parseFloat(document.getElementById('vzSlider').value);
+  P.sigma_us = parseFloat(document.getElementById('sigSlider').value);
+
+  const aText = document.getElementById('ampText').value;
+  const dText = document.getElementById('deltaText').value;
+  P.aText     = aText;
+  P.deltaText = dText;
+
+  const aArr = aText.split(',').map(Number).filter(n => !isNaN(n));
+  if (aArr.length === P.nseg) { P.amp = aArr; }
+
+  const dArr = dText.split(',').map(Number).filter(n => !isNaN(n));
+  if (dArr.length === P.nseg) { P.delta = dArr.map(d => d * 1e-6); }
+
+  return P;
+}
+
+function onParamChange(options = {}) {
+  currentP = readParams();
+  transitData = simulate(currentP);
+  transitData = augmentWithHistory(transitData, currentP);
+  updateStatsPanel();
+  checkRimSpeed(currentP);
+  checkBoreField(transitData);
+  updateModeAssets();
+  saveToURL();
+  resetAnimation();
+  if (!challengeState.active) autoFire();
+}
+
+function resetAnimation() {
+  isAnimating = false;
+  frameCursor = 0;
+  currentFrameIndex = 0;
+  if (trailGeo) {
+    trailGeo.setDrawRange(0, 0);
+    trailGeo.attributes.position.needsUpdate = true;
+  }
+  if (arrowRed)  arrowRed.visible  = false;
+  if (arrowBlue) arrowBlue.visible = false;
+  document.getElementById('overlayLabels').innerHTML = '';
+  document.getElementById('centerResultText').style.display = 'none';
+  // reset ball to start position
+  if (ballMesh && currentP) {
+    const pos = physicsToScene(0, currentP.zstart, currentP);
+    ballMesh.position.copy(pos);
+    if (ballLight) ballLight.position.copy(pos);
+  }
+  prevPulseState = new Array(currentP ? currentP.nseg : 6).fill(0);
+  if (typeof visualEffectsManager !== 'undefined') visualEffectsManager.reset();
+}
+
+function autoFire() {
+  if (!transitData) return;
+  frameCursor = 0;
+  currentFrameIndex = 0;
+  isAnimating = true;
+  if (trailGeo) {
+    trailGeo.setDrawRange(0, 0);
+    trailGeo.attributes.position.needsUpdate = true;
+  }
+  setStatus('Launching...');
+}
+
+function updateModeAssets() {
+  if (typeof buildCoils === 'function' && currentP) buildCoils(currentP);
+  if (currentMode === 2) buildDipoleFieldLines(currentP);
+}
+
+// ============================================================
 // THREE.JS SETUP — module-scope declarations only.
-// All THREE object construction happens inside init(), which is
-// called via the onload handler after Three.js finishes loading.
 // ============================================================
 const canvas = document.getElementById('threeCanvas');
 let renderer, scene, camera, orbitControls;
 let pointLight1, ballLight;
 let ballMesh;
 let trailGeo, trailMat, trailLine;
-let ghostGeo, ghostMat, ghostLine;
 let arrowRed, arrowBlue;
 let streamlineGroup;
 let COIL_COLOR_DEFAULT, COIL_EMISSIVE_DEFAULT, COIL_EMISSIVE_ACTIVE;
 
-// These don't use THREE — safe to initialize now
 const coilMeshes = [];
 const MAX_TRAIL = 8000;
 const trailPositions = new Float32Array(MAX_TRAIL * 3);
-const ghostPositions = new Float32Array(MAX_TRAIL * 3);
 
 function buildCoils(P) {
   coilMeshes.forEach(m => scene.remove(m));
@@ -593,7 +731,7 @@ function buildCoils(P) {
   const segZ = makeSegCenters(P);
   const cx = (P.zstart + P.zend) / 2;
   segZ.forEach(zi => {
-    const geo = new THREE.TorusGeometry(0.4, 0.05, 8, 24);
+    const geo = new THREE.TorusGeometry(COIL_RING_RADIUS, COIL_TUBE_RADIUS, 8, 24);
     const mat = new THREE.MeshStandardMaterial({
       color: COIL_COLOR_DEFAULT.clone(),
       emissive: COIL_EMISSIVE_DEFAULT.clone(),
@@ -602,27 +740,162 @@ function buildCoils(P) {
     });
     const mesh = new THREE.Mesh(geo, mat);
     mesh.position.set(0, 0, zi - cx);
-    mesh.rotation.x = Math.PI / 2; // so torus ring is in x-y plane, z through hole
+    mesh.rotation.x = Math.PI / 2;
     scene.add(mesh);
     coilMeshes.push(mesh);
   });
+  prevPulseState = new Array(P.nseg).fill(0);
 }
 
-// Coordinate mapping
-const EXAGGERATION = 8000;
+// Coordinate mapping — ball always at x=0 (bore center), no exaggeration
 function physicsToScene(x, z, P) {
   const cx = (P.zstart + P.zend) / 2;
-  return new THREE.Vector3(
-    -x * EXAGGERATION,
-    0,
-    z - cx
-  );
+  return new THREE.Vector3(0, 0, z - cx);
+}
+
+// ============================================================
+// STEP 2 — augmentWithHistory
+// ============================================================
+function augmentWithHistory(td, P) {
+  const n = td.T.length;
+  const segZ = makeSegCenters(P);
+  const sigma_s = P.sigma_us * 1e-6;
+
+  const forces      = new Array(n);
+  const pulseMatrix = [];
+  const activeCoil  = new Int32Array(n);
+  const insideArray = new Uint8Array(n);
+  const displayX    = new Float32Array(n);
+  const sceneZ      = new Float32Array(n);
+  const cx          = (P.zstart + P.zend) / 2;
+
+  for (let i = 0; i < P.nseg; i++) pulseMatrix.push(new Float32Array(n));
+
+  for (let step = 0; step < n; step++) {
+    const t = td.T[step];
+    const z = td.Z[step];
+    const x = td.X[step];
+
+    forces[step] = { fx: td.FX[step], fz: td.FZ[step], mag: Math.sqrt(td.FX[step]**2 + td.FZ[step]**2) };
+
+    let maxPulse = 0, maxCoil = -1;
+    for (let i = 0; i < P.nseg; i++) {
+      const zi = segZ[i];
+      const t_arr = (zi - P.zstart) / P.vz0;
+      const p = temporalPulse(t, t_arr, P.delta[i], sigma_s);
+      const { q } = spatialGaussian(z, zi, P.ell);
+      const pq = p * q;
+      pulseMatrix[i][step] = pq;
+      if (pq > maxPulse) { maxPulse = pq; maxCoil = i; }
+    }
+    activeCoil[step] = maxPulse > 0.05 ? maxCoil : -1;
+    insideArray[step] = (z >= P.zstart && z <= P.zend) ? 1 : 0;
+    displayX[step]    = -x * TRAIL_X_EXAGGERATION;
+    sceneZ[step]      = z - cx;
+  }
+
+  td.forces      = forces;
+  td.pulseMatrix = pulseMatrix;
+  td.activeCoil  = activeCoil;
+  td.insideArray = insideArray;
+  td.displayX    = displayX;
+  td.sceneZ      = sceneZ;
+
+  // Maintain lastAsymmetricData
+  if (lastPresetName !== 'symmetric') {
+    lastAsymmetricData = td;
+  }
+
+  return td;
+}
+
+// ============================================================
+// STEP 4 — visualEffectsManager
+// ============================================================
+const visualEffectsManager = {
+  flashTimers: {},
+  shakeTimer: 0,
+  shakeAmount: 0,
+
+  triggerCoilFlash(index) {
+    this.flashTimers[index] = { t: 0 };
+  },
+
+  triggerCameraShake() {
+    this.shakeTimer = 0.3;
+    this.shakeAmount = 0.08;
+  },
+
+  update(dt) {
+    for (const idx in this.flashTimers) {
+      const ft = this.flashTimers[idx];
+      ft.t += dt;
+      const intensity = 3.0 * Math.exp(-ft.t / 0.15);
+      if (coilMeshes[idx]) {
+        coilMeshes[idx].material.emissive.setHex(0xffffff);
+        coilMeshes[idx].material.emissiveIntensity = intensity;
+      }
+      if (ft.t > 0.8) delete this.flashTimers[idx];
+    }
+    if (this.shakeTimer > 0) {
+      this.shakeTimer -= dt;
+      const s = this.shakeAmount * (this.shakeTimer / 0.3);
+      if (camera) {
+        camera.position.x += (Math.random() - 0.5) * s;
+        camera.position.y += (Math.random() - 0.5) * s;
+      }
+    }
+  },
+
+  reset() {
+    this.flashTimers = {};
+    this.shakeTimer = 0;
+    coilMeshes.forEach(m => {
+      if (m && m.material) {
+        m.material.emissive.setHex(0x112233);
+        m.material.emissiveIntensity = 0.6;
+      }
+    });
+  }
+};
+
+// ============================================================
+// STEP 4 — updateCoilFlash (rising-edge detection)
+// ============================================================
+function updateCoilFlash(idx) {
+  if (!transitData || !transitData.pulseMatrix) return;
+  for (let i = 0; i < currentP.nseg; i++) {
+    const pq = transitData.pulseMatrix[i][idx];
+    const firing = pq > 0.5 ? 1 : 0;
+    if (prevPulseState[i] === 0 && firing === 1) {
+      visualEffectsManager.triggerCoilFlash(i);
+    }
+    prevPulseState[i] = firing;
+  }
+
+  // Mode 2: steady glow on active coil
+  if (currentMode === 2 && transitData.activeCoil) {
+    const activeIdx = transitData.activeCoil[idx];
+    coilMeshes.forEach((m, i) => {
+      if (!m || !m.material) return;
+      if (i === activeIdx && activeIdx >= 0) {
+        if (!visualEffectsManager.flashTimers[i]) {
+          m.material.emissive.setHex(0x88aaff);
+          m.material.emissiveIntensity = 1.2;
+        }
+      } else {
+        if (!visualEffectsManager.flashTimers[i]) {
+          m.material.emissive.setHex(0x112233);
+          m.material.emissiveIntensity = 0.6;
+        }
+      }
+    });
+  }
 }
 
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
-// currentMode declared at top of script
 const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
 
 function cycleMode() {
@@ -637,152 +910,140 @@ function applyMode() {
 
   if (currentMode === 0) {
     inset.style.display = 'none';
-    streamlineGroup.visible = false;
+    if (dipoleGroup) dipoleGroup.visible = false;
+    if (streamlineGroup) streamlineGroup.visible = false;
     orbitControls.setView(0.4, Math.PI / 3, 14);
-    if (transitData) {
-      arrowRed.visible = true;
-    }
   } else if (currentMode === 1) {
     inset.style.display = transitData ? 'block' : 'none';
-    streamlineGroup.visible = false;
-    arrowRed.visible = false;
-    arrowBlue.visible = false;
+    if (dipoleGroup) dipoleGroup.visible = false;
+    if (streamlineGroup) streamlineGroup.visible = false;
+    if (arrowRed)  arrowRed.visible  = false;
+    if (arrowBlue) arrowBlue.visible = false;
     ol.innerHTML = '';
-    orbitControls.setView(0, Math.PI / 2, 18);
-    if (transitData) drawInset(transitData);
+    orbitControls.setView(0, Math.PI / 4, 18);
+    if (transitData) drawInsetProgressive(transitData, currentFrameIndex);
   } else if (currentMode === 2) {
     inset.style.display = 'none';
-    arrowRed.visible = false;
-    arrowBlue.visible = false;
+    if (arrowRed)  arrowRed.visible  = false;
+    if (arrowBlue) arrowBlue.visible = false;
     ol.innerHTML = '';
-    buildStreamlines();
-    streamlineGroup.visible = true;
-    orbitControls.setView(0, 0.05, 20);
+    buildDipoleFieldLines(currentP);
+    if (dipoleGroup) dipoleGroup.visible = true;
+    if (streamlineGroup) streamlineGroup.visible = false;
+    orbitControls.setView(0, 0.02, 22);
   }
 }
 
-function buildStreamlines() {
-  while (streamlineGroup.children.length) streamlineGroup.remove(streamlineGroup.children[0]);
-  const P = buildP(currentP);
-  const segZ = makeSegCenters(P);
-  const cx = (P.zstart + P.zend) / 2;
-  const t_mid = (P.zend - P.zstart) / (2 * P.vz0);
-  const nLines = 40;
+// ============================================================
+// STEP 5 — Dipole field lines (Mode 2)
+// ============================================================
+function buildDipoleFieldLines(P) {
+  if (!scene) return;
+  if (dipoleGroup) {
+    while (dipoleGroup.children.length) dipoleGroup.remove(dipoleGroup.children[0]);
+  } else {
+    dipoleGroup = new THREE.Group();
+    scene.add(dipoleGroup);
+  }
 
-  for (let li = 0; li < nLines; li++) {
-    const yOff = -2 + (li / (nLines - 1)) * 4;
-    const pts = [];
-    let maxB = 0;
-    const zSteps = 60;
-    for (let zi = 0; zi <= zSteps; zi++) {
-      const z = P.zstart + (zi / zSteps) * (P.zend - P.zstart);
-      const { Bx } = fieldModel(t_mid, z, P);
-      maxB = Math.max(maxB, Math.abs(Bx));
-      pts.push(new THREE.Vector3(yOff, Bx * 0.4, z - cx));
+  const muScale = Math.min(P.mu / 60, 3);
+  const nAzi = 8;
+  const r0s = [0.5, 0.9, 1.4];
+
+  for (let ri = 0; ri < r0s.length; ri++) {
+    const r0 = r0s[ri];
+    for (let ai = 0; ai < nAzi; ai++) {
+      const phi = (ai / nAzi) * Math.PI * 2;
+      const pts = [];
+      for (let ti = 1; ti <= 60; ti++) {
+        const theta = (ti / 61) * Math.PI;
+        const r = r0 * Math.sin(theta) ** 2;
+        const lx = r * Math.sin(theta) * Math.cos(phi);
+        const ly = r * Math.sin(theta) * Math.sin(phi);
+        const lz = r * Math.cos(theta);
+        pts.push(new THREE.Vector3(lx, ly, lz));
+      }
+      const geo = new THREE.BufferGeometry().setFromPoints(pts);
+      const brightness = (1 - ri / r0s.length) * muScale;
+      const col = new THREE.Color().setHSL(0.62 - brightness * 0.15, 0.9, Math.min(0.3 + brightness * 0.4, 0.85));
+      const line = new THREE.Line(geo, new THREE.LineBasicMaterial({
+        color: col, transparent: true,
+        opacity: 0.7 + 0.3 * (1 - ri / r0s.length)
+      }));
+      dipoleGroup.add(line);
     }
-    const geo2 = new THREE.BufferGeometry().setFromPoints(pts);
-    const strength = Math.min(maxB / 50, 1);
-    const col = new THREE.Color().setHSL(0.6 - strength * 0.5, 0.9, 0.5);
-    streamlineGroup.add(new THREE.Line(geo2, new THREE.LineBasicMaterial({ color: col })));
   }
 }
 
 // ============================================================
-// ANIMATION STATE
+// ANIMATION — ball + trail + coils
 // ============================================================
-// transitData, ghostData, frameIndex, isPlaying, isSlow, lastPresetName
-// all declared at top of script
-
 function updateBallPosition(idx) {
-  const P = buildP(currentP);
-  const pos = physicsToScene(transitData.X[idx], transitData.Z[idx], P);
+  const pos = physicsToScene(0, transitData.Z[idx], currentP);
   ballMesh.position.copy(pos);
   ballLight.position.copy(pos);
 }
 
 function updateTrail(idx) {
-  const P = buildP(currentP);
   const count = Math.min(idx + 1, MAX_TRAIL);
   const start = Math.max(0, idx + 1 - MAX_TRAIL);
   for (let i = 0; i < count; i++) {
     const si = start + i;
-    const pos = physicsToScene(transitData.X[si], transitData.Z[si], P);
-    trailPositions[i * 3]     = pos.x;
-    trailPositions[i * 3 + 1] = pos.y;
-    trailPositions[i * 3 + 2] = pos.z;
+    trailPositions[i * 3]     = transitData.displayX[si];
+    trailPositions[i * 3 + 1] = 0;
+    trailPositions[i * 3 + 2] = transitData.sceneZ[si];
   }
   trailGeo.setDrawRange(0, count);
   trailGeo.attributes.position.needsUpdate = true;
 }
 
-function updateCoilGlow(idx) {
-  const P = buildP(currentP);
-  const segZ = makeSegCenters(P);
-  const t = transitData.T[idx];
-  const z = transitData.Z[idx];
-  const sigma_s = P.sigma_us * 1e-6;
-
-  coilMeshes.forEach((mesh, i) => {
-    const zi = segZ[i];
-    const t_arr = (zi - P.zstart) / P.vz0;
-    const pulse = temporalPulse(t, t_arr, P.delta[i], sigma_s);
-    const { q } = spatialGaussian(z, zi, P.ell);
-    const active = pulse * q > 0.05;
-    mesh.material.emissive.copy(active ? COIL_EMISSIVE_ACTIVE : COIL_EMISSIVE_DEFAULT);
-    mesh.material.emissiveIntensity = active ? (1.5 + pulse * 1.5) : 0.6;
-  });
-}
-
+// ============================================================
+// STEP 4 — Force arrows (absolute Newton scaling)
+// ============================================================
 function updateForceArrows(idx) {
-  const P = buildP(currentP);
-  const Fx = transitData.FX[idx];
-  const Fz = transitData.FZ[idx];
+  if (!transitData) return;
+  const fx = transitData.forces[idx].fx;
+  const fz = transitData.forces[idx].fz;
+  const len_x = Math.abs(fx) * FORCE_ARROW_SCALE;
+  const len_z = Math.abs(fz) * FORCE_ARROW_SCALE;
   const ballPos = ballMesh.position.clone();
 
-  // Red arrow: lateral force in scene +x direction
-  const peakFx = transitData.metrics.peakFx || 1;
-  const fxLen = Math.min(Math.abs(Fx) / (peakFx + 1e-12) * 3, 3);
-  arrowRed.position.copy(ballPos);
-  if (fxLen > 0.01) {
-    // Physics -x → scene +x; positive Fx in physics → negative in scene
-    // The force bends toward -x in physics which is +x in scene
-    const dir = Fx < 0 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(-1, 0, 0);
-    arrowRed.setDirection(dir);
-    arrowRed.setLength(fxLen, Math.min(0.25, fxLen * 0.3), Math.min(0.15, fxLen * 0.2));
-    arrowRed.visible = (currentMode === 0);
-  } else {
-    arrowRed.visible = false;
-  }
-
-  // Blue arrow: drag force
-  const fzLen = Math.min(Math.abs(Fz) / (peakFx + 1e-12) * 3, 3);
-  arrowBlue.position.copy(ballPos);
-  if (fzLen > 0.01 && (P.kd > 0 || P.kq > 0)) {
-    arrowBlue.setDirection(new THREE.Vector3(0, 0, -1));
-    arrowBlue.setLength(fzLen, Math.min(0.25, fzLen * 0.3), Math.min(0.15, fzLen * 0.2));
-    arrowBlue.visible = (currentMode === 0);
-  } else {
-    arrowBlue.visible = false;
-  }
-
-  // Overlay labels
   if (currentMode === 0) {
-    const ol = document.getElementById('overlayLabels');
-    const fxN = Math.abs(Fx).toFixed(1);
-    const fzN = Math.abs(Fz).toFixed(2);
-    const etaStr = (P.kd === 0 && P.kq === 0) ? '∞ (drag off)' : (Math.abs(Fx) / (Math.abs(Fz) + 1e-12)).toFixed(1) + '×';
-    ol.innerHTML = `
-      <div class="ol-line ol-red">Lateral force: ${fxN} N</div>
-      <div class="ol-line ol-blue">${P.kd === 0 && P.kq === 0 ? 'Drag: 0 (k_drag=0)' : 'Drag force: ' + fzN + ' N'}</div>
-      <div class="ol-line" style="color:#8899aa">η = ${etaStr} more lateral${P.kd === 0 && P.kq === 0 ? '' : ' than drag'}</div>
-    `;
+    arrowRed.visible  = len_x > 0.01;
+    arrowBlue.visible = len_z > 0.01 && currentP.kd > 0;
+    if (len_x > 0.01) {
+      const dir = fx < 0 ? new THREE.Vector3(1, 0, 0) : new THREE.Vector3(-1, 0, 0);
+      arrowRed.position.copy(ballPos);
+      arrowRed.setDirection(dir);
+      arrowRed.setLength(len_x, Math.min(0.3, len_x * 0.3), Math.min(0.2, len_x * 0.2));
+    }
+    if (len_z > 0.01 && currentP.kd > 0) {
+      arrowBlue.position.copy(ballPos);
+      arrowBlue.setDirection(new THREE.Vector3(0, 0, -1));
+      arrowBlue.setLength(len_z, Math.min(0.3, len_z * 0.3), Math.min(0.2, len_z * 0.2));
+    }
+
+    // Overlay labels
+    const fxN  = Math.abs(fx).toFixed(1);
+    const fzN  = Math.abs(fz).toFixed(1);
+    const etaS = (currentP.kd === 0) ? '&#8734; (drag off)' : (Math.abs(fx) / (Math.abs(fz) + 1e-12)).toFixed(1) + '&#215;';
+    document.getElementById('overlayLabels').innerHTML =
+      '<div class="ol-line ol-red" style="font-size:15px;font-weight:bold">Lateral force: ' + fxN + ' N</div>' +
+      '<div class="ol-line ol-blue">' + (currentP.kd === 0 ? 'Drag: 0 N (disabled)' : 'Drag: ' + fzN + ' N') + '</div>' +
+      '<div class="ol-line" style="color:#8899aa">&#951; = ' + etaS + '</div>';
+  } else {
+    arrowRed.visible  = false;
+    arrowBlue.visible = false;
   }
 }
 
-function updateStatsLive(idx) {
-  const P = buildP(currentP);
+// ============================================================
+// STATS PANEL
+// ============================================================
+function updateStatsPanel() {
   if (!transitData) return;
   const m = transitData.metrics;
+  const P = currentP;
   const dvxSign = m.delta_vx < 0 ? 'neg' : 'pos';
   document.getElementById('s_dvx').textContent = m.delta_vx.toExponential(4) + ' m/s';
   document.getElementById('s_dvx').className = 'stat-val ' + dvxSign;
@@ -807,273 +1068,37 @@ function showFinalStats() {
   checkBoreField(transitData);
   if (currentMode === 1) {
     document.getElementById('insetCanvas').style.display = 'block';
-    drawInset(transitData);
+    drawInsetProgressive(transitData, transitData.T.length - 1);
+  }
+  if (currentMode === 0) {
+    showCenterResult(transitData.metrics.delta_vx);
+  }
+  if (challengeState.active) {
+    evaluateChallengeResult(transitData.metrics.delta_vx);
+  }
+}
+
+function showCenterResult(dvx) {
+  const el = document.getElementById('centerResultText');
+  el.innerHTML = 'Transit Complete<br>&#916;vx = ' + dvx.toExponential(4) + ' m/s';
+  el.style.display = 'block';
+  setTimeout(() => { el.style.display = 'none'; }, 3000);
+}
+
+// ============================================================
+// OVERLAY TEXT — updated during animation
+// ============================================================
+function updateOverlayText(idx) {
+  if (!transitData) return;
+  if (currentMode === 0) {
+    updateForceArrows(idx);
   }
 }
 
 // ============================================================
-// BUTTONS
+// INSET CANVAS — progressive Mode 1 draw
 // ============================================================
-function onFire() {
-  const P = buildP(currentP);
-  setStatus('Simulating...');
-  setTimeout(() => {
-    transitData = simulate(P);
-    updateStatsLive(0);
-    frameIndex = 0;
-    isPlaying = true;
-    trailGeo.setDrawRange(0, 0);
-    buildCoils(P);
-    updateBallPosition(0);
-    if (currentMode === 0) arrowRed.visible = true;
-    if (currentMode === 1) {
-      document.getElementById('insetCanvas').style.display = 'none';
-    }
-    setStatus('Launching...');
-  }, 10);
-}
-
-function onReset() {
-  isPlaying = false;
-  frameIndex = 0;
-  transitData = null;
-  trailGeo.setDrawRange(0, 0);
-  trailGeo.attributes.position.needsUpdate = true;
-  arrowRed.visible = false;
-  arrowBlue.visible = false;
-  document.getElementById('overlayLabels').innerHTML = '';
-  document.getElementById('insetCanvas').style.display = 'none';
-  const P = buildP(currentP);
-  const pos = physicsToScene(0, P.zstart, P);
-  ballMesh.position.copy(pos);
-  ballLight.position.copy(pos);
-  coilMeshes.forEach(m => {
-    m.material.emissive.copy(COIL_EMISSIVE_DEFAULT);
-    m.material.emissiveIntensity = 0.6;
-  });
-  setStatus('Reset — press FIRE to launch.');
-}
-
-function toggleSlow() {
-  isSlow = !isSlow;
-  document.getElementById('slowBtn').textContent = isSlow ? 'SLOW: ON' : 'SLOW 0.1×';
-}
-
-function applyPresetByName(name) {
-  document.getElementById('presetDropdown').classList.remove('open');
-  const preset = PRESETS[name];
-  if (!preset) return;
-
-  // If applying symmetric, save current asymmetric trail as ghost
-  if (name === 'symmetric' && transitData) {
-    saveGhostTrail(transitData);
-  } else if (name !== 'symmetric') {
-    ghostLine.visible = false;
-  }
-
-  currentP.mu = preset.mu;
-  currentP.rpm = preset.rpm;
-  currentP.kd = preset.kd;
-  if (preset.gradient !== undefined) currentP.gradient = preset.gradient;
-  currentP.amp = [...preset.amp];
-  currentP.delta = preset.delta_us.map(d => d * 1e-6);
-  currentP.aText = preset.amp.join(',');
-  currentP.deltaText = preset.delta_us.join(',');
-
-  // Update sliders & inputs
-  document.getElementById('muSlider').value = currentP.mu;
-  document.getElementById('muVal').textContent = currentP.mu;
-  document.getElementById('rpmSlider').value = currentP.rpm;
-  document.getElementById('rpmVal').textContent = currentP.rpm;
-  document.getElementById('kdSlider').value = currentP.kd;
-  document.getElementById('kdVal').textContent = currentP.kd.toFixed(3);
-  document.getElementById('gradSlider').value = currentP.gradient;
-  document.getElementById('gradVal').textContent = currentP.gradient;
-  document.getElementById('ampText').value = currentP.aText;
-  document.getElementById('deltaText').value = currentP.deltaText;
-
-  lastPresetName = name;
-  checkRimSpeed(currentP);
-  onFire();
-}
-
-function saveGhostTrail(td) {
-  const P = buildP(currentP);
-  const count = Math.min(td.T.length, MAX_TRAIL);
-  for (let i = 0; i < count; i++) {
-    const pos = physicsToScene(td.X[i], td.Z[i], P);
-    ghostPositions[i * 3]     = pos.x;
-    ghostPositions[i * 3 + 1] = pos.y;
-    ghostPositions[i * 3 + 2] = pos.z;
-  }
-  ghostGeo.setDrawRange(0, count);
-  ghostGeo.attributes.position.needsUpdate = true;
-  ghostLine.visible = true;
-}
-
-function onValidate() {
-  setStatus('Validating...');
-  setTimeout(() => {
-    const P1 = buildP(currentP);
-    P1.dt_us = 0.25;
-    const P2 = buildP(currentP);
-    P2.dt_us = 0.50;
-
-    const r1 = simulate(P1);
-    const r2 = simulate(P2);
-
-    const dvx1 = r1.metrics.delta_vx;
-    const dvx2 = r2.metrics.delta_vx;
-    const convergence = Math.abs(dvx1 - dvx2) / (Math.abs(dvx1) + 1e-12) * 100;
-
-    // If signal is too small to measure convergence meaningfully, say so
-    if (Math.abs(dvx1) < 1e-7) {
-      const badge = document.getElementById('validateBadge');
-      badge.textContent = '⚠ Signal too small to check convergence — use an asymmetric preset';
-      badge.className = 'badge-amber';
-      badge.style.display = 'inline-block';
-      badge.style.marginTop = '6px';
-      setStatus('Validate skipped — near-zero signal (symmetric config?)');
-      return;
-    }
-
-    let msg = `dt convergence: ${convergence.toFixed(3)}%`;
-    let cls = 'badge-green';
-    let icon = '✓';
-
-    if (convergence > 5) {
-      cls = 'badge-red';
-      icon = '✗';
-      msg = `dt convergence: ${convergence.toFixed(1)}% (poor)`;
-    } else if (convergence > 2) {
-      cls = 'badge-amber';
-      icon = '⚠';
-      msg = `dt convergence: ${convergence.toFixed(1)}% (acceptable)`;
-    }
-
-    // Check against reference if params match defaults
-    let refCheck = '';
-    if (REFERENCE.delta_vx !== null) {
-      const refErr = Math.abs(dvx1 - REFERENCE.delta_vx) / (Math.abs(REFERENCE.delta_vx) + 1e-12) * 100;
-      if (refErr < 0.1) {
-        refCheck = ' | ref match ✓';
-      } else {
-        refCheck = ` | ref diff: ${refErr.toFixed(2)}%`;
-      }
-    }
-
-    const badge = document.getElementById('validateBadge');
-    badge.textContent = `${icon} Physics kernel ${convergence < 2 ? 'validated' : 'warning'} — ${msg}${refCheck}`;
-    badge.className = 'badge-green ' + cls;
-    badge.style.display = 'inline-block';
-    badge.style.marginTop = '6px';
-
-    setStatus(`Validate done. Δvx(fine)=${dvx1.toExponential(4)}, Δvx(coarse)=${dvx2.toExponential(4)}`);
-  }, 10);
-}
-
-function onShare() {
-  const url = buildShareURL();
-  if (navigator.clipboard && navigator.clipboard.writeText) {
-    navigator.clipboard.writeText(url).then(() => setStatus('URL copied to clipboard!'));
-  } else {
-    prompt('Share URL:', url);
-  }
-}
-
-function buildShareURL() {
-  const base = window.location.href.split('?')[0];
-  return `${base}?mu=${currentP.mu}&kd=${currentP.kd}&rpm=${currentP.rpm}`;
-}
-
-function togglePresetMenu() {
-  document.getElementById('presetDropdown').classList.toggle('open');
-}
-
-document.addEventListener('click', e => {
-  if (!document.getElementById('presetWrapper').contains(e.target)) {
-    document.getElementById('presetDropdown').classList.remove('open');
-  }
-});
-
-// ============================================================
-// SLIDER / INPUT HANDLERS
-// ============================================================
-function onSlider(key, val, labelId, decimals) {
-  const v = parseFloat(val);
-  currentP[key] = v;
-  document.getElementById(labelId).textContent = decimals !== undefined ? v.toFixed(decimals) : v;
-  checkRimSpeed(currentP);
-}
-
-function onTextParam(key, val) {
-  if (key === 'amp') {
-    const arr = val.split(',').map(Number).filter(n => !isNaN(n));
-    if (arr.length === currentP.nseg) {
-      currentP.amp = arr;
-      currentP.aText = val;
-    }
-  } else if (key === 'delta') {
-    const arr = val.split(',').map(Number).filter(n => !isNaN(n));
-    if (arr.length === currentP.nseg) {
-      currentP.delta = arr.map(d => d * 1e-6);
-      currentP.deltaText = val;
-    }
-  }
-}
-
-// ============================================================
-// RIM SPEED CHECK
-// ============================================================
-function checkRimSpeed(P) {
-  const rimSpeed = (2 * Math.PI * (P.rpm / 60)) * P.r;
-  const el = document.getElementById('s_rim');
-  const fireBtn = document.getElementById('fireBtn');
-
-  const rs = rimSpeed.toFixed(0);
-  if (rimSpeed >= 1000) {
-    el.innerHTML = `<span class="rim-burst">${rs} m/s ✗ BURST — FIRE DISABLED</span>`;
-    fireBtn.disabled = true;
-  } else if (rimSpeed >= 900) {
-    el.innerHTML = `<span class="rim-high">${rs} m/s ● HIGH RISK</span>`;
-    fireBtn.disabled = false;
-  } else if (rimSpeed >= 600) {
-    el.innerHTML = `<span class="rim-caution">${rs} m/s ● CAUTION</span>`;
-    fireBtn.disabled = false;
-  } else {
-    el.innerHTML = `<span class="rim-safe">${rs} m/s ● SAFE</span>`;
-    fireBtn.disabled = false;
-  }
-}
-
-// ============================================================
-// BORE FIELD WARNING
-// ============================================================
-function checkBoreField(td) {
-  const maxDB = Math.max(...td.DBXDZ.map(Math.abs));
-  const B_edge = maxDB * 0.25;
-  const wb = document.getElementById('warningBanner');
-  if (B_edge > 50) {
-    wb.textContent = '✗ Unrealistic fields — reduce gradient';
-    wb.style.background = '#2e0000';
-    wb.style.color = '#ff7b72';
-    wb.style.border = '1px solid #ff7b72';
-    wb.style.display = 'block';
-  } else if (B_edge > 20) {
-    wb.textContent = '⚠ Peak gradient implies bore-edge field > 20 T — check realism';
-    wb.style.background = '#2e2a00';
-    wb.style.color = '#f2cc60';
-    wb.style.border = '1px solid #f2cc60';
-    wb.style.display = 'block';
-  } else {
-    wb.style.display = 'none';
-  }
-}
-
-// ============================================================
-// INSET CANVAS (Mode 1)
-// ============================================================
-function drawInset(td) {
+function drawInsetProgressive(td, upToIdx) {
   const canvas2 = document.getElementById('insetCanvas');
   const ctx = canvas2.getContext('2d');
   const W = canvas2.width, H = canvas2.height;
@@ -1083,11 +1108,11 @@ function drawInset(td) {
   const pW = W - PAD.l - PAD.r;
   const pH = H - PAD.t - PAD.b;
 
-  const minZ = Math.min(...td.Z);
-  const maxZ = Math.max(...td.Z);
+  const minZ = Math.min.apply(null, td.Z);
+  const maxZ = Math.max.apply(null, td.Z);
   const allX_um = td.X.map(x => x * 1e6);
-  const minX = Math.min(...allX_um);
-  const maxX = Math.max(...allX_um);
+  const minX = Math.min.apply(null, allX_um);
+  const maxX = Math.max.apply(null, allX_um);
   const rangeX = Math.max(Math.abs(minX), Math.abs(maxX), 0.01) * 2;
 
   const zToCanvas = z => PAD.l + (z - minZ) / (maxZ - minZ + 1e-12) * pW;
@@ -1111,45 +1136,83 @@ function drawInset(td) {
   ctx.moveTo(PAD.l, PAD.t + pH); ctx.lineTo(PAD.l + pW, PAD.t + pH);
   ctx.stroke();
 
-  // Ghost trail
-  if (ghostLine.visible) {
+  // Challenge target band
+  if (challengeState.active) {
+    const tMin = (challengeState.targetCenter - challengeState.targetHalfWidth) * 1e6;
+    const tMax = (challengeState.targetCenter + challengeState.targetHalfWidth) * 1e6;
+    const y1 = xToCanvas(tMax);
+    const y2 = xToCanvas(tMin);
+    ctx.fillStyle = 'rgba(242,204,96,0.15)';
+    ctx.fillRect(PAD.l, Math.min(y1, y2), pW, Math.abs(y2 - y1));
+    ctx.strokeStyle = '#f2cc60';
+    ctx.lineWidth = 0.8;
+    ctx.setLineDash([3, 3]);
     ctx.beginPath();
-    ctx.strokeStyle = '#226622';
+    ctx.moveTo(PAD.l, y1); ctx.lineTo(PAD.l + pW, y1);
+    ctx.moveTo(PAD.l, y2); ctx.lineTo(PAD.l + pW, y2);
+    ctx.stroke();
+    ctx.setLineDash([]);
+  }
+
+  // Ghost trail (lastAsymmetricData when current is symmetric)
+  if (lastAsymmetricData && lastPresetName === 'symmetric') {
+    const ghostTd = lastAsymmetricData;
+    const ghostX_um = ghostTd.X.map(x => x * 1e6);
+    const ghostLimit = Math.min(upToIdx, ghostTd.T.length - 1);
+    ctx.beginPath();
+    ctx.strokeStyle = 'rgba(242,170,0,0.4)';
     ctx.lineWidth = 1;
-    const gCount = ghostGeo.drawRange.count;
-    for (let i = 0; i < Math.min(gCount, td.T.length); i++) {
-      const zi = td.Z[i];
-      const xi_um = ghostPositions[i * 3] / (-EXAGGERATION) * 1e6; // reverse scene flip
-      const cx2 = zToCanvas(zi);
-      const cy2 = xToCanvas(xi_um);
+    for (let i = 0; i <= ghostLimit; i++) {
+      const cx2 = zToCanvas(ghostTd.Z[i]);
+      const cy2 = xToCanvas(ghostX_um[i]);
       if (i === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
     }
     ctx.stroke();
   }
 
-  // Main trail
-  ctx.beginPath();
-  ctx.strokeStyle = '#ffaa00';
-  ctx.lineWidth = 1.5;
-  const N = td.T.length;
-  for (let i = 0; i < N; i++) {
-    const cx2 = zToCanvas(td.Z[i]);
-    const cy2 = xToCanvas(allX_um[i]);
-    if (i === 0) ctx.moveTo(cx2, cy2); else ctx.lineTo(cx2, cy2);
+  // Main trail — draw progressively up to upToIdx
+  const drawLimit = Math.min(upToIdx, td.T.length - 1);
+  if (drawLimit >= 0) {
+    // Before bore: white, inside bore: amber
+    let inSection = -1;
+    let sectionStart = 0;
+    for (let i = 0; i <= drawLimit; i++) {
+      const inside = td.insideArray[i];
+      if (inside !== inSection) {
+        // flush previous section
+        if (i > 0) {
+          ctx.stroke();
+        }
+        inSection = inside;
+        ctx.beginPath();
+        ctx.strokeStyle = inside ? '#ffaa00' : '#8899cc';
+        ctx.lineWidth = 1.5;
+        const cx2 = zToCanvas(td.Z[i]);
+        const cy2 = xToCanvas(allX_um[i]);
+        ctx.moveTo(cx2, cy2);
+        sectionStart = i;
+      } else {
+        const cx2 = zToCanvas(td.Z[i]);
+        const cy2 = xToCanvas(allX_um[i]);
+        ctx.lineTo(cx2, cy2);
+      }
+    }
+    ctx.stroke();
   }
-  ctx.stroke();
 
-  // Final point label
-  const finalX = allX_um[td.exitIdx];
-  const fxC = zToCanvas(td.Z[td.exitIdx]);
-  const fyC = xToCanvas(finalX);
-  ctx.fillStyle = '#ff7b72';
-  ctx.beginPath();
-  ctx.arc(fxC, fyC, 3, 0, Math.PI * 2);
-  ctx.fill();
-  ctx.fillStyle = '#ff7b72';
-  ctx.font = '9px Courier New';
-  ctx.fillText(finalX.toFixed(1) + ' µm', Math.max(PAD.l + 2, fxC - 28), Math.max(PAD.t + 10, fyC - 5));
+  // Final point label (only at end)
+  if (upToIdx >= td.T.length - 1) {
+    const finalX = allX_um[td.exitIdx];
+    const fxC = zToCanvas(td.Z[td.exitIdx]);
+    const fyC = xToCanvas(finalX);
+    ctx.fillStyle = '#ff7b72';
+    ctx.beginPath();
+    ctx.arc(fxC, fyC, 3, 0, Math.PI * 2);
+    ctx.fill();
+    ctx.fillStyle = '#ff7b72';
+    ctx.font = '9px Courier New';
+    ctx.fillText(finalX.toFixed(1) + ' µm', Math.max(PAD.l + 2, fxC - 28), Math.max(PAD.t + 10, fyC - 5));
+  }
 
   // Axis labels
   ctx.fillStyle = '#667788';
@@ -1161,11 +1224,318 @@ function drawInset(td) {
   ctx.fillText('x (µm)', -14, 0);
   ctx.restore();
 
-  // Tick labels
   ctx.fillStyle = '#556677';
   ctx.font = '8px Courier New';
   ctx.fillText(minZ.toFixed(0), PAD.l, PAD.t + pH + 14);
   ctx.fillText(maxZ.toFixed(0), PAD.l + pW - 8, PAD.t + pH + 14);
+}
+
+// ============================================================
+// BUTTONS
+// ============================================================
+function onFire() {
+  if (!transitData) {
+    currentP = readParams();
+    transitData = simulate(currentP);
+    transitData = augmentWithHistory(transitData, currentP);
+    updateStatsPanel();
+    checkBoreField(transitData);
+    updateModeAssets();
+  }
+  frameCursor = 0;
+  currentFrameIndex = 0;
+  isAnimating = true;
+  if (trailGeo) {
+    trailGeo.setDrawRange(0, 0);
+    trailGeo.attributes.position.needsUpdate = true;
+  }
+  if (arrowRed)  arrowRed.visible  = false;
+  if (arrowBlue) arrowBlue.visible = false;
+  document.getElementById('centerResultText').style.display = 'none';
+  if (currentMode === 1) {
+    document.getElementById('insetCanvas').style.display = 'none';
+  }
+  prevPulseState = new Array(currentP.nseg).fill(0);
+  visualEffectsManager.reset();
+  setStatus('Launching...');
+}
+
+function onReset() {
+  isAnimating = false;
+  frameCursor = 0;
+  currentFrameIndex = 0;
+  transitData = null;
+  if (trailGeo) {
+    trailGeo.setDrawRange(0, 0);
+    trailGeo.attributes.position.needsUpdate = true;
+  }
+  if (arrowRed)  arrowRed.visible  = false;
+  if (arrowBlue) arrowBlue.visible = false;
+  document.getElementById('overlayLabels').innerHTML = '';
+  document.getElementById('insetCanvas').style.display = 'none';
+  document.getElementById('centerResultText').style.display = 'none';
+  const pos = physicsToScene(0, currentP.zstart, currentP);
+  ballMesh.position.copy(pos);
+  ballLight.position.copy(pos);
+  visualEffectsManager.reset();
+  setStatus('Reset — press FIRE to launch.');
+}
+
+function toggleSlow() {
+  isSlow = !isSlow;
+  document.getElementById('slowBtn').textContent = isSlow ? 'SLOW: ON' : 'SLOW 0.1×';
+}
+
+function applyPresetByName(name) {
+  document.getElementById('presetDropdown').classList.remove('open');
+  const preset = PRESETS[name];
+  if (!preset) return;
+
+  currentP.mu = preset.mu;
+  currentP.rpm = preset.rpm;
+  currentP.kd = preset.kd;
+  if (preset.gradient !== undefined) currentP.gradient = preset.gradient;
+  currentP.amp = [...preset.amp];
+  currentP.delta = preset.delta_us.map(d => d * 1e-6);
+  currentP.aText = preset.amp.join(',');
+  currentP.deltaText = preset.delta_us.join(',');
+
+  document.getElementById('muSlider').value = currentP.mu;
+  document.getElementById('muVal').textContent = currentP.mu;
+  document.getElementById('rpmSlider').value = currentP.rpm;
+  document.getElementById('rpmVal').textContent = currentP.rpm;
+  document.getElementById('kdSlider').value = currentP.kd;
+  document.getElementById('kdVal').textContent = currentP.kd.toFixed(3);
+  document.getElementById('gradSlider').value = currentP.gradient;
+  document.getElementById('gradVal').textContent = currentP.gradient;
+  document.getElementById('ampText').value = currentP.aText;
+  document.getElementById('deltaText').value = currentP.deltaText;
+
+  lastPresetName = name;
+  onParamChange();
+}
+
+function onValidate() {
+  setStatus('Validating...');
+  setTimeout(() => {
+    const P1 = buildP(currentP);
+    P1.dt_us = 0.25;
+    const P2 = buildP(currentP);
+    P2.dt_us = 0.50;
+
+    const r1 = simulate(P1);
+    const r2 = simulate(P2);
+
+    const dvx1 = r1.metrics.delta_vx;
+    const dvx2 = r2.metrics.delta_vx;
+    const convergence = Math.abs(dvx1 - dvx2) / (Math.abs(dvx1) + 1e-12) * 100;
+
+    if (Math.abs(dvx1) < 1e-7) {
+      const badge = document.getElementById('validateBadge');
+      badge.textContent = '⚠ Signal too small to check convergence — use an asymmetric preset';
+      badge.className = 'badge-amber';
+      badge.style.display = 'inline-block';
+      badge.style.marginTop = '6px';
+      setStatus('Validate skipped — near-zero signal (symmetric config?)');
+      return;
+    }
+
+    let msg = 'dt convergence: ' + convergence.toFixed(3) + '%';
+    let cls = 'badge-green';
+    let icon = '✓';
+
+    if (convergence > 5) {
+      cls = 'badge-red';
+      icon = '✗';
+      msg = 'dt convergence: ' + convergence.toFixed(1) + '% (poor)';
+    } else if (convergence > 2) {
+      cls = 'badge-amber';
+      icon = '⚠';
+      msg = 'dt convergence: ' + convergence.toFixed(1) + '% (acceptable)';
+    }
+
+    // Reference check — only when using default preset
+    let refCheck = '';
+    if (lastPresetName === 'default' || lastPresetName === null) {
+      const refErr = Math.abs(dvx1 - REFERENCE_DVX) / (Math.abs(REFERENCE_DVX) + 1e-12) * 100;
+      if (refErr < 0.1) {
+        refCheck = ' | ref match ✓';
+      } else {
+        refCheck = ' | ref diff: ' + refErr.toFixed(2) + '%';
+      }
+    }
+
+    const badge = document.getElementById('validateBadge');
+    badge.textContent = icon + ' Physics kernel ' + (convergence < 2 ? 'validated' : 'warning') + ' — ' + msg + refCheck;
+    badge.className = 'badge-green ' + cls;
+    badge.style.display = 'inline-block';
+    badge.style.marginTop = '6px';
+
+    setStatus('Validate done. Δvx(fine)=' + dvx1.toExponential(4) + ', Δvx(coarse)=' + dvx2.toExponential(4));
+  }, 10);
+}
+
+function onShare() {
+  const url = buildShareURL();
+  if (navigator.clipboard && navigator.clipboard.writeText) {
+    navigator.clipboard.writeText(url).then(() => setStatus('URL copied to clipboard!'));
+  } else {
+    prompt('Share URL:', url);
+  }
+}
+
+function buildShareURL() {
+  return window.location.href.split('#')[0] + '#' + buildHashString();
+}
+
+function togglePresetMenu() {
+  document.getElementById('presetDropdown').classList.toggle('open');
+}
+
+document.addEventListener('click', e => {
+  if (!document.getElementById('presetWrapper').contains(e.target)) {
+    document.getElementById('presetDropdown').classList.remove('open');
+  }
+});
+
+// ============================================================
+// STEP 6 — Challenge mode
+// ============================================================
+function toggleChallenge() {
+  const btn = document.getElementById('challengeBtn');
+  if (!challengeState.active) {
+    challengeState.active = true;
+    challengeState.score = 0;
+    challengeState.targetCenter = REFERENCE_DVX;
+    challengeState.targetHalfWidth = Math.abs(REFERENCE_DVX) * 0.20;
+    challengeState.lockedParams = readParams();
+
+    // Disable all sliders/inputs except deltaText
+    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = true;
+    });
+
+    btn.textContent = 'EXIT CHALLENGE';
+    btn.classList.add('challenge-active');
+
+    document.getElementById('scoreDisplay').style.display = 'block';
+    document.getElementById('challengeOverlay').style.display = 'block';
+    updateScoreDisplay();
+    setStatus('CHALLENGE: Adjust timing offsets then press FIRE to score.');
+  } else {
+    // Restore
+    challengeState.active = false;
+    ['muSlider','rpmSlider','kdSlider','gradSlider','vzSlider','sigSlider','ampText'].forEach(id => {
+      const el = document.getElementById(id);
+      if (el) el.disabled = false;
+    });
+    btn.textContent = 'CHALLENGE';
+    btn.classList.remove('challenge-active');
+    document.getElementById('scoreDisplay').style.display = 'none';
+    document.getElementById('challengeOverlay').style.display = 'none';
+    // Restore locked params
+    if (challengeState.lockedParams) {
+      Object.assign(currentP, challengeState.lockedParams);
+      document.getElementById('muSlider').value = currentP.mu;
+      document.getElementById('muVal').textContent = currentP.mu;
+      document.getElementById('rpmSlider').value = currentP.rpm;
+      document.getElementById('rpmVal').textContent = currentP.rpm;
+      document.getElementById('kdSlider').value = currentP.kd;
+      document.getElementById('kdVal').textContent = currentP.kd.toFixed(3);
+      document.getElementById('gradSlider').value = currentP.gradient;
+      document.getElementById('gradVal').textContent = currentP.gradient;
+    }
+    setStatus('Challenge ended. Score: ' + challengeState.score);
+  }
+}
+
+function evaluateChallengeResult(dvx) {
+  const lo = challengeState.targetCenter - challengeState.targetHalfWidth;
+  const hi = challengeState.targetCenter + challengeState.targetHalfWidth;
+  let outcome = '';
+  if (dvx >= lo && dvx <= hi) {
+    challengeState.score++;
+    challengeState.targetHalfWidth *= 0.9;
+    outcome = 'DEFLECTED ✓ — Score: ' + challengeState.score;
+  } else if (Math.abs(dvx) > Math.abs(challengeState.targetCenter)) {
+    outcome = 'OVERSTEERED — try again';
+  } else {
+    outcome = 'UNDERSTEERED — try again';
+  }
+  setStatus('CHALLENGE: ' + outcome);
+  updateScoreDisplay();
+}
+
+function updateScoreDisplay() {
+  const el = document.getElementById('scoreDisplay');
+  el.innerHTML = 'Score: ' + challengeState.score +
+    '<br>Target: ' + (challengeState.targetCenter * 1000).toFixed(3) + ' mm/s' +
+    '<br>&#177;' + (challengeState.targetHalfWidth * 1000).toFixed(3) + ' mm/s';
+}
+
+// ============================================================
+// SLIDER / INPUT HANDLERS
+// ============================================================
+function onSlider(key, val, labelId, decimals) {
+  const v = parseFloat(val);
+  document.getElementById(labelId).textContent = decimals !== undefined ? v.toFixed(decimals) : v;
+  onParamChange();
+}
+
+function onTextParamDebounced(key, val) {
+  if (textDebounceTimer) clearTimeout(textDebounceTimer);
+  textDebounceTimer = setTimeout(() => {
+    onParamChange();
+  }, 300);
+}
+
+// ============================================================
+// RIM SPEED CHECK
+// ============================================================
+function checkRimSpeed(P) {
+  const rimSpeed = (2 * Math.PI * (P.rpm / 60)) * P.r;
+  const el = document.getElementById('s_rim');
+  const fireBtn = document.getElementById('fireBtn');
+
+  const rs = rimSpeed.toFixed(0);
+  if (rimSpeed >= 1000) {
+    el.innerHTML = '<span class="rim-burst">' + rs + ' m/s ✗ BURST — FIRE DISABLED</span>';
+    fireBtn.disabled = true;
+  } else if (rimSpeed >= 900) {
+    el.innerHTML = '<span class="rim-high">' + rs + ' m/s ● HIGH RISK</span>';
+    fireBtn.disabled = false;
+  } else if (rimSpeed >= 600) {
+    el.innerHTML = '<span class="rim-caution">' + rs + ' m/s ● CAUTION</span>';
+    fireBtn.disabled = false;
+  } else {
+    el.innerHTML = '<span class="rim-safe">' + rs + ' m/s ● SAFE</span>';
+    fireBtn.disabled = false;
+  }
+}
+
+// ============================================================
+// BORE FIELD WARNING
+// ============================================================
+function checkBoreField(td) {
+  const maxDB = Math.max.apply(null, td.DBXDZ.map(Math.abs));
+  const B_edge = maxDB * 0.25;
+  const wb = document.getElementById('warningBanner');
+  if (B_edge > 50) {
+    wb.textContent = '✗ Unrealistic fields — reduce gradient';
+    wb.style.background = '#2e0000';
+    wb.style.color = '#ff7b72';
+    wb.style.border = '1px solid #ff7b72';
+    wb.style.display = 'block';
+  } else if (B_edge > 20) {
+    wb.textContent = '⚠ Peak gradient implies bore-edge field > 20 T — check realism';
+    wb.style.background = '#2e2a00';
+    wb.style.color = '#f2cc60';
+    wb.style.border = '1px solid #f2cc60';
+    wb.style.display = 'block';
+  } else {
+    wb.style.display = 'none';
+  }
 }
 
 // ============================================================
@@ -1176,14 +1546,40 @@ function setStatus(msg) {
 }
 
 // ============================================================
-// URL PARAMS
+// STEP 7 — URL hash persistence
 // ============================================================
+function buildHashString() {
+  const p = currentP;
+  return 'preset=' + (lastPresetName || 'custom') +
+    '&mode=' + currentMode +
+    '&mu=' + p.mu +
+    '&kd=' + p.kd +
+    '&rpm=' + p.rpm +
+    '&grad=' + p.gradient +
+    '&sigma=' + p.sigma_us +
+    '&amp=' + encodeURIComponent(p.aText) +
+    '&delta=' + encodeURIComponent(p.deltaText);
+}
+
+function saveToURL() {
+  history.replaceState(null, '', '#' + buildHashString());
+}
+
 function loadFromURL() {
-  const params = new URLSearchParams(window.location.search);
+  const hash = window.location.hash.slice(1);
+  if (!hash) return;
+  const params = new URLSearchParams(hash);
+
   if (params.has('preset')) {
     const name = params.get('preset');
-    if (PRESETS[name]) applyPresetByName(name);
-    return;
+    if (name !== 'custom' && PRESETS[name]) {
+      applyPresetByName(name);
+      return;
+    }
+  }
+  if (params.has('mode')) {
+    currentMode = parseInt(params.get('mode')) || 0;
+    document.getElementById('modeBtn').textContent = 'MODE: ' + MODE_NAMES[currentMode];
   }
   if (params.has('mu')) {
     currentP.mu = parseFloat(params.get('mu'));
@@ -1199,6 +1595,34 @@ function loadFromURL() {
     currentP.rpm = parseFloat(params.get('rpm'));
     document.getElementById('rpmSlider').value = currentP.rpm;
     document.getElementById('rpmVal').textContent = currentP.rpm;
+  }
+  if (params.has('grad')) {
+    currentP.gradient = parseFloat(params.get('grad'));
+    document.getElementById('gradSlider').value = currentP.gradient;
+    document.getElementById('gradVal').textContent = currentP.gradient;
+  }
+  if (params.has('sigma')) {
+    currentP.sigma_us = parseFloat(params.get('sigma'));
+    document.getElementById('sigSlider').value = currentP.sigma_us;
+    document.getElementById('sigVal').textContent = currentP.sigma_us;
+  }
+  if (params.has('amp')) {
+    const aText = decodeURIComponent(params.get('amp'));
+    const aArr = aText.split(',').map(Number).filter(n => !isNaN(n));
+    if (aArr.length === currentP.nseg) {
+      currentP.amp = aArr;
+      currentP.aText = aText;
+      document.getElementById('ampText').value = aText;
+    }
+  }
+  if (params.has('delta')) {
+    const dText = decodeURIComponent(params.get('delta'));
+    const dArr = dText.split(',').map(Number).filter(n => !isNaN(n));
+    if (dArr.length === currentP.nseg) {
+      currentP.delta = dArr.map(d => d * 1e-6);
+      currentP.deltaText = dText;
+      document.getElementById('deltaText').value = dText;
+    }
   }
 }
 
@@ -1218,25 +1642,41 @@ window.addEventListener('resize', onResize);
 // ============================================================
 // RENDER LOOP
 // ============================================================
-function renderLoop() {
+function renderLoop(now) {
   requestAnimationFrame(renderLoop);
+  const dt = Math.min((now - lastRenderTime) / 1000, 0.05);
+  lastRenderTime = now;
 
-  if (isPlaying && transitData) {
-    const stepsPerFrame = isSlow ? 1 :
-      Math.max(1, Math.ceil(transitData.T.length / (4.0 * 60)));
-    frameIndex = Math.min(frameIndex + stepsPerFrame, transitData.T.length - 1);
-    updateBallPosition(frameIndex);
-    updateTrail(frameIndex);
-    updateCoilGlow(frameIndex);
-    if (currentMode === 0) updateForceArrows(frameIndex);
-    updateStatsLive(frameIndex);
-    if (frameIndex >= transitData.T.length - 1) {
-      isPlaying = false;
+  if (isAnimating && transitData) {
+    const stepsPerFrame = isSlow
+      ? 1
+      : transitData.T.length / (TARGET_ANIM_SECONDS * 60);
+
+    frameCursor += stepsPerFrame;
+    currentFrameIndex = Math.min(Math.floor(frameCursor), transitData.T.length - 1);
+
+    updateBallPosition(currentFrameIndex);
+    updateTrail(currentFrameIndex);
+    updateCoilFlash(currentFrameIndex);
+    if (currentMode === 0) updateForceArrows(currentFrameIndex);
+    if (currentMode === 1) {
+      document.getElementById('insetCanvas').style.display = 'block';
+      drawInsetProgressive(transitData, currentFrameIndex);
+    }
+    if (currentMode === 2 && dipoleGroup) {
+      dipoleGroup.position.copy(ballMesh.position);
+      dipoleGroup.rotation.y += 0.008;
+    }
+    updateOverlayText(currentFrameIndex);
+
+    if (currentFrameIndex >= transitData.T.length - 1) {
+      isAnimating = false;
       showFinalStats();
     }
   }
 
-  ballMesh.rotation.y += 0.04;
+  visualEffectsManager.update(dt);
+  if (ballMesh) ballMesh.rotation.y += 0.03;
   renderer.render(scene, camera);
 }
 
@@ -1244,9 +1684,6 @@ function renderLoop() {
 // INIT
 // ============================================================
 function init() {
-  // ----------------------------------------------------------
-  // THREE.JS scene construction — runs here, after THREE loads
-  // ----------------------------------------------------------
   renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
   renderer.setPixelRatio(window.devicePixelRatio);
   renderer.setClearColor(0x000000);
@@ -1286,8 +1723,8 @@ function init() {
   COIL_EMISSIVE_DEFAULT = new THREE.Color(0x112233);
   COIL_EMISSIVE_ACTIVE  = new THREE.Color(0x0088ff);
 
-  // Ball
-  const ballGeo = new THREE.SphereGeometry(0.18, 32, 32);
+  // Ball — using BALL_SCENE_RADIUS
+  const ballGeo = new THREE.SphereGeometry(BALL_SCENE_RADIUS, 32, 32);
   const ballMat = new THREE.MeshStandardMaterial({
     color: 0xccaa44,
     emissive: 0x442200,
@@ -1303,14 +1740,6 @@ function init() {
   trailMat = new THREE.LineBasicMaterial({ color: 0xffaa00, vertexColors: false });
   trailLine = new THREE.Line(trailGeo, trailMat);
   scene.add(trailLine);
-
-  // Ghost trail (symmetric comparison)
-  ghostGeo = new THREE.BufferGeometry();
-  ghostGeo.setAttribute('position', new THREE.BufferAttribute(ghostPositions, 3));
-  ghostMat = new THREE.LineBasicMaterial({ color: 0x226622 });
-  ghostLine = new THREE.Line(ghostGeo, ghostMat);
-  ghostLine.visible = false;
-  scene.add(ghostLine);
 
   // Force arrows (Mode 0)
   arrowRed = new THREE.ArrowHelper(
@@ -1329,27 +1758,21 @@ function init() {
   arrowBlue.visible = false;
   scene.add(arrowBlue);
 
-  // Field streamlines (Mode 2)
+  // Legacy streamline group (kept for compatibility)
   streamlineGroup = new THREE.Group();
   streamlineGroup.visible = false;
   scene.add(streamlineGroup);
 
-  // ----------------------------------------------------------
-  // End THREE.JS scene construction
-  // ----------------------------------------------------------
+  // Dipole field line group
+  dipoleGroup = new THREE.Group();
+  dipoleGroup.visible = false;
+  scene.add(dipoleGroup);
 
   onResize();
 
-  // Set reference by running default simulation
-  const Pref = buildP(P_DEFAULTS);
-  const refResult = simulate(Pref);
-  REFERENCE.delta_vx = refResult.metrics.delta_vx;
-  REFERENCE.impulse  = refResult.metrics.impulse;
-  REFERENCE.delta_x  = refResult.metrics.delta_x;
-
   // Show reference badge quietly
   const badge = document.getElementById('validateBadge');
-  badge.textContent = `Ref Δvx = ${REFERENCE.delta_vx.toExponential(4)} m/s — press VALIDATE to check`;
+  badge.textContent = 'Ref Δvx = ' + REFERENCE_DVX.toExponential(4) + ' m/s — press VALIDATE to check';
   badge.className = 'badge-green';
   badge.style.display = 'inline-block';
   badge.style.marginTop = '6px';
@@ -1359,17 +1782,28 @@ function init() {
   checkRimSpeed(currentP);
 
   // Place ball at start
-  const P = buildP(currentP);
-  const startPos = physicsToScene(0, P.zstart, P);
+  const startPos = physicsToScene(0, currentP.zstart, currentP);
   ballMesh.position.copy(startPos);
   ballLight.position.copy(startPos);
 
-  // Load URL params
+  // Load URL params (may call applyPresetByName / onParamChange)
   loadFromURL();
 
+  // Run initial simulation and auto-fire
+  currentP = readParams();
+  transitData = simulate(currentP);
+  transitData = augmentWithHistory(transitData, currentP);
+  updateStatsPanel();
+  checkBoreField(transitData);
+  buildDipoleFieldLines(currentP);
+
   // Start render
-  renderLoop();
-  setStatus('Ready — press FIRE to launch.');
+  requestAnimationFrame(renderLoop);
+
+  // Apply mode visuals then auto-fire
+  applyMode();
+  autoFire();
+  setStatus('Ready — launching...');
 }
 
 // init() is called by the Three.js onload handler above — do not call here
