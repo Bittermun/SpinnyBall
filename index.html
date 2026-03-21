@@ -980,9 +980,12 @@ function buildDipoleFieldLines(P) {
 // ANIMATION — ball + trail + coils
 // ============================================================
 function updateBallPosition(idx) {
-  const pos = physicsToScene(0, transitData.Z[idx], currentP);
-  ballMesh.position.copy(pos);
-  ballLight.position.copy(pos);
+  // Ball follows the exaggerated trail so it stays coherent with the visible path.
+  // Max exaggerated x ≈ 0.49 scene units, bore inner radius = 0.73 — ball fits cleanly.
+  const x = transitData.displayX[idx];
+  const z = transitData.sceneZ[idx];
+  ballMesh.position.set(x, 0, z);
+  ballLight.position.set(x, 0, z);
 }
 
 function updateTrail(idx) {
@@ -1695,7 +1698,9 @@ function renderLoop(now) {
     }
     updateOverlayText(currentFrameIndex);
 
-    if (currentFrameIndex >= transitData.T.length - 1) {
+    // Stop at array exit (exitIdx), not at end of tmargin tail
+    if (currentFrameIndex >= transitData.exitIdx) {
+      currentFrameIndex = transitData.exitIdx;
       isAnimating = false;
       showFinalStats();
     }
