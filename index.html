@@ -926,6 +926,17 @@ function onValidate() {
     const dvx2 = r2.metrics.delta_vx;
     const convergence = Math.abs(dvx1 - dvx2) / (Math.abs(dvx1) + 1e-12) * 100;
 
+    // If signal is too small to measure convergence meaningfully, say so
+    if (Math.abs(dvx1) < 1e-7) {
+      const badge = document.getElementById('validateBadge');
+      badge.textContent = '⚠ Signal too small to check convergence — use an asymmetric preset';
+      badge.className = 'badge-amber';
+      badge.style.display = 'inline-block';
+      badge.style.marginTop = '6px';
+      setStatus('Validate skipped — near-zero signal (symmetric config?)');
+      return;
+    }
+
     let msg = `dt convergence: ${convergence.toFixed(3)}%`;
     let cls = 'badge-green';
     let icon = '✓';
