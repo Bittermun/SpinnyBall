@@ -7,7 +7,7 @@ Numerical simulation of a spinning magnetic sphere deflected laterally by a segm
 | File | Description |
 |---|---|
 | `sgms_v1.py` | Python/SciPy RK45 simulation — the scientific reference |
-| `sgms_demo.html` | Self-contained Three.js interactive demo — opens in any browser |
+| `index.html` | Self-contained Three.js interactive demo — live at [bittermun.github.io/SpinnyBall](https://bittermun.github.io/SpinnyBall/) |
 
 ## Physics summary
 
@@ -40,9 +40,9 @@ Or locally: `py sgms_v1.py`
 
 **Convergence:** Spatial force sampling is the limiting factor, not ODE tolerance. Converged to ~0.5% at dt = 0.25 µs. Tightening rtol/atol has no effect.
 
-## Interactive demo (`sgms_demo.html`)
+## Interactive demo (`index.html`)
 
-Open directly in any browser. No server, no install.
+Live at **https://bittermun.github.io/SpinnyBall/** — or open `index.html` directly in any browser. No server, no install.
 
 **Three view modes:**
 - **FORCES** (default) — red lateral arrow vs blue drag arrow. Efficiency claim made visual.
