@@ -1690,10 +1690,8 @@ function renderLoop(now) {
       drawInsetProgressive(transitData, currentFrameIndex);
     }
     if (currentMode === 2 && dipoleGroup) {
+      // Keep dipole centred on ball during transit
       dipoleGroup.position.copy(ballMesh.position);
-      // Rotation speed scales with RPM — visible difference at 1k vs 150k RPM
-      const rpmScale = (currentP && currentP.rpm) ? currentP.rpm / 50000 : 1;
-      dipoleGroup.rotation.y += 0.008 * rpmScale;
     }
     updateOverlayText(currentFrameIndex);
 
@@ -1704,7 +1702,13 @@ function renderLoop(now) {
   }
 
   visualEffectsManager.update(dt);
-  if (ballMesh) ballMesh.rotation.y += 0.03;
+  // Ball and dipole spin continuously — speed scales with RPM slider
+  const _rpmScale = (currentP && currentP.rpm) ? currentP.rpm / 50000 : 1;
+  if (ballMesh) ballMesh.rotation.y += 0.03 * _rpmScale;
+  // Dipole rotates in FIELD mode even when not animating (always spinning)
+  if (currentMode === 2 && dipoleGroup) {
+    dipoleGroup.rotation.y += 0.008 * _rpmScale;
+  }
   renderer.render(scene, camera);
 }
 
