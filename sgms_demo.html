@@ -323,8 +323,34 @@ input[type=text] {
   <div id="statusBar">Ready — press FIRE to launch.</div>
 </div>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r152/three.min.js"></script>
 <script>
+// ============================================================
+// STATE — declared first to avoid temporal dead zone errors
+// ============================================================
+let transitData = null;
+let ghostData   = null;
+let frameIndex  = 0;
+let isPlaying   = false;
+let isSlow      = false;
+let currentMode = 0; // 0=FORCES, 1=TRAJECTORY, 2=FIELD
+let lastPresetName = null;
+
+// ============================================================
+// THREE.JS — load dynamically so init() fires only after ready
+// Works from file://, http://, and https:// equally
+// ============================================================
+(function loadThree() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js';
+  s.onload  = function() { init(); };
+  s.onerror = function() {
+    document.body.innerHTML =
+      '<div style="color:#ff7b72;padding:30px;font-family:monospace;background:#0a0a0f">' +
+      'Failed to load Three.js from CDN.<br>Check internet connection and reload.</div>';
+  };
+  document.head.appendChild(s);
+})();
+
 // ============================================================
 // INLINE ORBIT CONTROLS
 // ============================================================
@@ -670,7 +696,7 @@ function physicsToScene(x, z, P) {
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
-let currentMode = 0; // 0=FORCES, 1=TRAJECTORY, 2=FIELD
+// currentMode declared at top of script
 const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
 
 function cycleMode() {
@@ -738,12 +764,8 @@ function buildStreamlines() {
 // ============================================================
 // ANIMATION STATE
 // ============================================================
-let transitData = null;
-let ghostData = null;
-let frameIndex = 0;
-let isPlaying = false;
-let isSlow = false;
-let lastPresetName = null;
+// transitData, ghostData, frameIndex, isPlaying, isSlow, lastPresetName
+// all declared at top of script
 
 function updateBallPosition(idx) {
   const P = buildP(currentP);
@@ -1319,7 +1341,7 @@ function init() {
   setStatus('Ready — press FIRE to launch.');
 }
 
-init();
+// init() is called by the Three.js onload handler above — do not call here
 </script>
 </body>
 </html>
