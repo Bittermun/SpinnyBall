@@ -402,12 +402,12 @@ input[type=text] {
   <div id="presetWrapper">
     <button class="top-btn" id="presetBtn" onclick="togglePresetMenu()">PRESET &#9662;</button>
     <div id="presetDropdown">
-      <div class="preset-item" onclick="applyPresetByName('default')">Default (asymmetric)</div>
+      <div class="preset-item" onclick="applyPresetByName('default')">Default (moderate left)</div>
       <div class="preset-item" onclick="applyPresetByName('symmetric')">Symmetric (zero steering)</div>
-      <div class="preset-item" onclick="applyPresetByName('flipped')">Flipped (sign check)</div>
+      <div class="preset-item" onclick="applyPresetByName('flipped')">Strong Right (reversed + amplified)</div>
       <div class="preset-item" onclick="applyPresetByName('zero_mu')">Zero dipole (no force)</div>
-      <div class="preset-item" onclick="applyPresetByName('high_drag')">High drag (efficiency demo)</div>
-      <div class="preset-item" onclick="applyPresetByName('max_gradient')">Max gradient (hardware limit)</div>
+      <div class="preset-item" onclick="applyPresetByName('high_drag')">High Drag (beam deceleration)</div>
+      <div class="preset-item" onclick="applyPresetByName('max_gradient')">Strong Left (max asymmetry)</div>
     </div>
   </div>
 </div>
@@ -786,40 +786,46 @@ const P_DEFAULTS = {
 
 const PRESETS = {
   default: {
-    label: 'Default (asymmetric)',
+    // Gentle reference case — moderate left deflection
+    label: 'Default (moderate left)',
     mu: 60, rpm: 50000, kd: 0, gradient: 50,
     amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
     delta_us: [0, 2, -1, 1, -2, 0],
   },
   symmetric: {
+    // Benchmark: perfectly symmetric → zero lateral deflection
     label: 'Symmetric (zero steering)',
     mu: 60, rpm: 50000, kd: 0, gradient: 50,
     amp: [1, 1, 1, 1, 1, 1],
     delta_us: [0, 0, 0, 0, 0, 0],
   },
   flipped: {
-    label: 'Flipped (sign check)',
-    mu: 60, rpm: 50000, kd: 0, gradient: 50,
-    amp: [0.8, 0.9, 1.0, 1.2, 1.1, 1.0],
-    delta_us: [0, -2, 1, -1, 2, 0],
+    // Strong rightward deflection — opposite direction to default, 15x larger impulse
+    label: 'Strong Right (reversed + amplified)',
+    mu: 150, rpm: 50000, kd: 0, gradient: 100,
+    amp: [0.2, 0.4, 0.8, 1.8, 2.0, 2.0],
+    delta_us: [0, -6, 3, -3, 6, 0],
   },
   zero_mu: {
+    // No magnetic moment → no lateral force, ball goes straight
     label: 'Zero dipole (no force)',
     mu: 0, rpm: 50000, kd: 0, gradient: 50,
     amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
     delta_us: [0, 2, -1, 1, -2, 0],
   },
   high_drag: {
-    label: 'High drag (efficiency demo)',
-    mu: 60, rpm: 50000, kd: 0.05, gradient: 50,
+    // Axial drag: ball visibly decelerates, stream speed drops, lateral barely changes
+    label: 'High Drag (beam deceleration)',
+    mu: 60, rpm: 50000, kd: 0.14, gradient: 50,
     amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
     delta_us: [0, 2, -1, 1, -2, 0],
   },
   max_gradient: {
-    label: 'Max gradient (hardware limit)',
-    mu: 120, rpm: 50000, kd: 0, gradient: 50,
-    amp: [1.0, 1.1, 1.2, 1.0, 0.9, 0.8],
-    delta_us: [0, 2, -1, 1, -2, 0],
+    // Strong leftward deflection — high mu, high gradient, 10:1 amp asymmetry
+    label: 'Strong Left (max asymmetry)',
+    mu: 150, rpm: 50000, kd: 0, gradient: 100,
+    amp: [2.0, 2.0, 1.8, 0.8, 0.4, 0.2],
+    delta_us: [0, 6, -3, 3, -6, 0],
   },
 };
 
