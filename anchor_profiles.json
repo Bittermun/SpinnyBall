@@ -1,0 +1,56 @@
+{
+  "profiles": [
+    {
+      "name": "paper-baseline",
+      "category": "paper",
+      "params": {
+        "u": 10.0,
+        "lam": 0.5,
+        "g_gain": 0.05,
+        "ms": 1000.0,
+        "eps": 0.0001,
+        "c_damp": 4.0,
+        "theta_bias": 0.087,
+        "t_max": 240.0,
+        "x0": 0.1,
+        "v0": 0.0
+      },
+      "provenance": {
+        "u": "master memo baseline",
+        "lam": "reduced-order anchor assumption",
+        "g_gain": "paper control assumption",
+        "ms": "suspended node baseline"
+      },
+      "notes": [
+        "Use for paper-facing reduced-order figures and tables.",
+        "Prioritizes traceable assumptions over aggressive performance."
+      ]
+    },
+    {
+      "name": "engineering-screen",
+      "category": "engineering",
+      "params": {
+        "u": 20.0,
+        "lam": 0.75,
+        "g_gain": 0.08,
+        "ms": 1000.0,
+        "eps": 0.0005,
+        "c_damp": 8.0,
+        "theta_bias": 0.087,
+        "t_max": 240.0,
+        "x0": 0.08,
+        "v0": 0.0
+      },
+      "provenance": {
+        "u": "engineering sweep point",
+        "lam": "higher traffic density screen",
+        "g_gain": "stiffer control screen",
+        "c_damp": "higher damping engineering case"
+      },
+      "notes": [
+        "Use for engineering trade studies and stronger-control screening.",
+        "Not the default paper claim profile."
+      ]
+    }
+  ]
+}

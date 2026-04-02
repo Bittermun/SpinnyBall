@@ -1,0 +1,20 @@
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Tool specific data
+.superpowers/
+.playwright-mcp/
+
+# Project specific generated artifacts
+artifacts/
+*.png
+*.csv
+
+# Personal TODO/notes
+reminder.txt
+
+# OS-specific
+.DS_Store
+Thumbs.db
