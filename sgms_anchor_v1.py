@@ -41,6 +41,7 @@ DEFAULT_PARAMS = {
     "disturbance_hold_s": 1.0,
     "packet_sigma_s": 0.01,
     "packet_phase_s": 0.0,
+    "k_fp": 0.0,
     "x0": 0.1,
     "v0": 0.0,
     "t_max": 400.0,
@@ -61,17 +62,22 @@ def analytical_metrics(params: dict) -> dict:
     c_damp = params["c_damp"]
 
     f_stream = lam * u**2 * theta_bias
-    k_eff = lam * u**2 * g_gain
-    omega_n = math.sqrt(k_eff / ms) if k_eff > 0.0 else 0.0
+    k_control = lam * u**2 * g_gain
+    k_fp = params.get("k_fp", 0.0)
+    k_total = k_control + k_fp
+    
+    omega_n = math.sqrt(k_total / ms) if k_total > 0.0 else 0.0
     period = (2.0 * math.pi / omega_n) if omega_n > 0.0 else math.inf
-    zeta = c_damp / (2.0 * math.sqrt(k_eff * ms)) if k_eff > 0.0 else math.inf
+    zeta = c_damp / (2.0 * math.sqrt(k_total * ms)) if k_total > 0.0 else math.inf
     bias_force = 2.0 * eps * f_stream
-    static_offset = bias_force / k_eff if k_eff > 0.0 else math.inf
+    static_offset = bias_force / k_total if k_total > 0.0 else math.inf
     packet_rate = lam * u / mp if mp > 0.0 else math.inf
     packet_period = 1.0 / packet_rate if packet_rate > 0.0 else math.inf
     return {
         "force_per_stream_n": f_stream,
-        "k_eff": k_eff,
+        "k_control": k_control,
+        "k_fp": k_fp,
+        "k_total": k_total,
         "omega_n_rad_s": omega_n,
         "period_s": period,
         "zeta": zeta,
@@ -90,19 +96,19 @@ def make_disturbance_series(params: dict, dt: float, steps: int, seed: int = 0) 
     return rng.normal(0.0, sigma, size=steps)
 
 
-def _stream_forces(x: float, vx: float, disturbance_theta: float, params: dict) -> tuple[float, float, float]:
+def _stream_forces(x: float, vx: float, disturbance_theta: float, params: dict) -> tuple[float, float, float, float]:
     lam_u2 = params["lam"] * params["u"] ** 2
     theta_cmd = params["g_gain"] * x
 
-    # Split the command evenly between the streams so the pair has
-    # k_eff = lambda * u^2 * g_gain instead of an accidental factor of two.
+    # Split the command evenly between the streams
     theta_plus = params["theta_bias"] - 0.5 * theta_cmd + disturbance_theta
     theta_minus = params["theta_bias"] + 0.5 * theta_cmd - disturbance_theta
 
     f_plus = (1.0 + params["eps"]) * lam_u2 * theta_plus
     f_minus = -(1.0 - params["eps"]) * lam_u2 * theta_minus
+    f_pin = -params.get("k_fp", 0.0) * x
     f_damp = -params["c_damp"] * vx
-    return f_plus, f_minus, f_damp
+    return f_plus, f_minus, f_pin, f_damp
 
 
 def packet_modulation(t: float, period: float, sigma: float, phase: float = 0.0, radius: int = 3) -> float:
@@ -125,8 +131,8 @@ def packet_modulation(t: float, period: float, sigma: float, phase: float = 0.0,
 
 def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
     del t  # Force law is time-invariant aside from the supplied disturbance.
-    f_plus, f_minus, f_damp = _stream_forces(x, vx, disturbance_theta, params)
-    return f_plus + f_minus + f_damp
+    f_p, f_m, f_pin, f_d = _stream_forces(x, vx, disturbance_theta, params)
+    return f_p + f_m + f_pin + f_d
 
 
 def discrete_packet_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
@@ -137,8 +143,8 @@ def discrete_packet_force(x: float, vx: float, t: float, params: dict, disturban
     plus_mod = packet_modulation(t, period, sigma, phase=phase)
     minus_mod = packet_modulation(t, period, sigma, phase=phase + 0.5 * period)
 
-    f_plus, f_minus, f_damp = _stream_forces(x, vx, disturbance_theta, params)
-    return f_plus * plus_mod + f_minus * minus_mod + f_damp
+    f_plus, f_minus, f_pin, f_damp = _stream_forces(x, vx, disturbance_theta, params)
+    return f_plus * plus_mod + f_minus * minus_mod + f_pin + f_damp
 
 
 def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None, seed: int = 0) -> dict:
@@ -180,8 +186,9 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     disturbance = np.empty_like(sol.t)
     for i, t in enumerate(sol.t):
         disturbance[i] = noise_at(float(t))
-        f_plus[i], f_minus[i], f_damp[i] = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], params)
-        force[i] = f_plus[i] + f_minus[i] + f_damp[i]
+        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], params)
+        f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
+        force[i] = fp + fm + fpin + fd
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -262,10 +269,10 @@ def simulate_discrete_anchor(params: dict | None = None, t_eval: np.ndarray | No
             params["packet_sigma_s"],
             phase=params["packet_phase_s"] + 0.5 * period,
         )
-        base_plus, base_minus, f_damp[i] = _stream_forces(x[i], vx[i], disturbance[i], params)
+        base_plus, base_minus, f_pin, f_damp[i] = _stream_forces(x[i], vx[i], disturbance[i], params)
         f_plus[i] = base_plus * plus_mod
         f_minus[i] = base_minus * minus_mod
-        force[i] = f_plus[i] + f_minus[i] + f_damp[i]
+        force[i] = f_plus[i] + f_minus[i] + f_pin + f_damp[i]
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -308,7 +315,7 @@ def sweep_velocity(params: dict | None = None, u_values: np.ndarray | None = Non
     u_values = np.asarray(u_values, dtype=float)
 
     force_per_stream = []
-    k_eff = []
+    k_total = []
     periods = []
     static_offset = []
     for u in u_values:
@@ -316,14 +323,14 @@ def sweep_velocity(params: dict | None = None, u_values: np.ndarray | None = Non
         local["u"] = float(u)
         metrics = analytical_metrics(local)
         force_per_stream.append(metrics["force_per_stream_n"])
-        k_eff.append(metrics["k_eff"])
+        k_total.append(metrics["k_total"])
         periods.append(metrics["period_s"])
         static_offset.append(metrics["static_offset_m"])
 
     return {
         "u": u_values,
         "force_per_stream_n": np.array(force_per_stream),
-        "k_eff": np.array(k_eff),
+        "k_total": np.array(k_total),
         "period_s": np.array(periods),
         "static_offset_m": np.array(static_offset),
     }
@@ -355,7 +362,9 @@ def sweep_anchor_grid(
                         "g_gain": float(g_gain),
                         "eps": float(eps),
                         "force_per_stream_n": metrics["force_per_stream_n"],
-                        "k_eff": metrics["k_eff"],
+                        "k_control": metrics["k_control"],
+                        "k_fp": metrics["k_fp"],
+                        "k_total": metrics["k_total"],
                         "omega_n_rad_s": metrics["omega_n_rad_s"],
                         "period_s": metrics["period_s"],
                         "zeta": metrics["zeta"],
@@ -390,7 +399,7 @@ def plot_anchor_response(result: dict, filename: str = "sgms_anchor_v1_displacem
     plt.title(
         "Moderate-u Dynamic Anchor Response\n"
         f"u = {result['params']['u']:.1f} m/s | "
-        f"k_eff = {metrics['k_eff']:.2f} N/m | "
+        f"k_total = {metrics['k_total']:.2f} N/m | "
         f"period = {metrics['period_s']:.1f} s"
     )
     plt.grid(True, alpha=0.3)
@@ -409,10 +418,10 @@ def plot_velocity_sweep(sweep: dict, filename: str = "sgms_anchor_v1_sweep.png")
     axes[0].set_xlabel("u (m/s)")
     axes[0].set_ylabel("F_stream (N)")
 
-    axes[1].plot(sweep["u"], sweep["k_eff"], "o-", color="#7ee787")
-    axes[1].set_title("Effective Stiffness")
+    axes[1].plot(sweep["u"], sweep["k_total"], "o-", color="#7ee787")
+    axes[1].set_title("Total Stiffness (Active + Pinning)")
     axes[1].set_xlabel("u (m/s)")
-    axes[1].set_ylabel("k_eff (N/m)")
+    axes[1].set_ylabel("k_total (N/m)")
 
     axes[2].plot(sweep["u"], sweep["period_s"], "o-", color="#f2cc60")
     axes[2].set_title("Oscillation Period")
@@ -473,12 +482,12 @@ def plot_sweep_heatmaps(
     for row in filtered:
         i = g_vals.index(row["g_gain"])
         j = u_vals.index(row["u"])
-        k_grid[i, j] = row["k_eff"]
+        k_grid[i, j] = row["k_total"]
         offset_grid[i, j] = row["static_offset_m"] * 1e3
 
     fig, axes = plt.subplots(1, 2, figsize=(12, 4.8))
     im1 = axes[0].imshow(k_grid, aspect="auto", origin="lower")
-    axes[0].set_title(f"k_eff (N/m) at eps={eps:g}")
+    axes[0].set_title(f"k_total (N/m) at eps={eps:g}")
     axes[0].set_xticks(range(len(u_vals)), [f"{u:g}" for u in u_vals])
     axes[0].set_yticks(range(len(g_vals)), [f"{g:g}" for g in g_vals])
     axes[0].set_xlabel("u (m/s)")
@@ -501,7 +510,9 @@ def plot_sweep_heatmaps(
 def print_summary(metrics: dict, estimated_period: float | None = None) -> None:
     print("=== MODERATE-U DYNAMIC ANCHOR METRICS ===")
     print(f"Force per stream:   {metrics['force_per_stream_n']:.3f} N")
-    print(f"Effective stiffness:{metrics['k_eff']:.3f} N/m")
+    print(f"Control stiffness:  {metrics['k_control']:.3f} N/m")
+    print(f"Pinning stiffness:  {metrics['k_fp']:.1f} N/m")
+    print(f"Total stiffness:    {metrics['k_total']:.3f} N/m")
     print(f"Natural frequency:  {metrics['omega_n_rad_s']:.5f} rad/s")
     print(f"Analytic period:    {metrics['period_s']:.3f} s")
     print(f"Damping ratio:      {metrics['zeta']:.4f}")

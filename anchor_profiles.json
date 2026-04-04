@@ -51,6 +51,34 @@
         "Use for engineering trade studies and stronger-control screening.",
         "Not the default paper claim profile."
       ]
+    },
+    {
+      "name": "aethelgard-resilience",
+      "category": "high-fidelity",
+      "params": {
+        "u": 10.0,
+        "lam": 16.6667,
+        "mp": 2.0,
+        "g_gain": 0.05,
+        "ms": 1000.0,
+        "eps": 0.0001,
+        "c_damp": 10.0,
+        "theta_bias": 0.087,
+        "k_fp": 4500.0,
+        "t_max": 120.0,
+        "x0": 0.0,
+        "v0": 0.0
+      },
+      "provenance": {
+        "u": "resilience draft u=10",
+        "lam": "resilience draft s=0.12, mp=2",
+        "k_fp": "GdBCO super-pinning constant",
+        "c_damp": "HTS eddy-current/active damping assumption"
+      },
+      "notes": [
+        "High-fidelity resilience baseline for Phase 14 polish.",
+        "Targets the < 0.5mm displacement requirement under pinning + active control."
+      ]
     }
   ]
 }
