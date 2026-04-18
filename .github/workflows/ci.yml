@@ -1,0 +1,117 @@
+name: CI/CD Pipeline with Physics Gates
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install pytest pytest-cov numpy scipy sympy matplotlib
+    
+    - name: Run physics gate tests
+      run: |
+        pytest tests/test_rigid_body.py -v --tb=short
+        pytest tests/test_vs_legacy.py -v --tb=short
+    
+    - name: Run coverage
+      run: |
+        pytest tests/test_rigid_body.py --cov=dynamics --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install linting tools
+      run: |
+        pip install ruff mypy
+    
+    - name: Run ruff
+      run: |
+        ruff check dynamics/ tests/
+    
+    - name: Run mypy
+      run: |
+        mypy dynamics/ --ignore-missing-imports
+
+  physics-gate:
+    runs-on: ubuntu-latest
+    name: Physics Gate - Angular Momentum Conservation
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install dependencies
+      run: |
+        pip install pytest numpy scipy sympy matplotlib
+    
+    - name: Run torque-free precession test
+      run: |
+        pytest tests/test_rigid_body.py::TestTorqueFreePrecession::test_angular_momentum_conservation -v
+    
+    - name: Check angular momentum conservation tolerance
+      run: |
+        python -c "
+        import numpy as np
+        from dynamics.rigid_body import RigidBody
+        
+        # Create asymmetric body
+        mass = 0.05
+        I = np.diag([0.0001, 0.00011, 0.00009])
+        omega0 = np.array([100.0, 500.0, 1000.0])
+        body = RigidBody(mass, I, angular_velocity=omega0)
+        
+        L_initial = body.angular_momentum
+        L_norm_initial = np.linalg.norm(L_initial)
+        
+        def zero_torque(t, state):
+            return np.array([0.0, 0.0, 0.0])
+        
+        body.integrate((0.0, 1.0), zero_torque, rtol=1e-10, atol=1e-12)
+        
+        L_final = body.angular_momentum
+        L_norm_final = np.linalg.norm(L_final)
+        
+        relative_error = np.abs(L_norm_final - L_norm_initial) / L_norm_initial
+        print(f'Angular momentum conservation error: {relative_error:.2e}')
+        
+        if relative_error >= 1e-9:
+            raise AssertionError(f'Angular momentum not conserved to 1e-9: error={relative_error:.2e}')
+        print('Physics gate PASSED: angular momentum conserved to <1e-9')
+        "

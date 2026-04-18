@@ -1,0 +1,924 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>Digital Twin — SGMS MRT v0.1</title>
+<style>
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  background: #0a0a0f;
+  color: #c0c8d8;
+  font-family: system-ui, sans-serif;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+#topbar {
+  background: #111118;
+  border-bottom: 1px solid #223;
+  padding: 8px 16px;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+#topbar h1 {
+  font-size: 16px;
+  font-weight: 600;
+  color: #79c0ff;
+  letter-spacing: 0.05em;
+  flex: 1;
+}
+#topbar h1 span { color: #f2cc60; }
+.tab-btn {
+  background: #1a1a2e;
+  border: 1px solid #334;
+  color: #c0c8d8;
+  padding: 6px 14px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: all 0.15s;
+}
+.tab-btn:hover { background: #2a2a4e; }
+.tab-btn.active {
+  background: #79c0ff;
+  border-color: #79c0ff;
+  color: #0a0a0f;
+  font-weight: 600;
+}
+
+#mainArea {
+  display: flex;
+  flex: 1;
+  overflow: hidden;
+}
+.tab-content {
+  display: none;
+  flex: 1;
+  overflow: hidden;
+}
+.tab-content.active {
+  display: flex;
+}
+
+/* 3D View Tab */
+#view3DWrap {
+  flex: 1;
+  position: relative;
+  background: #000;
+}
+#view3DCanvas {
+  width: 100% !important;
+  height: 100% !important;
+  display: block;
+}
+#overlay3D {
+  position: absolute;
+  top: 10px; left: 10px;
+  background: rgba(10,10,20,0.85);
+  border: 1px solid #334;
+  border-radius: 6px;
+  padding: 12px;
+  font-family: 'Courier New', monospace;
+  font-size: 11px;
+  max-width: 280px;
+}
+.overlay-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+}
+.overlay-label { color: #8899aa; }
+.overlay-val { color: #c0c8d8; }
+.overlay-val.warn { color: #f2cc60; }
+.overlay-val.crit { color: #ff7b72; }
+
+/* Digital Twin Tab */
+#twinPanel {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 16px;
+  overflow-y: auto;
+}
+.twin-section {
+  background: #111118;
+  border: 1px solid #223;
+  border-radius: 8px;
+  padding: 16px;
+}
+.section-header {
+  font-size: 12px;
+  letter-spacing: 0.1em;
+  color: #7ee787;
+  text-transform: uppercase;
+  margin-bottom: 12px;
+  border-bottom: 1px solid #223;
+  padding-bottom: 8px;
+}
+
+/* Gauges */
+.gauge-container {
+  display: flex;
+  gap: 20px;
+  flex-wrap: wrap;
+}
+.gauge {
+  width: 140px;
+  text-align: center;
+}
+.gauge-canvas {
+  width: 120px;
+  height: 120px;
+  margin: 0 auto 8px;
+}
+.gauge-label {
+  font-size: 11px;
+  color: #8899aa;
+}
+.gauge-value {
+  font-size: 16px;
+  font-family: 'Courier New', monospace;
+  color: #c0c8d8;
+  font-weight: 600;
+}
+.gauge-value.good { color: #7ee787; }
+.gauge-value.warn { color: #f2cc60; }
+.gauge-value.bad { color: #ff7b72; }
+
+/* Plots */
+.plot-container {
+  width: 100%;
+  height: 200px;
+  background: #0d0d1a;
+  border: 1px solid #223;
+  border-radius: 4px;
+  margin-top: 8px;
+}
+.plot-canvas {
+  width: 100%;
+  height: 100%;
+}
+
+/* Heatmap */
+.heatmap-container {
+  display: grid;
+  grid-template-columns: repeat(10, 1fr);
+  gap: 2px;
+  margin-top: 8px;
+}
+.heatmap-cell {
+  aspect-ratio: 1;
+  border-radius: 2px;
+  transition: background 0.3s;
+}
+.heatmap-cell:hover {
+  transform: scale(1.1);
+  z-index: 1;
+}
+
+/* Stats Grid */
+.stats-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 12px;
+}
+.stat-card {
+  background: #0d0d1a;
+  border: 1px solid #223;
+  border-radius: 6px;
+  padding: 12px;
+}
+.stat-card-title {
+  font-size: 10px;
+  color: #8899aa;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  margin-bottom: 6px;
+}
+.stat-card-value {
+  font-size: 18px;
+  font-family: 'Courier New', monospace;
+  color: #c0c8d8;
+}
+.stat-card-value.good { color: #7ee787; }
+.stat-card-value.warn { color: #f2cc60; }
+.stat-card-value.bad { color: #ff7b72; }
+
+/* Control Panel */
+#controlPanel {
+  width: 320px;
+  background: #111118;
+  border-left: 1px solid #223;
+  flex-shrink: 0;
+  display: flex;
+  flex-direction: column;
+  padding: 16px;
+  gap: 12px;
+  overflow-y: auto;
+}
+.control-row {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+.control-label {
+  font-size: 11px;
+  color: #8899aa;
+  display: flex;
+  justify-content: space-between;
+}
+.control-label span {
+  color: #f2cc60;
+  font-family: 'Courier New', monospace;
+}
+input[type=range] {
+  width: 100%;
+  accent-color: #79c0ff;
+  cursor: pointer;
+}
+.control-btn {
+  background: #1a1a2e;
+  border: 1px solid #334;
+  color: #c0c8d8;
+  padding: 8px 16px;
+  font-size: 12px;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.15s;
+}
+.control-btn:hover:not(:disabled) {
+  background: #2a2a4e;
+  border-color: #79c0ff;
+}
+.control-btn.primary {
+  background: #79c0ff;
+  border-color: #79c0ff;
+  color: #0a0a0f;
+  font-weight: 600;
+}
+.control-btn.primary:hover:not(:disabled) {
+  background: #5a9fe8;
+}
+.control-btn:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+@media (max-width: 768px) {
+  #controlPanel { display: none; }
+  #mainArea { flex-direction: column; }
+  .gauge-container { justify-content: center; }
+}
+</style>
+</head>
+<body>
+
+<div id="topbar">
+  <h1>Digital Twin — <span>SGMS MRT v0.1</span></h1>
+  <button class="tab-btn active" onclick="switchTab('view3D')">3D View</button>
+  <button class="tab-btn" onclick="switchTab('twin')">Digital Twin</button>
+</div>
+
+<div id="mainArea">
+  <!-- 3D View Tab -->
+  <div id="view3D" class="tab-content active">
+    <div id="view3DWrap">
+      <canvas id="view3DCanvas"></canvas>
+      <div id="overlay3D">
+        <div class="overlay-row">
+          <span class="overlay-label">Quaternion:</span>
+          <span class="overlay-val" id="qVal">—</span>
+        </div>
+        <div class="overlay-row">
+          <span class="overlay-label">ω (rad/s):</span>
+          <span class="overlay-val" id="omegaVal">—</span>
+        </div>
+        <div class="overlay-row">
+          <span class="overlay-label">η_ind:</span>
+          <span class="overlay-val" id="etaVal">—</span>
+        </div>
+        <div class="overlay-row">
+          <span class="overlay-label">Stress:</span>
+          <span class="overlay-val" id="stressVal">—</span>
+        </div>
+        <div class="overlay-row">
+          <span class="overlay-label">k_eff:</span>
+          <span class="overlay-val" id="kEffVal">—</span>
+        </div>
+        <div style="margin-top: 8px; border-top: 1px solid #334; padding-top: 8px;">
+          <div class="overlay-row">
+            <span class="overlay-label">Packets:</span>
+            <span class="overlay-val" id="packetCount">0</span>
+          </div>
+          <div class="overlay-row">
+            <span class="overlay-label">S-Nodes:</span>
+            <span class="overlay-val" id="nodeCount">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Digital Twin Tab -->
+  <div id="twin" class="tab-content">
+    <div id="twinPanel">
+      <!-- Gauges Section -->
+      <div class="twin-section">
+        <div class="section-header">Real-Time Metrics</div>
+        <div class="gauge-container">
+          <div class="gauge">
+            <canvas id="etaGauge" class="gauge-canvas"></canvas>
+            <div class="gauge-label">η_ind</div>
+            <div class="gauge-value" id="etaGaugeVal">0.00</div>
+          </div>
+          <div class="gauge">
+            <canvas id="stressGauge" class="gauge-canvas"></canvas>
+            <div class="gauge-label">Stress (MPa)</div>
+            <div class="gauge-value" id="stressGaugeVal">0</div>
+          </div>
+          <div class="gauge">
+            <canvas id="kEffGauge" class="gauge-canvas"></canvas>
+            <div class="gauge-label">k_eff (N/m)</div>
+            <div class="gauge-value" id="kEffGaugeVal">0</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Libration Damping Plot -->
+      <div class="twin-section">
+        <div class="section-header">Libration Damping</div>
+        <div class="plot-container">
+          <canvas id="librationPlot" class="plot-canvas"></canvas>
+        </div>
+      </div>
+
+      <!-- Cascade Risk Heatmap -->
+      <div class="twin-section">
+        <div class="section-header">Cascade Risk Heatmap</div>
+        <div class="heatmap-container" id="cascadeHeatmap">
+          <!-- Generated by JS -->
+        </div>
+      </div>
+
+      <!-- Stats Grid -->
+      <div class="twin-section">
+        <div class="section-header">System Status</div>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-card-title">Total Packets</div>
+            <div class="stat-card-value" id="statPackets">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Captured</div>
+            <div class="stat-card-value" id="statCaptured">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Free</div>
+            <div class="stat-card-value" id="statFree">0</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-card-title">Cascade Prob</div>
+            <div class="stat-card-value" id="statCascade">0%</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Control Panel -->
+  <div id="controlPanel">
+    <div class="section-header">Simulation Control</div>
+    <button class="control-btn primary" onclick="startSimulation()">Start Simulation</button>
+    <button class="control-btn" onclick="stopSimulation()">Stop</button>
+    <button class="control-btn" onclick="resetSimulation()">Reset</button>
+
+    <div style="margin-top: 16px;" class="section-header">Parameters</div>
+    <div class="control-row">
+      <div class="control-label">Packets <span id="nPacketsVal">10</span></div>
+      <input type="range" id="nPacketsSlider" min="1" max="50" value="10" oninput="updateParam('nPackets', this.value)">
+    </div>
+    <div class="control-row">
+      <div class="control-label">S-Nodes <span id="nNodesVal">3</span></div>
+      <input type="range" id="nNodesSlider" min="1" max="10" value="3" oninput="updateParam('nNodes', this.value)">
+    </div>
+    <div class="control-row">
+      <div class="control-label">Stream Velocity (m/s) <span id="velocityVal">1600</span></div>
+      <input type="range" id="velocitySlider" min="100" max="5000" value="1600" oninput="updateParam('velocity', this.value)">
+    </div>
+    <div class="control-row">
+      <div class="control-label">Time Step (ms) <span id="dtVal">10</span></div>
+      <input type="range" id="dtSlider" min="1" max="100" value="10" oninput="updateParam('dt', this.value)">
+    </div>
+
+    <div style="margin-top: 16px;" class="section-header">Monte-Carlo</div>
+    <div class="control-row">
+      <div class="control-label">Realizations <span id="nRealVal">100</span></div>
+      <input type="range" id="nRealSlider" min="10" max="1000" value="100" oninput="updateParam('nReal', this.value)">
+    </div>
+    <button class="control-btn" onclick="runMonteCarlo()">Run Monte-Carlo</button>
+
+    <div style="margin-top: 16px;" class="section-header">Gates</div>
+    <div class="control-row">
+      <div class="control-label">η_ind ≥ <span id="etaGateVal">0.82</span></div>
+      <input type="range" id="etaGateSlider" min="0.5" max="1.0" step="0.01" value="0.82" oninput="updateParam('etaGate', this.value)">
+    </div>
+    <div class="control-row">
+      <div class="control-label">Stress ≤ <span id="stressGateVal">800</span> MPa</div>
+      <input type="range" id="stressGateSlider" min="400" max="1200" value="800" oninput="updateParam('stressGate', this.value)">
+    </div>
+  </div>
+</div>
+
+<script>
+// ============================================================
+// STATE
+// ============================================================
+let simulationRunning = false;
+let animationId = null;
+let currentTab = 'view3D';
+
+let params = {
+  nPackets: 10,
+  nNodes: 3,
+  velocity: 1600,
+  dt: 0.01,
+  nReal: 100,
+  etaGate: 0.82,
+  stressGate: 800,
+};
+
+// Mock simulation state (would connect to actual Python backend)
+let simState = {
+  packets: [],
+  nodes: [],
+  time: 0,
+  metrics: {
+    eta_ind: 0.9,
+    stress: 500e6,
+    k_eff: 8000,
+    captured: 0,
+    free: 10,
+  },
+  librationHistory: [],
+};
+
+// ============================================================
+// TAB SWITCHING
+// ============================================================
+function switchTab(tabId) {
+  document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(content => content.classList.remove('active'));
+  
+  document.querySelector(`[onclick="switchTab('${tabId}')"]`).classList.add('active');
+  document.getElementById(tabId).classList.add('active');
+  
+  currentTab = tabId;
+  
+  if (tabId === 'view3D') {
+    init3DView();
+  } else {
+    initDigitalTwin();
+  }
+}
+
+// ============================================================
+// 3D VIEW (Three.js)
+// ============================================================
+let scene, camera, renderer, packetMeshes, nodeMeshes;
+
+function init3DView() {
+  if (scene) return; // Already initialized
+  
+  const canvas = document.getElementById('view3DCanvas');
+  const container = document.getElementById('view3DWrap');
+  
+  scene = new THREE.Scene();
+  scene.background = new THREE.Color(0x0a0a0f);
+  
+  camera = new THREE.PerspectiveCamera(60, container.clientWidth / container.clientHeight, 0.1, 1000);
+  camera.position.set(0, 5, 10);
+  camera.lookAt(0, 0, 0);
+  
+  renderer = new THREE.WebGLRenderer({ canvas, antialias: true });
+  renderer.setSize(container.clientWidth, container.clientHeight);
+  renderer.setPixelRatio(window.devicePixelRatio);
+  
+  // Lighting
+  const ambient = new THREE.AmbientLight(0x404040, 2);
+  scene.add(ambient);
+  
+  const directional = new THREE.DirectionalLight(0xffffff, 1);
+  directional.position.set(5, 10, 7);
+  scene.add(directional);
+  
+  // Grid helper
+  const grid = new THREE.GridHelper(20, 20, 0x333333, 0x222222);
+  scene.add(grid);
+  
+  // Create packet meshes
+  createPacketMeshes();
+  
+  // Create node meshes
+  createNodeMeshes();
+  
+  // Orbit controls (simplified)
+  setupOrbitControls();
+  
+  // Start render loop
+  animate3D();
+  
+  window.addEventListener('resize', onResize);
+}
+
+function createPacketMeshes() {
+  packetMeshes = [];
+  const geometry = new THREE.SphereGeometry(0.2, 16, 16);
+  const material = new THREE.MeshPhongMaterial({ color: 0x79c0ff });
+  
+  for (let i = 0; i < params.nPackets; i++) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(
+      (i - params.nPackets / 2) * 0.5,
+      0,
+      0
+    );
+    scene.add(mesh);
+    packetMeshes.push(mesh);
+  }
+}
+
+function createNodeMeshes() {
+  nodeMeshes = [];
+  const geometry = new THREE.OctahedronGeometry(0.3, 0);
+  const material = new THREE.MeshPhongMaterial({ color: 0xf2cc60, wireframe: true });
+  
+  for (let i = 0; i < params.nNodes; i++) {
+    const mesh = new THREE.Mesh(geometry, material);
+    mesh.position.set(
+      (i - params.nNodes / 2) * 2,
+      0,
+      2
+    );
+    scene.add(mesh);
+    nodeMeshes.push(mesh);
+  }
+}
+
+function setupOrbitControls() {
+  let isDragging = false;
+  let lastX = 0, lastY = 0;
+  let theta = 0, phi = Math.PI / 4, radius = 12;
+  
+  function updateCamera() {
+    camera.position.set(
+      radius * Math.sin(phi) * Math.cos(theta),
+      radius * Math.cos(phi),
+      radius * Math.sin(phi) * Math.sin(theta)
+    );
+    camera.lookAt(0, 0, 0);
+  }
+  
+  const canvas = document.getElementById('view3DCanvas');
+  
+  canvas.addEventListener('mousedown', (e) => {
+    isDragging = true;
+    lastX = e.clientX;
+    lastY = e.clientY;
+  });
+  
+  canvas.addEventListener('mousemove', (e) => {
+    if (!isDragging) return;
+    theta += (e.clientX - lastX) * 0.01;
+    phi = Math.max(0.1, Math.min(Math.PI - 0.1, phi + (e.clientY - lastY) * 0.01));
+    lastX = e.clientX;
+    lastY = e.clientY;
+    updateCamera();
+  });
+  
+  canvas.addEventListener('mouseup', () => isDragging = false);
+  canvas.addEventListener('mouseleave', () => isDragging = false);
+  
+  canvas.addEventListener('wheel', (e) => {
+    radius = Math.max(5, Math.min(30, radius + e.deltaY * 0.01));
+    updateCamera();
+  }, { passive: true });
+  
+  updateCamera();
+}
+
+function animate3D() {
+  animationId = requestAnimationFrame(animate3D);
+  
+  if (simulationRunning) {
+    updateSimulation();
+  }
+  
+  // Rotate nodes
+  nodeMeshes.forEach((mesh, i) => {
+    mesh.rotation.y += 0.01;
+  });
+  
+  renderer.render(scene, camera);
+}
+
+function onResize() {
+  const container = document.getElementById('view3DWrap');
+  camera.aspect = container.clientWidth / container.clientHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(container.clientWidth, container.clientHeight);
+}
+
+// ============================================================
+// DIGITAL TWIN
+// ============================================================
+function initDigitalTwin() {
+  initGauges();
+  initLibrationPlot();
+  initCascadeHeatmap();
+  updateDigitalTwin();
+}
+
+function initGauges() {
+  drawGauge('etaGauge', params.etaGate, 1.0, 'η_ind');
+  drawGauge('stressGauge', 0, params.stressGate * 1.5, 'Stress');
+  drawGauge('kEffGauge', 6000, 12000, 'k_eff');
+}
+
+function drawGauge(canvasId, min, max, label) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  const centerX = width / 2;
+  const centerY = height / 2;
+  const radius = Math.min(width, height) / 2 - 10;
+  
+  ctx.clearRect(0, 0, width, height);
+  
+  // Background arc
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, 2.25 * Math.PI);
+  ctx.strokeStyle = '#1c2030';
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  
+  // Value arc (placeholder)
+  const value = (min + max) / 2;
+  const normalized = (value - min) / (max - min);
+  const endAngle = 0.75 * Math.PI + normalized * 1.5 * Math.PI;
+  
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, radius, 0.75 * Math.PI, endAngle);
+  ctx.strokeStyle = '#79c0ff';
+  ctx.lineWidth = 8;
+  ctx.stroke();
+  
+  // Text
+  ctx.fillStyle = '#8899aa';
+  ctx.font = '10px sans-serif';
+  ctx.textAlign = 'center';
+  ctx.fillText(min.toFixed(1), centerX - radius - 5, centerY + 10);
+  ctx.fillText(max.toFixed(1), centerX + radius + 5, centerY + 10);
+}
+
+function initLibrationPlot() {
+  const canvas = document.getElementById('librationPlot');
+  if (!canvas) return;
+  
+  const ctx = canvas.getContext('2d');
+  const width = canvas.width;
+  const height = canvas.height;
+  
+  ctx.clearRect(0, 0, width, height);
+  
+  // Grid
+  ctx.strokeStyle = '#223';
+  ctx.lineWidth = 1;
+  for (let i = 0; i <= 10; i++) {
+    const x = (i / 10) * width;
+    ctx.beginPath();
+    ctx.moveTo(x, 0);
+    ctx.lineTo(x, height);
+    ctx.stroke();
+  }
+  for (let i = 0; i <= 5; i++) {
+    const y = (i / 5) * height;
+    ctx.beginPath();
+    ctx.moveTo(0, y);
+    ctx.lineTo(width, y);
+    ctx.stroke();
+  }
+  
+  // Placeholder curve
+  ctx.strokeStyle = '#79c0ff';
+  ctx.lineWidth = 2;
+  ctx.beginPath();
+  for (let i = 0; i < width; i++) {
+    const t = i / width;
+    const y = height / 2 + Math.sin(t * 10) * Math.exp(-t * 5) * (height / 3);
+    if (i === 0) ctx.moveTo(i, y);
+    else ctx.lineTo(i, y);
+  }
+  ctx.stroke();
+}
+
+function initCascadeHeatmap() {
+  const container = document.getElementById('cascadeHeatmap');
+  container.innerHTML = '';
+  
+  for (let i = 0; i < 100; i++) {
+    const cell = document.createElement('div');
+    cell.className = 'heatmap-cell';
+    const risk = Math.random();
+    
+    if (risk < 0.3) cell.style.background = '#1a2e1a';
+    else if (risk < 0.6) cell.style.background = '#2e2a00';
+    else if (risk < 0.9) cell.style.background = '#2e1a00';
+    else cell.style.background = '#2e0000';
+    
+    container.appendChild(cell);
+  }
+}
+
+function updateDigitalTwin() {
+  // Update gauge values
+  document.getElementById('etaGaugeVal').textContent = simState.metrics.eta_ind.toFixed(2);
+  document.getElementById('stressGaugeVal').textContent = (simState.metrics.stress / 1e6).toFixed(0);
+  document.getElementById('kEffGaugeVal').textContent = simState.metrics.k_eff.toFixed(0);
+  
+  // Update stats
+  document.getElementById('statPackets').textContent = params.nPackets;
+  document.getElementById('statCaptured').textContent = simState.metrics.captured;
+  document.getElementById('statFree').textContent = simState.metrics.free;
+  document.getElementById('statCascade').textContent = '< 1e-6';
+  
+  // Color code values
+  const etaVal = document.getElementById('etaGaugeVal');
+  if (simState.metrics.eta_ind >= params.etaGate) {
+    etaVal.className = 'gauge-value good';
+  } else {
+    etaVal.className = 'gauge-value bad';
+  }
+}
+
+// ============================================================
+// SIMULATION CONTROL
+// ============================================================
+function startSimulation() {
+  simulationRunning = true;
+  simState.time = 0;
+  simState.librationHistory = [];
+  
+  // Initialize mock state
+  simState.metrics.eta_ind = 0.85 + Math.random() * 0.1;
+  simState.metrics.stress = 400e6 + Math.random() * 400e6;
+  simState.metrics.k_eff = 7000 + Math.random() * 2000;
+}
+
+function stopSimulation() {
+  simulationRunning = false;
+}
+
+function resetSimulation() {
+  stopSimulation();
+  simState.time = 0;
+  simState.librationHistory = [];
+  
+  // Reset packet positions
+  packetMeshes.forEach((mesh, i) => {
+    mesh.position.set(
+      (i - params.nPackets / 2) * 0.5,
+      0,
+      0
+    );
+  });
+}
+
+function updateSimulation() {
+  simState.time += params.dt;
+  
+  // Update packet positions (mock)
+  packetMeshes.forEach((mesh, i) => {
+    mesh.position.x += params.velocity * params.dt * 0.001;
+    if (mesh.position.x > 10) mesh.position.x = -10;
+  });
+  
+  // Update metrics
+  simState.metrics.eta_ind = 0.85 + Math.random() * 0.05;
+  simState.metrics.stress = 400e6 + Math.random() * 200e6;
+  
+  // Update overlay
+  document.getElementById('qVal').textContent = `[0.1, 0.2, 0.3, 0.9]`;
+  document.getElementById('omegaVal').textContent = `[10, 5, 2]`;
+  document.getElementById('etaVal').textContent = simState.metrics.eta_ind.toFixed(2);
+  document.getElementById('stressVal').textContent = (simState.metrics.stress / 1e6).toFixed(0) + ' MPa';
+  document.getElementById('kEffVal').textContent = simState.metrics.k_eff.toFixed(0) + ' N/m';
+  document.getElementById('packetCount').textContent = params.nPackets;
+  document.getElementById('nodeCount').textContent = params.nNodes;
+  
+  // Update digital twin if active
+  if (currentTab === 'twin') {
+    updateDigitalTwin();
+  }
+}
+
+async function runMonteCarlo() {
+  const btn = document.querySelector('button[onclick="runMonteCarlo()"]');
+  btn.disabled = true;
+  btn.textContent = 'Running...';
+
+  try {
+    const response = await fetch('http://localhost:8000/monte-carlo/run', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        n_realizations: params.nReal,
+        n_packets: params.nPackets,
+        n_nodes: params.nNodes,
+        velocity: params.velocity,
+        time_horizon: 10.0,
+        dt: params.dt,
+      }),
+    });
+
+    if (!response.ok) {
+      throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+    }
+
+    const results = await response.json();
+
+    // Update stats with Monte Carlo results
+    document.getElementById('statPackets').textContent = params.nPackets;
+    document.getElementById('statCaptured').textContent = results.n_success;
+    document.getElementById('statFree').textContent = results.n_failure;
+    document.getElementById('statCascade').textContent = (results.cascade_probability * 100).toFixed(2) + '%';
+
+    // Color-code cascade probability
+    const cascadeEl = document.getElementById('statCascade');
+    if (results.cascade_probability < 1e-6) {
+      cascadeEl.className = 'stat-card-value good';
+    } else if (results.cascade_probability < 0.01) {
+      cascadeEl.className = 'stat-card-value warn';
+    } else {
+      cascadeEl.className = 'stat-card-value bad';
+    }
+
+    console.log('Monte Carlo results:', results);
+
+  } catch (error) {
+    console.error('Monte Carlo error:', error);
+    alert('Monte Carlo simulation failed. Ensure backend is running on localhost:8000.\n\nError: ' + error.message);
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Run Monte-Carlo';
+  }
+}
+
+// ============================================================
+// PARAMETER UPDATES
+// ============================================================
+function updateParam(param, value) {
+  params[param] = parseFloat(value);
+  
+  const valEl = document.getElementById(param + 'Val');
+  if (valEl) valEl.textContent = value;
+  
+  // Re-create meshes if packet/node count changed
+  if (param === 'nPackets' && scene) {
+    packetMeshes.forEach(m => scene.remove(m));
+    createPacketMeshes();
+  }
+  if (param === 'nNodes' && scene) {
+    nodeMeshes.forEach(m => scene.remove(m));
+    createNodeMeshes();
+  }
+}
+
+// ============================================================
+// LOAD THREE.JS
+// ============================================================
+(function loadThree() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js';
+  s.onload = function() { 
+    init3DView();
+  };
+  s.onerror = function() {
+    document.body.innerHTML =
+      '<div style="color:#ff7b72;padding:30px;font-family:monospace;background:#0a0a0f">' +
+      'Failed to load Three.js from CDN.<br>Check internet connection and reload.</div>';
+  };
+  document.head.appendChild(s);
+})();
+</script>
+
+</body>
+</html>

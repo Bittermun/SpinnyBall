@@ -1,7 +1,7 @@
 # Project Aethelgard: The LOB Logistics Engine
 
-**Status**: Full-Scale Production System Development (Phase 1 Initiated)  
-**Target**: Deployment-Ready Kinetic Logistics Infrastructure  
+**Status**: Full-Scale Production System Development (Phase 1 Initiated)
+**Target**: Deployment-Ready Kinetic Logistics Infrastructure
 **Core Claim**: Momentum-flux anchoring achieves 1,000,000× energy efficiency vs drag braking
 
 ---
@@ -38,6 +38,31 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 - Efficiency: **1,000,000× improvement**
 
 **Mechanism**: Lateral deflection of high-velocity mass stream transfers momentum to stations without dissipative losses.
+
+## Installation
+
+Install with poetry:
+
+```powershell
+poetry install
+```
+
+Install with optional extras:
+
+```powershell
+poetry install --extras mpc --extras ml --extras monte-carlo --extras validation --extras backend
+poetry install --extras all
+```
+
+Available extras:
+- mpc: CasADi and numba for model-predictive control
+- ml: PyTorch for ML predictors
+- monte-carlo: SALib for sensitivity analysis
+- validation: MuJoCo for physics validation
+- backend: FastAPI, uvicorn, pydantic for digital twin API
+- all: All optional dependencies
+
+## Usage
 
 ---
 
@@ -201,16 +226,29 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 ├── sgms_v1.py                  # Core lateral deflection physics (RK45)
 ├── sgms_anchor_v1.py           # Reduced-order anchor model
 ├── sgms_anchor_control.py      # PID control logic (P-term only)
-├── sgms_anchor_logistics.py    # Flux-pinning + payload transport
-├── sgms_anchor_metabolism.py   # Thermal + energy balance
+├── sgms_anchor_logistics.py    # Logistics event simulation with thermal balance
+├── sgms_anchor_suite.py        # Config-driven experiment pipeline
+├── sgms_anchor_calibration.py  # Anchor calibration routines
+├── sgms_anchor_claims.py       # Anchor claim validation
+├── sgms_anchor_dashboard.py    # Dashboard visualization
+├── sgms_anchor_metabolism.py   # Metabolic yield calculations
 ├── sgms_anchor_mujoco.py       # 6-DOF high-fidelity validation
-├── sgms_anchor_resilience.py   # Shockwave + failure mode testing
-├── sgms_anchor_sensitivity.py  # Sobol sensitivity analysis
-├── sgms_anchor_profiles.py     # VPD controller + packet spacing
-├── lob_scaling.py              # 40-node global lattice simulation
-├── metabolic_yield.py          # CP economy mapping
-├── generate_paper_plots.py     # Visualization scripts
-├── index.html                  # Interactive dashboard
+├── sgms_anchor_pipeline.py     # Simulation pipeline orchestration
+├── sgms_anchor_profiles.py     # Configuration profiles
+├── sgms_anchor_report.py       # Report generation
+├── sgms_anchor_resilience.py   # Resilience testing
+├── sgms_anchor_sensitivity.py  # Sensitivity analysis
+├── index.html                  # Interactive visualization (Spin-Gyro Magnetic Steering)
+├── digital_twin.html           # Digital twin dashboard with real-time simulation
+├── dynamics/rigid_body.py      # Full 3D Euler dynamics with gyroscopic coupling
+├── dynamics/gyro_matrix.py     # Gyroscopic coupling matrix
+├── dynamics/multi_body.py      # Multi-body packet stream simulation
+├── dynamics/thermal_model.py   # Stefan-Boltzmann radiation cooling for thermal decoupling
+├── control/mpc_controller.py   # Model-predictive control
+├── control/rom_predictor.py    # Reduced-order model predictor
+├── monte_carlo/cascade_runner.py # Monte-Carlo cascade analysis
+├── monte_carlo/pass_fail_gates.py # Pass/fail gates including thermal safety
+├── backend/app.py              # FastAPI backend for digital twin
 ├── background/
 │   ├── physics_simulator_audit.md    #  NEW: Comprehensive audit
 │   ├── backgroundinfo.txt            # Original requirements spec
@@ -303,6 +341,46 @@ v_phase(ω) = √(c² + α·k²)
 ---
 
 ##  Validation & Verification
+
+### Digital Twin Dashboard
+
+Start FastAPI backend for digital twin visualization:
+
+```powershell
+python -m backend.app
+```
+
+Open digital_twin.html in browser to access the dashboard with real-time simulation state and Monte-Carlo analysis.
+
+### Blueprint Alignment
+
+This project is undergoing an incremental migration to evolve from a single-particle 2D magnetic steering demo into a **Minimal Rigorous Twin (MRT v0.1)** that implements the first-principles ideal blueprint for a closed-loop shepherded gyroscopic mass-stream digital twin.
+
+#### Key Physics Upgrade
+
+The governing equation for each Sovereign Bean (spin-stabilized magnetic packet, ~10–100 g, ≤50 krpm) is now:
+
+\[
+\mathbf{I} \dot{\boldsymbol{\omega}} + \boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega}) = \boldsymbol{\tau}_\text{mag} + \boldsymbol{\tau}_\text{grav} + \boldsymbol{\tau}_\text{solar} + \boldsymbol{\tau}_\text{tether}
+\]
+
+where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega})\) **is** the gyroscopic coupling that produces precession and libration. This term is non-negotiable for gyroscopic stability claims.
+
+#### New Modules
+
+- **dynamics/**: Full 3D rigid-body dynamics with explicit gyroscopic coupling + quaternion attitudes
+- **control/**: Model-predictive control (MPC) and reduced-order model (ROM) predictors
+- **monte_carlo/**: Cascade risk assessment and pass/fail gates
+
+#### Implementation Status
+
+- ✅ Weeks 1–3: Core integrator refactor (Euler + quaternion dynamics, gyroscopic coupling term)
+- ✅ Weeks 4–6: Multi-body packet streams + basic MPC + stress/stiffness monitoring
+- ✅ Weeks 7–9: ROM→VMD-IRCNN predictor + Monte-Carlo harness + pass/fail gates
+- ✅ Weeks 10–12: Dashboard extension + FastAPI backend + digital twin visualization
+- ⏳ Pending: MuJoCo 6-DoF oracle validation
+
+See [background/ideal_blueprint_alignment.md](background/ideal_blueprint_alignment.md) for complete details.
 
 ### Independent References
 - MATLAB RK4 reference implementation (validated)
@@ -415,7 +493,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-**Last Updated**: 2025-04-10  
-**Development Lead**: Antigravity  
-**Physics Validation**: MATLAB + MuJoCo Cross-Check  
+**Last Updated**: 2025-04-10
+**Development Lead**: Antigravity
+**Physics Validation**: MATLAB + MuJoCo Cross-Check
 **Status**: Phase 1 Initiated - Full-Scale Production System
