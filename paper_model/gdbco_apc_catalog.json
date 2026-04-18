@@ -1,0 +1,30 @@
+{
+  "material_profiles": {
+    "baseline_gdbco": {
+      "name": "Standard GdBCO (Melt-Texture)",
+      "k_fp_range": [80000, 120000],
+      "damping_ratio": 0.05,
+      "source": "REBCO Standard (2023)",
+      "description": "Historical baseline using top-seeded melt-texture growth."
+    },
+    "apc_doped_bzo": {
+      "name": "GdBCO + 8% BZO Nanopillars",
+      "k_fp_range": [150000, 220000],
+      "damping_ratio": 0.08,
+      "source": "arXiv:2501.0432 (2025)",
+      "description": "High-pinning efficiency using artificial pinning centers (BZO nanorods)."
+    },
+    "nanostructured_y211": {
+      "name": "Nanostructured Y2BaCuO5 (Y211)",
+      "k_fp_range": [130000, 180000],
+      "damping_ratio": 0.06,
+      "source": "IJOURNALS Vol 14 (2026)",
+      "description": "Enhanced high-field stability via multi-scale defect distribution."
+    }
+  },
+  "calibration_metadata": {
+    "units": "N/m",
+    "timestamp": "2026-04-04 22:38:00",
+    "status": "Aethelgard Ready"
+  }
+}

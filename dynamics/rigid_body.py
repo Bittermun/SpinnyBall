@@ -1,0 +1,392 @@
+"""
+Full 3D rigid-body dynamics with explicit gyroscopic coupling.
+
+Implements the corrected Euler rotational dynamics equation:
+
+    I * ω̇ + ω × (I * ω) = τ_mag + τ_grav + τ_solar + τ_tether
+
+where ω × (I * ω) is the skew-symmetric gyroscopic coupling term that
+produces precession and libration. Uses quaternion attitudes to avoid gimbal lock.
+
+Conventions:
+- Quaternion: scalar-last [x, y, z, w] for scipy Rotation compatibility
+- Angular velocity: [ωx, ωy, ωz] in body frame (rad/s)
+- State vector: [qx, qy, qz, qw, ωx, ωy, ωz] (7 elements)
+- Inertia tensor: 3×3 in body frame (kg·m²)
+
+Reference: Goldstein, Classical Mechanics (3rd ed.), Chapter 4
+"""
+
+from __future__ import annotations
+
+from typing import Callable, Optional
+
+import numpy as np
+from scipy.integrate import solve_ivp
+from scipy.spatial.transform import Rotation as R
+
+from .gyro_matrix import skew_symmetric
+
+
+def validate_quaternion(q: np.ndarray) -> np.ndarray:
+    """Validate quaternion shape and return as array.
+
+    Args:
+        q: Quaternion to validate
+
+    Returns:
+        Validated quaternion as numpy array
+
+    Raises:
+        ValueError: If quaternion is not 4-element vector
+    """
+    q = np.asarray(q, dtype=float)
+    if q.shape != (4,):
+        raise ValueError(f"Quaternion must be 4-element vector, got shape {q.shape}")
+    return q
+
+def validate_state_vector(state: np.ndarray) -> np.ndarray:
+    """Validate state vector shape and return as array.
+
+    State vector format: [qx, qy, qz, qw, ωx, ωy, ωz]
+
+    Args:
+        state: State vector to validate
+
+    Returns:
+        Validated state vector as numpy array
+
+    Raises:
+        ValueError: If state is not 7-element vector
+    """
+    state = np.asarray(state, dtype=float)
+    if state.shape != (7,):
+        raise ValueError(f"State must be 7-element vector [qx,qy,qz,qw,ωx,ωy,ωz], got shape {state.shape}")
+    return state
+
+def scalar_last_to_first(q: np.ndarray) -> np.ndarray:
+    """Convert quaternion from scipy scalar-last [x, y, z, w] to scalar-first [w, x, y, z].
+    Uses explicit indexing for clarity and minor performance gain in hot paths."""
+    q = validate_quaternion(q)
+    return np.take(q, [3, 0, 1, 2])  # [w,x,y,z] from [x,y,z,w]
+
+
+def scalar_first_to_last(q: np.ndarray) -> np.ndarray:
+    """Convert quaternion from scalar-first [w, x, y, z] to scipy scalar-last [x, y, z, w].
+    Uses explicit indexing for clarity and minor performance gain in hot paths."""
+    q = validate_quaternion(q)
+    return np.take(q, [1, 2, 3, 0])  # [x,y,z,w] from [w,x,y,z]
+
+
+def quaternion_derivative(q: np.ndarray, omega: np.ndarray) -> np.ndarray:
+    """
+    Compute quaternion derivative from angular velocity.
+
+    q̇ = 0.5 * q * ω  (quaternion multiplication)
+
+    Args:
+        q: Quaternion [w, x, y, z] (scalar-first convention, for internal computation)
+        omega: Angular velocity vector [ωx, ωy, ωz] in body frame
+
+    Returns:
+        Quaternion derivative [q̇_w, q̇_x, q̇_y, q̇_z] (scalar-first)
+    """
+    # Quaternion multiplication: q̇ = 0.5 * q * omega_quat
+    # where omega_quat = [0, ωx, ωy, ωz]
+    omega_quat = np.array([0.0, omega[0], omega[1], omega[2]])
+    
+    # Quaternion multiplication formula
+    qw, qx, qy, qz = q
+    ow, ox, oy, oz = omega_quat
+    
+    dq = 0.5 * np.array([
+        qw*ow - qx*ox - qy*oy - qz*oz,
+        qw*ox + qx*ow + qy*oz - qz*oy,
+        qw*oy - qx*oz + qy*ow + qz*ox,
+        qw*oz + qx*oy - qy*ox + qz*ow,
+    ])
+    
+    return dq
+
+
+def normalize_quaternion(q: np.ndarray) -> np.ndarray:
+    """
+    Normalize quaternion to unit magnitude.
+    
+    Args:
+        q: Quaternion [w, x, y, z]
+    
+    Returns:
+        Normalized quaternion
+    """
+    q = validate_quaternion(q)
+    norm = np.linalg.norm(q)
+    if norm < 1e-12:
+        raise ValueError(
+            f"Quaternion norm too small for normalization: norm={norm:.2e}, "
+            f"quaternion={q}. This may indicate numerical integration instability. "
+            f"Consider smaller timestep or higher-order integrator."
+        )
+    return q / norm
+
+
+def euler_equations(
+    t: float,
+    state: np.ndarray,
+    I: np.ndarray,
+    torques: Callable[[float, np.ndarray], np.ndarray],
+    I_inv: Optional[np.ndarray] = None,
+) -> np.ndarray:
+    """
+    Full Euler rotational dynamics with explicit gyroscopic coupling.
+    
+    State vector: [qx, qy, qz, qw, ωx, ωy, ωz] (quaternion + angular velocity)
+    Note: scipy Rotation uses scalar-last, but we use scalar-first internally
+    for derivative computation.
+    
+    Governing equation:
+        I * ω̇ + ω × (I * ω) = τ
+    
+    Rearranged:
+        ω̇ = I⁻¹ * (τ - ω × (I * ω))
+    
+    Args:
+        t: Time
+        state: State vector [qx, qy, qz, qw, ωx, ωy, ωz] (scalar-last for scipy)
+        I: 3×3 inertia tensor in body frame (kg·m²)
+        torques: Function torques(t, state) returning total torque vector [τx, τy, τz]
+        I_inv: Optional precomputed inertia tensor inverse
+    
+    Returns:
+        State derivative [q̇x, q̇y, q̇z, q̇w, ω̇x, ω̇y, ω̇z]
+    """
+    # Validate state shape
+    state = validate_state_vector(state)
+    
+    # Extract quaternion (scalar-last for scipy compatibility)
+    q_scipy = state[:4]  # [qx, qy, qz, qw]
+    omega = state[4:]    # [ωx, ωy, ωz]
+    
+    # Convert to scalar-first for derivative computation
+    q_scalar_first = scalar_last_to_first(q_scipy)
+    
+    # Compute quaternion derivative
+    dq_scalar_first = quaternion_derivative(q_scalar_first, omega)
+    # Convert back to scalar-last
+    dq_scipy = scalar_first_to_last(dq_scalar_first)
+    
+    # Compute gyroscopic coupling: ω × (I * ω)
+    I_omega = I @ omega
+    gyro_coupling = skew_symmetric(omega) @ I_omega
+    
+    # Get total torque
+    tau = np.asarray(torques(t, state), dtype=float)
+    if tau.ndim == 0:
+        tau = np.array([tau])  # Convert scalar to 1D array
+    if tau.ndim != 1:
+        raise ValueError(f"torques must return 1D array, got ndim={tau.ndim}")
+    if tau.shape != (3,):
+        raise ValueError(f"torques must return 3-element vector, got shape {tau.shape}")
+
+    # Solve for angular acceleration: ω̇ = I⁻¹ * (τ - ω × (I * ω))
+    if I_inv is None:
+        I_inv = np.linalg.inv(I)
+    alpha = I_inv @ (tau - gyro_coupling)
+    
+    return np.concatenate([dq_scipy, alpha])
+
+
+class RigidBody:
+    """
+    3D rigid body with quaternion attitude and full Euler dynamics.
+
+    State vector format: [qx, qy, qz, qw, ωx, ωy, ωz]
+    - Quaternion: [qx, qy, qz, qw] (scalar-last for scipy compatibility)
+    - Angular velocity: [ωx, ωy, ωz] (rad/s) in body frame
+
+    Attributes:
+        mass: Mass (kg)
+        I: Inertia tensor in body frame (kg·m²)
+        state: Current state [qx, qy, qz, qw, ωx, ωy, ωz]
+    """
+    
+    def __init__(
+        self,
+        mass: float,
+        I: np.ndarray,
+        position: np.ndarray = None,
+        velocity: np.ndarray = None,
+        quaternion: np.ndarray = None,
+        angular_velocity: np.ndarray = None,
+        I_inv: np.ndarray = None,
+    ):
+        """
+        Initialize rigid body.
+
+        Args:
+            mass: Mass (kg)
+            I: 3×3 inertia tensor in body frame (kg·m²)
+            position: Initial position [x, y, z] (m), default [0, 0, 0]
+            velocity: Initial velocity [vx, vy, vz] (m/s), default [0, 0, 0]
+            quaternion: Initial quaternion [qx, qy, qz, qw] (scalar-last), default [0, 0, 0, 1]
+            angular_velocity: Initial angular velocity [ωx, ωy, ωz] (rad/s), default [0, 0, 0]
+            I_inv: Precomputed inertia tensor inverse (optional, for performance)
+        """
+        self.mass = mass
+        self._I = np.asarray(I, dtype=float)
+
+        if self._I.shape != (3, 3):
+            raise ValueError("Inertia tensor must be 3×3")
+
+        # Lazy cache: compute inverse only if needed or provided
+        if I_inv is not None:
+            I_inv = np.asarray(I_inv, dtype=float)
+            if I_inv.shape != (3, 3):
+                raise ValueError("I_inv must be 3×3")
+            # Verify it's actually the inverse (use both absolute and relative tolerance)
+            if not np.allclose(self._I @ I_inv, np.eye(3), rtol=1e-9, atol=1e-10):
+                raise ValueError("Provided I_inv is not the inverse of I")
+            self._I_inv = I_inv
+        else:
+            self._I_inv = None
+        
+        # Translational state
+        self.position = np.zeros(3) if position is None else np.asarray(position, dtype=float)
+        self.velocity = np.zeros(3) if velocity is None else np.asarray(velocity, dtype=float)
+        
+        # Rotational state
+        if quaternion is None:
+            self.quaternion = np.array([0.0, 0.0, 0.0, 1.0])  # Identity rotation
+        else:
+            self.quaternion = np.asarray(quaternion, dtype=float)
+            self.quaternion = normalize_quaternion(self.quaternion)
+        
+        self.angular_velocity = np.zeros(3) if angular_velocity is None else np.asarray(angular_velocity, dtype=float)
+        
+        # Combined state vector for integrator
+        self.state = np.concatenate([
+            self.quaternion,
+            self.angular_velocity,
+        ])
+    
+    @property
+    def rotation_matrix(self) -> np.ndarray:
+        """Get current rotation matrix from quaternion."""
+        return R.from_quat(self.quaternion).as_matrix()
+    
+    @property
+    def I(self) -> np.ndarray:
+        """Inertia tensor in body frame (kg·m²)."""
+        return self._I
+    
+    @property
+    def angular_momentum(self) -> np.ndarray:
+        """Compute angular momentum L = I * ω in body frame."""
+        return self._I @ self.angular_velocity
+    
+    @property
+    def rotational_energy(self) -> float:
+        """Compute rotational kinetic energy E = 0.5 * ωᵀ * I * ω."""
+        return 0.5 * self.angular_velocity @ (self.I @ self.angular_velocity)
+
+    @property
+    def I_inv(self) -> np.ndarray:
+        """Lazy-computed inertia tensor inverse."""
+        if self._I_inv is None:
+            self._I_inv = np.linalg.inv(self.I)
+        return self._I_inv
+    
+    def integrate(
+        self,
+        t_span: tuple[float, float],
+        torques: Callable[[float, np.ndarray], np.ndarray],
+        method: str = "RK45",
+        rtol: float = 1e-8,
+        atol: float = 1e-10,
+        max_step: float = 0.25,
+        dense_output: bool = True,
+    ) -> dict:
+        """
+        Integrate rotational dynamics over time span.
+        
+        Args:
+            t_span: (t_start, t_end) integration interval
+            torques: Function torques(t, state) returning torque vector [τx, τy, τz]
+            method: Integration method ("RK45", "LSODA", "Radau", etc.)
+            rtol: Relative tolerance
+            atol: Absolute tolerance
+            max_step: Maximum step size
+            dense_output: Whether to return dense output for interpolation
+        
+        Returns:
+            Dictionary with:
+                't': Time points
+                'state': State trajectories (shape: [7, n_points])
+                'sol': Scipy solve_ivp solution object
+        """
+        def rhs(t, y):
+            return euler_equations(t, y, self.I, torques, I_inv=self.I_inv)
+        
+        sol = solve_ivp(
+            rhs,
+            t_span,
+            self.state,
+            method=method,
+            rtol=rtol,
+            atol=atol,
+            max_step=max_step,
+            dense_output=dense_output,
+        )
+        
+        # Update final state
+        self.state = sol.y[:, -1]
+        self.quaternion = self.state[:4]
+        self.angular_velocity = self.state[4:]
+        
+        # Renormalize quaternion to prevent drift
+        self.quaternion = normalize_quaternion(self.quaternion)
+        
+        return {
+            "t": sol.t,
+            "state": sol.y,
+            "sol": sol,
+        }
+    
+    def set_inertia(self, I: np.ndarray, I_inv: Optional[np.ndarray] = None):
+        """
+        Set new inertia tensor and invalidate cache.
+
+        Use this method instead of direct assignment to ensure cache consistency.
+
+        Args:
+            I: New 3×3 inertia tensor in body frame (kg·m²)
+            I_inv: Optional precomputed inverse (for performance)
+        """
+        I = np.asarray(I, dtype=float)
+        if I.shape != (3, 3):
+            raise ValueError("Inertia tensor must be 3×3")
+
+        if I_inv is not None:
+            I_inv = np.asarray(I_inv, dtype=float)
+            if I_inv.shape != (3, 3):
+                raise ValueError("I_inv must be 3×3")
+            if not np.allclose(I @ I_inv, np.eye(3), rtol=1e-9, atol=1e-10):
+                raise ValueError("Provided I_inv is not the inverse of I")
+            self._I_inv = I_inv
+        else:
+            self._I_inv = None  # Invalidate cache
+
+        self._I = I
+    
+    def reset_state(
+        self,
+        quaternion: np.ndarray = None,
+        angular_velocity: np.ndarray = None,
+    ):
+        """Reset rotational state."""
+        if quaternion is not None:
+            self.quaternion = normalize_quaternion(np.asarray(quaternion, dtype=float))
+        if angular_velocity is not None:
+            self.angular_velocity = np.asarray(angular_velocity, dtype=float)
+        
+        self.state = np.concatenate([self.quaternion, self.angular_velocity])

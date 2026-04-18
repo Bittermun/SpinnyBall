@@ -1,0 +1,93 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "spinnyball"
+version = "0.2.0"
+description = "Lunar Orbital Belt Logistics Engine - Gyroscopic Mass-Stream Digital Twin"
+authors = ["Bittermun"]
+license = "MIT"
+readme = "README.md"
+repository = "https://github.com/bittermun/SpinnyBall"
+keywords = ["cislunar", "mass-stream", "gyroscopic", "orbital-mechanics", "digital-twin"]
+classifiers = [
+    "Development Status :: 3 - Alpha",
+    "Intended Audience :: Science/Research",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Scientific/Engineering :: Physics",
+]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+numpy = "^1.26.0"
+scipy = "^1.11.0"
+sympy = "^1.12"
+matplotlib = "^3.8.0"
+
+# Optional: quaternion library (or use scipy.spatial.transform)
+quaternion = { version = "^2023.1.0", optional = true }
+
+# MPC & Optimization (for Weeks 4-6)
+casadi = { version = "^3.6.0", optional = true }
+numba = { version = "^0.59.0", optional = true }
+
+# ML Predictor (for Weeks 7-9)
+torch = { version = "^2.1.0", optional = true }
+
+# Sensitivity & Monte-Carlo (for Weeks 7-9)
+SALib = { version = "^1.4.0", optional = true }
+
+# Backend API (for Weeks 10-12)
+fastapi = { version = "^0.109.0", optional = true }
+uvicorn = { version = "^0.27.0", optional = true }
+pydantic = { version = "^2.5.0", optional = true }
+
+# Validation (existing)
+mujoco = { version = "^3.1.0", optional = true }
+
+[tool.poetry.extras]
+mpc = ["casadi", "numba"]
+ml = ["torch"]
+monte-carlo = ["SALib", "torch"]
+validation = ["mujoco"]
+quaternion = ["quaternion"]
+backend = ["fastapi", "uvicorn", "pydantic"]
+all = ["casadi", "numba", "torch", "SALib", "mujoco", "quaternion", "fastapi", "uvicorn", "pydantic"]
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^7.4.0"
+pytest-cov = "^4.1.0"
+black = "^23.12.0"
+ruff = "^0.1.0"
+mypy = "^1.7.0"
+
+[tool.poetry.scripts]
+# Simulation scripts
+lob-scaling = "lob_scaling:main"
+sgms-anchor = "sgms_anchor_v1:main"
+sgms-suite = "sgms_anchor_suite:main"
+
+[tool.black]
+line-length = 100
+target-version = ['py311', 'py312']
+
+[tool.ruff]
+line-length = 100
+select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
+ignore = ["E501"]  # Line too long (handled by black)
+
+[tool.mypy]
+python_version = "3.11"
+warn_return_any = true
+warn_unused_configs = true
+ignore-missing-imports = true
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+python_files = ["test_*.py"]
+python_classes = ["Test*"]
+python_functions = ["test_*"]
+addopts = "-v --tb=short"
