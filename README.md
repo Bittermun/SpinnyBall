@@ -6,11 +6,11 @@
 
 ---
 
-## 🚀 Executive Summary
+##  Executive Summary
 
 Project Aethelgard is a **full-scale production kinetic logistics infrastructure** for cislunar space operations. It transports ton-scale payloads via a persistent magnetic stream coupled to flux-pinned orbiting nodes, using momentum-flux anchoring for ultra-efficient station keeping and steering.
 
-### 🔬 Physics Foundation
+###  Physics Foundation
 
 The system leverages **six integrated physics domains**:
 
@@ -25,7 +25,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 💡 Core Innovation: Momentum-Flux Anchoring
+##  Core Innovation: Momentum-Flux Anchoring
 
 **Traditional Approach** (Drag Braking):
 - Force generation: F_drag = ½ρv²C_dA
@@ -41,7 +41,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 📊 Technical Specifications
+##  Technical Specifications
 
 ### Packet Parameters
 | Property | Value | Notes |
@@ -71,7 +71,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 🛡️ Resilience & Hardening
+##  Resilience & Hardening
 
 ### Triple-Layer Stabilization
 
@@ -102,7 +102,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## ⚡ Energy & Thermal Management
+##  Energy & Thermal Management
 
 ### Power Budget (Per Node)
 
@@ -133,7 +133,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 🎯 Performance Metrics
+##  Performance Metrics
 
 ### Station Keeping (Proven)
 - **Stiffness**: 40,000 N/m (active + passive)
@@ -155,7 +155,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 🏗️ Development Status
+##  Development Status
 
 ### Phase 0: Foundation ✅ COMPLETE
 - [x] Reduced-order momentum-flux model
@@ -165,7 +165,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 - [x] MuJoCo 6-DOF spin validation
 - [x] metabolic yield mapping (CP economy)
 
-### Phase 1: Critical Path 🔄 IN PROGRESS (80-120 hours)
+### Phase 1: Critical Path IN PROGRESS (80-120 hours)
 **Goal**: Thermally safe, controllably stable production system
 
 - [ ] Complete PID controller (I+D terms, anti-windup) - *8-12 hrs*
@@ -176,7 +176,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 **Deliverable**: Production-ready simulator for deployment planning
 
-### Phase 2: Enhanced Fidelity 📋 PLANNED (60-90 hours)
+### Phase 2: Enhanced Fidelity  PLANNED (60-90 hours)
 - [ ] Wave dispersion solver (Boussinesq equation)
 - [ ] VPD wave-scattering optimization
 - [ ] Eddy current loss refinement (frequency-dependent)
@@ -184,7 +184,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 **Deliverable**: High-fidelity research tool for paper supplementary material
 
-### Phase 3: Advanced Diagnostics 🔮 FUTURE (140-200 hours)
+### Phase 3: Advanced Diagnostics  FUTURE (140-200 hours)
 - [ ] Synthetic failure data generation
 - [ ] IRCNN training pipeline
 - [ ] VMD energy entropy features
@@ -194,7 +194,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 📁 Repository Structure
+##  Repository Structure
 
 ```
 /workspace
@@ -212,7 +212,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 ├── generate_paper_plots.py     # Visualization scripts
 ├── index.html                  # Interactive dashboard
 ├── background/
-│   ├── physics_simulator_audit.md    # ⭐ NEW: Comprehensive audit
+│   ├── physics_simulator_audit.md    #  NEW: Comprehensive audit
 │   ├── backgroundinfo.txt            # Original requirements spec
 │   ├── external_data_requirements.md # Material data needed
 │   ├── implementation_roadmap.md     # Week-by-week plan
@@ -225,7 +225,7 @@ See `background/physics_simulator_audit.md` for complete implementation status.
 
 ---
 
-## 🧪 Usage & Simulations
+##  Usage & Simulations
 
 ### Run Full Logistics Simulation
 ```bash
@@ -265,7 +265,7 @@ python generate_paper_plots.py
 
 ---
 
-## 📐 Key Equations Implemented
+##  Key Equations Implemented
 
 ### Momentum-Flux Force Law
 ```
@@ -302,7 +302,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-## 🔬 Validation & Verification
+##  Validation & Verification
 
 ### Independent References
 - MATLAB RK4 reference implementation (validated)
@@ -321,7 +321,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-## 📚 Documentation
+##  Documentation
 
 | Document | Purpose | Location |
 |----------|---------|----------|
@@ -336,7 +336,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-## 🤝 Collaboration & Next Steps
+##  Collaboration & Next Steps
 
 ### Immediate Actions Required
 
@@ -378,7 +378,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-## 📈 Economic Model (Sovereign AGI Economy)
+##  Economic Model (Sovereign AGI Economy)
 
 ### Cognition Points (CP) Mapping
 ```
@@ -397,7 +397,7 @@ v_phase(ω) = √(c² + α·k²)
 
 ---
 
-## ⚖️ License & Citations
+##  License & Citations
 
 **License**: MIT License (see LICENSE file)
 
