@@ -36,17 +36,36 @@ Project Aethelgard is the primary metabolic engine for the Sovereign AGI Economy
 - **Equation**: $1\text{ CP} = 10^6 \text{ kg} \cdot \text{m/s}$ delivered logistics momentum.
 
 ## 🛠️ Usage
-### Run the Sovereign Audit (N=40 + Blackout)
+
+### 🚀 Master Audit (Sovereign Initiative)
+Execute the complete verification suite, including scaling audits, experiment reproducibility, and regression tests:
 ```powershell
-python lob_scaling.py
+./sgms_total_audit.ps1
+```
+
+### 📈 LOB Lattice Scaling (N=40 + Blackout)
+Run the 40-node density check and survivability audit:
+```powershell
+python lob_scaling.py --audit
 ```
 Outputs: `lob_survivability_blackout.png` (Drift Analysis).
 
-### Run the Unified Logistics Simulation
+### ⚓ Dynamic Anchor Simulation
+Evaluate the moderate-u anchor stability:
 ```powershell
-python sgms_anchor_logistics.py
+python sgms_anchor_v1.py --audit
 ```
-Evaluates: Displacement stability and thermal flux ($\text{Limit: } 80\text{ K}$).
+Outputs: `sgms_anchor_v1_grid.csv`, `sgms_anchor_v1_heatmaps.png`.
+
+---
+
+## 🏗️ Architecture: Aethelgard Hardened
+To ensure IEEE 2026 reproducibility, the repository is structured into functional layers:
+
+1.  **`paper_model/`**: Frozen analytical baseline. Contains the canonical physics models used for publication.
+2.  **`tests/`**: Full regression suite (33+ items) covering control stability and metabolic yield.
+3.  **`artifacts/`**: Automated output directory for reproducibility runs via `--repro`.
+4.  **`logs/`**: Detailed trajectory logs for deep diagnostics.
 
 ---
 **IEEE 2026 Ready.**  

@@ -18,6 +18,7 @@ from __future__ import annotations
 
 import csv
 import math
+import argparse
 from pathlib import Path
 
 import matplotlib
@@ -78,6 +79,7 @@ def analytical_metrics(params: dict) -> dict:
         "k_control": k_control,
         "k_fp": k_fp,
         "k_total": k_total,
+        "k_eff": k_total,  # Alias for control analysis suite compatibility
         "omega_n_rad_s": omega_n,
         "period_s": period,
         "zeta": zeta,
@@ -356,23 +358,13 @@ def sweep_anchor_grid(
                 local["g_gain"] = float(g_gain)
                 local["eps"] = float(eps)
                 metrics = analytical_metrics(local)
-                rows.append(
-                    {
-                        "u": float(u),
-                        "g_gain": float(g_gain),
-                        "eps": float(eps),
-                        "force_per_stream_n": metrics["force_per_stream_n"],
-                        "k_control": metrics["k_control"],
-                        "k_fp": metrics["k_fp"],
-                        "k_total": metrics["k_total"],
-                        "omega_n_rad_s": metrics["omega_n_rad_s"],
-                        "period_s": metrics["period_s"],
-                        "zeta": metrics["zeta"],
-                        "bias_force_n": metrics["bias_force_n"],
-                        "static_offset_m": metrics["static_offset_m"],
-                        "packet_rate_hz": metrics["packet_rate_hz"],
-                    }
-                )
+                row = {
+                    "u": float(u),
+                    "g_gain": float(g_gain),
+                    "eps": float(eps),
+                }
+                row.update(metrics)
+                rows.append(row)
     return rows
 
 
@@ -528,35 +520,52 @@ def print_summary(metrics: dict, estimated_period: float | None = None) -> None:
 
 
 def main() -> None:
+    parser = argparse.ArgumentParser(description="Moderate-U Dynamic Anchor Simulation")
+    parser.add_argument("--u", type=float, default=DEFAULT_PARAMS["u"], help="Stream velocity (m/s)")
+    parser.add_argument("--lam", type=float, default=DEFAULT_PARAMS["lam"], help="Stream density (kg/m)")
+    parser.add_argument("--g_gain", type=float, default=DEFAULT_PARAMS["g_gain"], help="Control gain (rad/m)")
+    parser.add_argument("--k_fp", type=float, default=DEFAULT_PARAMS["k_fp"], help="Pinning stiffness (N/m)")
+    parser.add_argument("--ms", type=float, default=DEFAULT_PARAMS["ms"], help="Anchor mass (kg)")
+    parser.add_argument("--audit", action="store_true", help="Run full suite audit and sweep")
+    args = parser.parse_args()
+
     params = DEFAULT_PARAMS.copy()
-    params.update(
-        {
-            "u": 10.0,
-            "eps": 1e-3,
-            "disturbance_theta_std": 2e-4,
-            "c_damp": 8.0,
-            "t_max": 800.0,
-        }
-    )
+    params.update({
+        "u": args.u,
+        "lam": args.lam,
+        "g_gain": args.g_gain,
+        "k_fp": args.k_fp,
+        "ms": args.ms,
+    })
 
-    t_eval = np.linspace(0.0, params["t_max"], 6000)
-    result = simulate_anchor(params, t_eval=t_eval, seed=7)
-    packet_result = simulate_discrete_anchor(params, t_eval=t_eval, seed=7)
-    estimated_period = estimate_period(result["t"], result["x"])
-    packet_period = estimate_period(packet_result["t"], packet_result["x"])
-    plot_anchor_response(result)
-    plot_continuum_vs_packet(result, packet_result)
-
-    sweep_params = params.copy()
-    sweep = sweep_velocity(sweep_params)
-    plot_velocity_sweep(sweep)
-    rows = sweep_anchor_grid(sweep_params)
-    export_sweep_csv(rows, "sgms_anchor_v1_grid.csv")
-    plot_sweep_heatmaps(rows, eps=1e-3)
-    print_summary(result["metrics"], estimated_period=estimated_period)
-    if packet_period is not None:
-        print(f"Discrete period:    {packet_period:.3f} s")
-
+    if args.audit:
+        # Full Audit / Sweep Mode
+        t_eval = np.linspace(0.0, params["t_max"], 6000)
+        result = simulate_anchor(params, t_eval=t_eval, seed=7)
+        packet_result = simulate_discrete_anchor(params, t_eval=t_eval, seed=7)
+        estimated_period = estimate_period(result["t"], result["x"])
+        packet_period = estimate_period(packet_result["t"], packet_result["x"])
+        
+        plot_anchor_response(result)
+        plot_continuum_vs_packet(result, packet_result)
+        
+        sweep_params = params.copy()
+        sweep = sweep_velocity(sweep_params)
+        plot_velocity_sweep(sweep)
+        
+        rows = sweep_anchor_grid(sweep_params)
+        export_sweep_csv(rows, "sgms_anchor_v1_grid.csv")
+        plot_sweep_heatmaps(rows, eps=1e-3)
+        
+        print_summary(result["metrics"], estimated_period=estimated_period)
+        if packet_period is not None:
+            print(f"Discrete period:    {packet_period:.3f} s")
+    else:
+        # Single Simulation Mode
+        t_eval = np.linspace(0.0, params["t_max"], 4000)
+        result = simulate_anchor(params, t_eval=t_eval, seed=7)
+        print_summary(result["metrics"])
+        print(f"Simulation complete. Final x: {result['x'][-1]:.6f} m")
 
 if __name__ == "__main__":
     main()
