@@ -1,6 +1,14 @@
 # Lunar Orbital Belt Logistics Engine
 
-This is a simulation framework for a kinetic logistics infrastructure designed for the Lunar Orbital Belt (LOB). It models payload transport across cislunar space using a magnetic stream coupled to orbiting nodes.
+This is a physics-based simulation framework for studying kinetic logistics infrastructure in the Lunar Orbital Belt (LOB). The project models payload transport across cislunar space using magnetic stream dynamics coupled to orbiting nodes.
+
+## Project Philosophy
+
+This project follows plain science-based principles:
+- Open and transparent methodology
+- Reproducible simulation results
+- Clear documentation of assumptions and limitations
+- Modular design for extensibility and verification
 
 ## Technical Core
 
