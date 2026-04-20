@@ -203,11 +203,11 @@ class CascadeProbabilityGate(PassFailGate):
 class TemperatureGate(PassFailGate):
     """
     Gate for temperature (thermal safety).
-    
+
     Requirement: T_packet ≤ 450 K, T_node ≤ 400 K
     Default: T ≤ 450 K (packet limit)
     """
-    
+
     def __init__(
         self,
         max_packet_temp: float = 450.0,  # K
@@ -223,16 +223,42 @@ class TemperatureGate(PassFailGate):
             name = "temperature_node"
         else:
             raise ValueError(f"gate_type must be 'packet' or 'node', got {gate_type}")
-        
+
         if warning_threshold is None:
             warning_threshold = threshold * 0.95  # 95% of limit
-        
+
         super().__init__(
             name=name,
             threshold=threshold,
             comparison="<=",
             warning_threshold=warning_threshold,
         )
+
+
+class LatencyGate(PassFailGate):
+    """
+    Gate for latency tolerance.
+
+    Requirement: Maximum latency ≤ 30 ms
+    """
+
+    def __init__(
+        self,
+        max_latency_ms: float = 30.0,
+        warning_threshold: Optional[float] = None,
+    ):
+        if warning_threshold is None:
+            warning_threshold = max_latency_ms * 0.9  # 90% of limit
+
+        super().__init__(
+            name="max_latency_ms",
+            threshold=max_latency_ms,
+            comparison="<=",
+            warning_threshold=warning_threshold,
+        )
+
+
+# EDT gates archived - see archived_edt/ directory
 
 
 class GateSet:
@@ -257,6 +283,7 @@ class GateSet:
                 StiffnessGate(),
                 CascadeProbabilityGate(),
                 TemperatureGate(gate_type="packet"),
+                LatencyGate(),
             ]
         else:
             self.gates = gates
@@ -347,20 +374,21 @@ def evaluate_monte_carlo_gates(
 ) -> Dict:
     """
     Evaluate pass/fail gates on Monte-Carlo results.
-    
+
     Args:
         monte_carlo_results: Results from CascadeRunner
-    
+
     Returns:
         Dictionary with gate evaluation results
     """
     gate_set = create_default_gate_set()
-    
+
     metrics = {
         "eta_ind": monte_carlo_results.get("eta_ind_min_mean", 1.0),
         "stress": monte_carlo_results.get("stress_max_mean", 0.0),
         "k_eff": monte_carlo_results.get("k_eff_min", 6000.0),
         "cascade_probability": monte_carlo_results.get("cascade_probability", 0.0),
+        "max_latency_ms": monte_carlo_results.get("max_latency_ms", 0.0),
     }
-    
+
     return gate_set.evaluate_and_summarize(metrics)

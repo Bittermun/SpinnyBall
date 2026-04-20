@@ -1,5 +1,5 @@
 """
-Aethelgard Metabolism Engine: Phase 15 Momentum Coupling.
+Metabolism Engine: Phase 15 Momentum Coupling.
 Implements Payload Catch/Launch physics for the mass-packet stream.
 """
 

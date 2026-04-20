@@ -10,6 +10,9 @@ import numpy as np
 from typing import Dict, Tuple
 from dataclasses import dataclass
 
+from dynamics.gdBCO_material import GdBCOMaterial
+from dynamics.bean_london_model import BeanLondonModel
+
 
 @dataclass
 class StiffnessMetrics:
@@ -145,3 +148,26 @@ def sweep_stiffness_velocity(
         'velocity': velocities,
         'k_eff': np.array(k_eff_values),
     }
+
+
+def calculate_flux_pinning_stiffness(
+    displacement: float,
+    B_field: float,
+    temperature: float,
+    material: GdBCOMaterial,
+    geometry: dict,
+) -> float:
+    """Calculate flux-pinning stiffness using Bean-London model.
+
+    Args:
+        displacement: Relative displacement (m)
+        B_field: Magnetic flux density (T)
+        temperature: Temperature (K)
+        material: GdBCO material properties
+        geometry: Geometry parameters
+
+    Returns:
+        Effective stiffness (N/m)
+    """
+    model = BeanLondonModel(material, geometry)
+    return model.get_stiffness(displacement, B_field, temperature)

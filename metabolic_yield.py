@@ -1,5 +1,5 @@
 """
-Aethelgard Metabolic Yield (ROI Mapping)
+Metabolic Yield (ROI Mapping)
 Maps Kinetic Logistics Flux to Sovereign Cognition Points (CP).
 """
 
@@ -24,7 +24,7 @@ def calculate_yield():
     # CP Yield per hour
     cp_per_hour = (global_system_flux * 3600) / CP_CONVERSION
     
-    print(f"--- AETHELGARD METABOLIC YIELD (N={N_nodes}) ---")
+    print(f"--- METABOLIC YIELD (N={N_nodes}) ---")
     print(f"Payload: {payload_mass/1000:.1f} Tons @ {stream_velocity} m/s")
     print(f"Global Flux: {global_system_flux:,.0f} kg*m/s^2")
     print(f"Metabolic Yield: {cp_per_hour:,.2f} CP / hour")

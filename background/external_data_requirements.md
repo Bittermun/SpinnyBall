@@ -2,7 +2,7 @@
 
 ## Critical Missing Data
 
-To transition Project Aethelgard from research simulation to production system, the following external data must be obtained:
+To transition from research simulation to production system, the following external data must be obtained:
 
 ### 1. Superconductor Material Properties (CRITICAL)
 

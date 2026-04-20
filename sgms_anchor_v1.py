@@ -28,6 +28,27 @@ import matplotlib.pyplot as plt
 import numpy as np
 from scipy.integrate import solve_ivp
 
+from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
+from dynamics.bean_london_model import BeanLondonModel
+
+
+# Default Bean-London model configuration (for backward compatibility)
+DEFAULT_GDBCO_PROPS = GdBCOProperties(
+    Tc=92.0,
+    Jc0=3e10,
+    n_exponent=1.5,
+    B0=0.1,
+    alpha=0.5,
+    thickness=1e-6,
+    width=0.012,
+    length=1.0,  # 1 meter of tape
+)
+DEFAULT_FLUX_PINNING_GEOMETRY = {
+    "thickness": DEFAULT_GDBCO_PROPS.thickness,
+    "width": DEFAULT_GDBCO_PROPS.width,
+    "length": 1.0,
+}
+
 
 DEFAULT_PARAMS = {
     "u": 10.0,
@@ -52,7 +73,19 @@ DEFAULT_PARAMS = {
 }
 
 
-def analytical_metrics(params: dict) -> dict:
+def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) -> dict:
+    """Calculate metrics with backward compatibility.
+
+    If params contains "k_fp", use linear stiffness (old behavior).
+    Otherwise, use dynamic Bean-London stiffness (new behavior).
+    
+    Args:
+        params: System parameters
+        flux_model: Optional BeanLondonModel instance. If None, creates default.
+    
+    Returns:
+        Dictionary with calculated metrics
+    """
     lam = params["lam"]
     u = params["u"]
     mp = params["mp"]
@@ -64,7 +97,22 @@ def analytical_metrics(params: dict) -> dict:
 
     f_stream = lam * u**2 * theta_bias
     k_control = lam * u**2 * g_gain
-    k_fp = params.get("k_fp", 0.0)
+    
+    if "k_fp" in params:
+        # Legacy linear stiffness
+        k_fp = params["k_fp"]
+    else:
+        # New dynamic Bean-London stiffness
+        if flux_model is None:
+            # Create default model for backward compatibility
+            material = GdBCOMaterial(DEFAULT_GDBCO_PROPS)
+            flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
+        
+        temperature = params.get("temperature", 77.0)
+        B_field = params.get("B_field", 1.0)
+        displacement = params.get("x0", 0.0)
+        k_fp = flux_model.get_stiffness(displacement, B_field, temperature)
+
     k_total = k_control + k_fp
     
     omega_n = math.sqrt(k_total / ms) if k_total > 0.0 else 0.0
@@ -88,6 +136,81 @@ def analytical_metrics(params: dict) -> dict:
         "packet_rate_hz": packet_rate,
         "packet_period_s": packet_period,
     }
+
+
+def simulate_anchor_with_flux_pinning(
+    params: dict,
+    t_eval: np.ndarray,
+    temperature_profile: np.ndarray | None = None,
+    B_field_profile: np.ndarray | None = None,
+    flux_model: BeanLondonModel | None = None,
+) -> dict:
+    """Simulate anchor with dynamic Bean-London flux-pinning stiffness.
+
+    Args:
+        params: System parameters
+        t_eval: Time evaluation points
+        temperature_profile: Optional temperature profile over time (K)
+        B_field_profile: Optional magnetic field profile over time (T)
+        flux_model: Optional BeanLondonModel instance. If None, creates default.
+
+    Returns:
+        Dictionary with time series including dynamic k_fp
+    """
+    # Initialize flux model if not provided
+    if flux_model is None:
+        material = GdBCOMaterial(DEFAULT_GDBCO_PROPS)
+        flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
+    
+    # Initialize temperature and field profiles
+    if temperature_profile is None:
+        temperature_profile = np.full_like(t_eval, 77.0)  # Constant 77K
+    if B_field_profile is None:
+        B_field_profile = np.full_like(t_eval, 1.0)  # Constant 1T
+
+    # Initialize state
+    x = params["x0"]
+    v = params["v0"]
+    dt = t_eval[1] - t_eval[0]
+
+    # Storage for results
+    results = {
+        "t": t_eval,
+        "x": [],
+        "v": [],
+        "k_fp": [],
+        "k_eff": [],
+        "temperature": [],
+        "B_field": [],
+    }
+
+    # Simulation loop
+    for i, t in enumerate(t_eval):
+        # Get current temperature and field
+        T = temperature_profile[i]
+        B = B_field_profile[i]
+
+        # Calculate dynamic flux-pinning stiffness
+        k_fp = flux_model.get_stiffness(x, B, T)
+
+        # Effective stiffness
+        k_eff = k_fp + params["k_structural"] if "k_structural" in params else k_fp
+
+        # Update dynamics (simplified Euler)
+        # m_s * x_ddot + c_damp * x_dot + k_eff * x = 0
+        a = -(params["c_damp"] * v + k_eff * x) / params["ms"]
+        v += a * dt
+        x += v * dt
+
+        # Store results
+        results["x"].append(x)
+        results["v"].append(v)
+        results["k_fp"].append(k_fp)
+        results["k_eff"].append(k_eff)
+        results["temperature"].append(T)
+        results["B_field"].append(B)
+
+    return results
 
 
 def make_disturbance_series(params: dict, dt: float, steps: int, seed: int = 0) -> np.ndarray:

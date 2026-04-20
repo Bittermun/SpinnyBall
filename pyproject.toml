@@ -27,23 +27,24 @@ scipy = "^1.11.0"
 sympy = "^1.12"
 matplotlib = "^3.8.0"
 
-# Optional: quaternion library (or use scipy.spatial.transform)
-quaternion = { version = "^2023.1.0", optional = true }
-
 # MPC & Optimization (for Weeks 4-6)
 casadi = { version = "^3.6.0", optional = true }
-numba = { version = "^0.59.0", optional = true }
+numba = { version = "^0.60.0", optional = true }
 
 # ML Predictor (for Weeks 7-9)
-torch = { version = "^2.1.0", optional = true }
+torch = { version = "^2.5.0", optional = true }
+
+# JAX for thermal models (Phase 2 ML Enhancement)
+jax = { version = "^0.4.0", optional = true }
+jaxlib = { version = "^0.4.0", optional = true }
 
 # Sensitivity & Monte-Carlo (for Weeks 7-9)
 SALib = { version = "^1.4.0", optional = true }
 
 # Backend API (for Weeks 10-12)
-fastapi = { version = "^0.109.0", optional = true }
-uvicorn = { version = "^0.27.0", optional = true }
-pydantic = { version = "^2.5.0", optional = true }
+fastapi = { version = "^0.115.0", optional = true }
+uvicorn = { version = "^0.32.0", optional = true }
+pydantic = { version = "^2.10.0", optional = true }
 
 # Validation (existing)
 mujoco = { version = "^3.1.0", optional = true }
@@ -51,11 +52,11 @@ mujoco = { version = "^3.1.0", optional = true }
 [tool.poetry.extras]
 mpc = ["casadi", "numba"]
 ml = ["torch"]
+jax = ["jax", "jaxlib"]
 monte-carlo = ["SALib", "torch"]
 validation = ["mujoco"]
-quaternion = ["quaternion"]
 backend = ["fastapi", "uvicorn", "pydantic"]
-all = ["casadi", "numba", "torch", "SALib", "mujoco", "quaternion", "fastapi", "uvicorn", "pydantic"]
+all = ["casadi", "numba", "torch", "jax", "jaxlib", "SALib", "mujoco", "fastapi", "uvicorn", "pydantic"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

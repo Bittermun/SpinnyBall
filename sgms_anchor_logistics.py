@@ -1,5 +1,5 @@
 """
-Aethelgard Logistics Engine: Phase 15/16 Unified Pass.
+Logistics Engine: Phase 15/16 Unified Pass.
 Integrates Kinetic Metabolism, VPD-FeedForward Control, and Thermal flow.
 """
 
@@ -140,7 +140,7 @@ if __name__ == "__main__":
     peak_x = np.max(np.abs(x))
     peak_T = np.max(T)
     
-    print(f"--- AETHELGARD LOGISTICS REPORT ---")
+    print(f"--- LOGISTICS REPORT ---")
     print(f"Payload Mass:      10,000 kg")
     print(f"Relative Velocity: 10.0 m/s")
     print(f"Peak Displacement: {peak_x*1000:.4f} mm")

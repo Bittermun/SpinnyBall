@@ -14,9 +14,12 @@ from __future__ import annotations
 
 import csv
 import math
+from collections import deque
+from dataclasses import dataclass
+from enum import Enum
 from pathlib import Path
 
-import control as ct
+import control as ct  # Python control systems library
 import matplotlib
 
 matplotlib.use("Agg")
@@ -28,6 +31,127 @@ from sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics
 
 DEFAULT_Q = np.diag([100.0, 1.0])
 DEFAULT_R = np.array([[0.01]])
+
+
+class PIDMode(Enum):
+    """PID controller operating modes."""
+    POSITION = "position"  # Position control
+    VELOCITY = "velocity"  # Velocity control
+    TEMPERATURE = "temperature"  # Temperature control
+
+
+@dataclass
+class PIDParameters:
+    """PID controller parameters (following MPC controller pattern)."""
+    mode: PIDMode = PIDMode.POSITION
+    kp: float  # Proportional gain
+    ki: float  # Integral gain
+    kd: float  # Derivative gain
+    tau_filter: float = 0.1  # Derivative filter time constant (s)
+    output_min: float = -np.inf  # Anti-windup lower bound
+    output_max: float = np.inf  # Anti-windup upper bound
+    integral_min: float = -np.inf  # Integral clamping lower bound
+    integral_max: float = np.inf  # Integral clamping upper bound
+    delay_steps: int = 0  # Number of delay steps to compensate (from MPC pattern)
+
+
+class PIDController:
+    """Full PID controller with anti-windup and derivative filtering.
+    
+    Follows MPC controller pattern: configuration-driven, mode-based,
+    delay compensation support.
+    """
+    
+    def __init__(self, params: PIDParameters, dt: float):
+        """Initialize PID controller.
+        
+        Args:
+            params: PIDParameters
+            dt: Time step (s), must be > 0
+        
+        Raises:
+            ValueError: If dt <= 0
+        """
+        if dt <= 0:
+            raise ValueError(f"dt must be > 0, got {dt}")
+        self.params = params
+        self.dt = dt
+        self.integral = 0.0
+        self.prev_error = 0.0
+        self.prev_derivative = 0.0  # For low-pass filtering
+        self.delay_buffer = deque(maxlen=params.delay_steps) if params.delay_steps > 0 else None  # Delay compensation
+        
+    def update(self, error: float) -> float:
+        """Compute PID output with anti-windup and derivative filtering."""
+        # Proportional term
+        p_term = self.params.kp * error
+        
+        # Integral term with anti-windup clamping
+        self.integral += error * self.dt
+        self.integral = np.clip(self.integral,
+                               self.params.integral_min,
+                               self.params.integral_max)
+        i_term = self.params.ki * self.integral
+        
+        # Derivative term with low-pass filtering
+        derivative = (error - self.prev_error) / self.dt
+        tau_sum = self.params.tau_filter + self.dt
+        if tau_sum <= 0:
+            alpha = 1.0  # No filtering if tau_filter is 0 or negative
+        else:
+            alpha = self.dt / tau_sum
+        filtered_derivative = alpha * derivative + (1 - alpha) * self.prev_derivative
+        self.prev_derivative = filtered_derivative
+        d_term = self.params.kd * filtered_derivative
+        
+        # Total output with saturation
+        output = p_term + i_term + d_term
+        output = np.clip(output, self.params.output_min, self.params.output_max)
+        
+        # Delay compensation (Smith predictor pattern from MPC)
+        if self.delay_buffer is not None:
+            self.delay_buffer.append(output)
+            if len(self.delay_buffer) > self.params.delay_steps:
+                output = self.delay_buffer.popleft()
+        
+        # Update state
+        self.prev_error = error
+        
+        return output
+    
+    def reset(self):
+        """Reset controller state."""
+        self.integral = 0.0
+        self.prev_error = 0.0
+        self.prev_derivative = 0.0
+        if self.delay_buffer is not None:
+            self.delay_buffer.clear()
+
+
+def ziegler_nichols_tuning(ku: float, tu: float) -> PIDParameters:
+    """Compute PID gains using Ziegler-Nichols method.
+    
+    Args:
+        ku: Ultimate gain (gain at stability limit)
+        tu: Ultimate period (period of oscillations at stability limit)
+    
+    Returns:
+        PIDParameters with tuned gains
+    """
+    kp = 0.6 * ku
+    ki = 1.2 * ku / tu
+    kd = 0.075 * ku * tu
+    return PIDParameters(kp=kp, ki=ki, kd=kd)
+
+
+def manual_tuning(
+    kp: float,
+    ki: float = 0.0,
+    kd: float = 0.0,
+    tau_filter: float = 0.1,
+) -> PIDParameters:
+    """Create PID parameters with manual tuning."""
+    return PIDParameters(kp=kp, ki=ki, kd=kd, tau_filter=tau_filter)
 
 
 def _copy_params(params: dict | None = None) -> dict:
@@ -187,6 +311,63 @@ def simulate_controller(
         A_cl = design["A_cl"]
         system = design["closed_loop_system"]
         poles = design["closed_loop_poles"]
+    elif controller == "pid":
+        # Create PID controller
+        metrics = model["metrics"]
+        pid_params = PIDParameters(
+            kp=p_gain_scale * metrics["k_eff"],
+            ki=0.1 * metrics["k_eff"],  # Default I gain
+            kd=0.01 * metrics["k_eff"],  # Default D gain
+            tau_filter=0.1,
+            output_min=-params["u"] * 10,  # Reasonable saturation
+            output_max=params["u"] * 10,
+        )
+        dt = t_eval[1] - t_eval[0]
+        pid = PIDController(pid_params, dt=dt)
+        
+        # Simulate with PID (discrete-time integration)
+        x = x0.copy()
+        control_forces = []
+        states = []
+        
+        for i, t in enumerate(t_eval):
+            # Store state
+            states.append(x.copy())
+            
+            # Compute control force
+            error = 0.0 - x[0]  # Setpoint is 0
+            u = pid.update(error)
+            control_forces.append(u)
+            
+            # Apply disturbance
+            u_total = u + disturbance_force[i]
+            
+            # Update state (Euler integration)
+            # m_s * x_ddot + c_damp * x_dot + k_eff * x = u_total
+            # x_ddot = (u_total - c_damp * x_dot - k_eff * x) / m_s
+            a = (u_total - params["c_damp"] * x[1] - metrics["k_eff"] * x[0]) / params["ms"]
+            x[1] += a * dt  # Update velocity
+            x[0] += x[1] * dt  # Update position
+        
+        # Convert to numpy arrays
+        states = np.array(states)
+        control_forces = np.array(control_forces)
+        
+        # Return in same format as other controllers
+        return {
+            "controller": controller,
+            "t": t_eval,
+            "y": states.T,
+            "state": states,
+            "x": states[:, 0],
+            "v": states[:, 1],
+            "control_force": control_forces,
+            "disturbance_force": disturbance_force,
+            "K": np.array([[pid_params.kp, pid_params.ki, pid_params.kd]]),
+            "closed_loop_poles": np.array([]),  # PID doesn't have poles in same sense
+            "metrics": model["metrics"],
+            "params": params,
+        }
     else:
         raise ValueError(f"Unsupported controller: {controller}")
 

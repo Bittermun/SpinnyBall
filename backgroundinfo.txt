@@ -167,7 +167,7 @@ Harvested power as function of orbital parameters and magnetic field strength
 Thermal equilibrium calculations
 Battery/capacitor sizing for eclipse periods or low-harvesting phases
 3. Manufacturing, Assembly, and Deployment Pathway
-Gap Identified: The paper assumes Sovereign Beans exist but doesn't address:
+Gap Identified: The paper assumes Magnetic Kinetic Control Packets (MKCPs) exist but doesn't address:
 
 Manufacturing rate: How many beans per day can lunar ISRU produce?
 Quality control: How do you verify each bean meets tolerances before deployment?
@@ -374,21 +374,15 @@ oxidation ratio (the Iron Reduction Index) and filter out excess titanium before
 
 .
 
-2. Electron Emitter Contamination (Propulsion Blindspot)
+2. Power Generation Without Consumables
 
-To maneuver without propellant, Electrodynamic Tethers (EDTs) must actively emit electrons into the space plasma. The architecture currently glosses over how this is achieved.
+To maintain energy-positive operation, the system must harvest power from regenerative braking and metabolic processes. The architecture currently glosses over how this is achieved.
 
-The Concern: The standard method, using a Hollow Cathode, requires expellant gas (a consumable) to create a plasma discharge, which defeats the entire purpose of a "consumable-free" closed-loop system
+The Concern: Some power generation methods may require consumables or external energy sources, which defeats the entire purpose of a "consumable-free" closed-loop system
 
-. The alternative is Field Emitter Arrays (FEAs), which use microscopic tips to emit electrons without consumables
+The Blindspot: Regenerative braking systems rely on efficient energy capture and storage mechanisms that may be sensitive to environmental contamination and wear over long-duration missions.
 
-.
-
-The Blindspot: FEAs rely on materials with a low work-function and are hyper-sensitive to contamination. Spacecraft outgassing, hydrocarbons, and atomic oxygen can easily polymerize or coat these micrometer-scale tips, completely neutralizing their ability to emit electrons
-
-.
-
-To Develop: Significant research is needed into protective enclosures, in-situ electron cleaning, and robust coatings for FEAs to ensure long-term, reliable electrodynamic thrust in a contaminated space environment
+To Develop: Significant research is needed into robust energy capture and storage systems for long-term, reliable power generation in the space environment
 
 .
 

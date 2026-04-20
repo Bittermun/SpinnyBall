@@ -7,7 +7,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from control.rom_predictor import (
+from control_layer.rom_predictor import (
     LinearizedROM,
     ROMParameters,
     create_rom,

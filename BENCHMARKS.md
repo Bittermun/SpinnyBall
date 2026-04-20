@@ -56,6 +56,84 @@ On typical hardware (Intel i7 / AMD Ryzen 7, 2023+):
 - Numba JIT acceleration can reduce solve time by ~20-30%
 - For GPU acceleration, consider CasADi + CUDA (advanced setup)
 
+## Delay Compensation Performance
+
+### Target
+
+- **Target**: ≤30 ms total latency (MPC solve + delay compensation)
+- **Measured**: [to be filled after implementation]
+- **Improvement**: [to be filled after implementation]
+- **Method**: Smith predictor with Euler integration (matches MPC dynamics)
+- **Configuration**: delay_steps=5, dt_delay=0.01s
+
+### Running Delay Compensation Benchmark
+
+```bash
+# Install MPC dependencies
+poetry install --extras mpc
+
+# Run benchmark with delay compensation enabled
+python -c "
+from control_layer.mpc_controller import create_mpc_controller, verify_mpc_latency
+
+controller = create_mpc_controller(
+    horizon=10,
+    dt=0.01,
+    delay_steps=5,
+    enable_delay_compensation=True,
+)
+
+benchmark = verify_mpc_latency(controller, n_trials=100)
+print(f'Mean solve time with delay compensation: {benchmark[\"mean_ms\"]:.2f} ms')
+print(f'Target (30 ms): {\"PASS\" if benchmark[\"meets_target\"] else \"FAIL\"} ')
+"
+```
+
+### Latency Injection Testing
+
+- **Target**: System stability under 30ms latency injection
+- **Measured**: [to be filled after implementation]
+- **Method**: Delayed feedback mechanism (not skipping integration steps)
+- **Metrics**: Aggregate (events, max latency) + per-packet tracking
+- **Gate**: LatencyGate with 30ms threshold
+
+### Running Latency Injection Benchmark
+
+```bash
+# Install Monte-Carlo dependencies
+poetry install --extras monte-carlo
+
+# Run Monte-Carlo with latency injection
+python -c "
+from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
+from dynamics.multi_body import MultiBodyStream, Packet
+from dynamics.rigid_body import RigidBody
+import numpy as np
+
+config = MonteCarloConfig(
+    n_realizations=100,
+    time_horizon=1.0,
+    dt=0.01,
+    latency_ms=30.0,  # 30ms latency injection
+    latency_std_ms=5.0,
+    track_per_packet_latency=True,
+)
+
+def stream_factory():
+    mass = 0.05
+    I = np.diag([0.0001, 0.00011, 0.00009])
+    packets = [Packet(id=0, body=RigidBody(mass, I))]
+    return MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
+
+runner = CascadeRunner(config)
+results = runner.run_monte_carlo(stream_factory)
+
+print(f'Success rate: {results[\"success_rate\"]:.2%}')
+print(f'Max latency: {results[\"max_latency_ms\"]:.2f} ms')
+print(f'Target (≥90% success rate): {\"PASS\" if results[\"success_rate\"] >= 0.9 else \"FAIL\"}')
+"
+```
+
 ## Integration Performance
 
 ### Rigid Body Integration
@@ -125,6 +203,68 @@ python sgms_anchor_resilience.py --runs 1000
 - **Wall time**: ~0.1-0.5 s
 - **Tolerance**: 1e-9 relative error
 - **Status**: All tests PASS on supported hardware
+
+## ML Model Performance
+
+### VMD-IRCNN Wobble Detection
+
+- **Target latency**: ≤ 5 ms per detection
+- **Measured**: [to be filled after benchmarking]
+- **Signal length**: 1000 samples
+- **Implementation**: FFT-based decomposition (stub), moving average denoising
+- **Status**: Stub implementation (full VMD-IRCNN requires variational optimization)
+
+### Running Wobble Detection Benchmark
+
+```bash
+# Install ML dependencies
+poetry install --extras ml
+
+# Run benchmark
+pytest tests/test_vmd_ircnn.py::TestVMDIRCNNDetector::test_wobble_detection_latency_benchmark -v -s
+```
+
+### JAX Thermal Models
+
+- **Target speedup**: ≥ 2x vs NumPy baseline
+- **Measured**: [to be filled after benchmarking]
+- **Method**: JIT compilation with jax.jit
+- **Batch processing**: jax.vmap for vectorized batch prediction
+- **Configuration**: dt=0.01, thermal_mass=1000 J/K, 2 packets, 100 steps
+
+### Running JAX Thermal Benchmark
+
+```bash
+# Install JAX dependencies
+poetry install --extras jax
+
+# Run benchmark
+pytest tests/test_jax_thermal.py::TestJAXThermalModel::test_jax_speedup_benchmark -v -s
+```
+
+### ML Integration Layer
+
+- **Target**: End-to-end latency ≤ 10 ms for batch processing
+- **Measured**: [to be filled after benchmarking]
+- **Fallback**: Graceful degradation when models unavailable
+- **API endpoints**: /ml/wobble-detect, /ml/thermal-predict, /ml/status
+
+### Running ML Integration Benchmark
+
+```bash
+# Install backend dependencies
+poetry install --extras backend
+
+# Run benchmark
+pytest tests/test_ml_integration.py -v -s
+```
+
+### Installation Notes
+
+```bash
+# Install all ML-related extras
+poetry install --extras ml --extras jax --extras backend
+```
 
 ## Profiling
 
@@ -207,6 +347,39 @@ Results:
   P99: 23.8 ms
   Target (30 ms): PASS
 ```
+
+## MRT v0.1 Validation
+
+### MuJoCo 6-DoF Cross-Validation
+
+- **Target**: Angular distance < 1e-2 rad, angular velocity difference < 1e-1 rad/s
+- **Method**: Trajectory-based cross-validation between custom implementation and MuJoCo oracle
+- **Status**: Implemented with graceful degradation when MuJoCo unavailable
+- **Tests**: 3 tests (2 MuJoCo-dependent, 1 standalone always runs)
+
+### Running MuJoCo Validation
+
+```bash
+# Install validation dependencies
+poetry install --extras validation
+
+# Run MuJoCo validation tests
+pytest tests/test_mujoco_validation.py -v
+```
+
+### Validation Criteria
+
+- **Trajectory Cross-Validation**: Simulate same initial conditions in both systems, compare final states
+- **Angular Momentum Conservation**: Verify both implementations conserve angular momentum to within 1e-6 tolerance
+- **Rigid-Body Dynamics Properties**: Inertia symmetry, positive definiteness, gyroscopic coupling skew-symmetry
+
+### Expected Results
+
+| Test | Status | Notes |
+| --- | --- | --- |
+| test_trajectory_cross_validation | SKIPPED (if MuJoCo unavailable) | Graceful degradation |
+| test_angular_momentum_conservation | SKIPPED (if MuJoCo unavailable) | Graceful degradation |
+| test_rigid_body_dynamics_standalone | PASS | Always runs |
 
 ## Future Work
 

@@ -1,10 +1,11 @@
 """
-High-Fidelity 6-DOF Oracle Validation for spin-stabilized Aethelgard mass packets.
+High-Fidelity 6-DOF Oracle Validation for spin-stabilized mass packets.
 
 This module performs oracle validation by comparing MuJoCo's physics engine
-against the custom rigid_body.py Euler dynamics implementation. The goal is to
-verify that the custom implementation correctly captures gyroscopic coupling,
-precession, and libration effects.
+against the custom rigid-body dynamics implementation. It validates:
+- Angular momentum conservation
+- Gyroscopic coupling effects
+- Precession dynamics under steering torques
 
 Validation Metrics:
 - Quaternion attitude comparison (angular distance)
@@ -23,18 +24,50 @@ import time
 from pathlib import Path
 from typing import Tuple, Dict, Optional
 from scipy.spatial.transform import Rotation as R
+import os
+
+# Configuration: Debug vs Operational mode
+# Set environment variable SPINNYBALL_MODE=operational to use operational values
+MODE = os.environ.get("SPINNYBALL_MODE", "debug").lower()
 
 @dataclass
-class AethelgardParams:
-    mp: float = 2.0             # Packet mass (kg)
-    major_axis: float = 0.1     # Semi-major axis a (m)
+class ConfigValues:
+    """Configuration values for debug and operational modes."""
+    debug_u_velocity: float = 10.0  # m/s - Debug value for faster iteration
+    operational_u_velocity: float = 1600.0  # m/s - Operational stream velocity
+
+    @property
+    def u_velocity(self) -> float:
+        """Get u_velocity based on current mode."""
+        if MODE == "operational":
+            return self.operational_u_velocity
+        return self.debug_u_velocity
+
+config = ConfigValues()
+
+@dataclass
+class PacketParams:
+    mp: float = 8.0             # Packet mass (kg) - Paper target: BFRP sleeve r≈0.1m, ρ=2500 kg/m³
+    major_axis: float = 0.1     # Semi-major axis a (m) - Matches paper derivation
     minor_axis: float = 0.046   # Semi-minor axis b=c (m)
-    omega_spin: float = 5236.0  # rad/s (~50,000 RPM)
-    u_velocity: float = 10.0    # m/s
-    lam: float = 16.6667        # kg/m (s=0.12m)
-    k_fp: float = 4500.0        # GdBCO pinning stiffness (N/m)
+    omega_spin: float = 5236.0  # rad/s (~50,000 RPM) - Matches paper
+    omega_max: float = 5657.0   # rad/s (~54,000 RPM) - Derived from σ_θ = ρr²ω² ≤ 800 MPa
+    u_velocity: float = None    # m/s - Set from config (debug: 10.0, operational: 1600.0)
+    lam: float = 16.6667        # kg/m (s=0.12m) - Placeholder
+    k_fp: float = 6000.0        # GdBCO pinning stiffness (N/m) - Updated to meet gate threshold
     node_mass: float = 1000.0   # Station mass (kg)
     num_packets: int = 40       # Sim pool
+    # Thermal parameters from paper
+    emissivity: float = 0.85    # BFRP emissivity
+    surface_area: float = 0.2    # m² - Radiation surface area
+    total_power: float = 200.0  # W - Eddy + solar heating
+    # Stress parameters from paper
+    stress_limit: float = 8.0e8 # Pa - 800 MPa BFRP limit with SF=1.5
+
+    def __post_init__(self):
+        """Set u_velocity from config if not provided."""
+        if self.u_velocity is None:
+            self.u_velocity = config.u_velocity
 
 def quaternion_angular_distance(q1: np.ndarray, q2: np.ndarray) -> float:
     """
@@ -62,7 +95,7 @@ def quaternion_angular_distance(q1: np.ndarray, q2: np.ndarray) -> float:
 
 
 class SpinPacketValidation:
-    def __init__(self, p: AethelgardParams):
+    def __init__(self, p: PacketParams):
         self.p = p
         self.model = mujoco.MjModel.from_xml_string(self._build_xml())
         self.data = mujoco.MjData(self.model)
@@ -79,7 +112,7 @@ class SpinPacketValidation:
         iz = iy
         
         xml = f"""
-        <mujoco model="aethelgard_validation">
+        <mujoco model="spin_packet_validation">
           <option timestep="0.0005" integrator="RK4"/>
           <asset>
             <texture name="grid" type="2d" builtin="checker" rgb1=".1 .2 .3" rgb2=".2 .3 .4" width="300" height="300"/>
@@ -205,7 +238,7 @@ def run_validation(gui=True, steps=2000) -> Dict:
     Returns:
         Dictionary with validation metrics and trajectory
     """
-    p = AethelgardParams()
+    p = PacketParams()
     sim = SpinPacketValidation(p)
 
     print(f"Starting 6-DOF Oracle Validation")

@@ -229,34 +229,44 @@ class TestSpecificGates:
         
         result_pass = gate.evaluate(1e-7)
         assert result_pass.status == GateStatus.PASS
-        
+
         result_fail = gate.evaluate(1e-4)
         assert result_fail.status == GateStatus.FAIL
+
+    # EDT gate tests removed - EDT module archived
 
 
 class TestGateSet:
     """Test GateSet class."""
     
     def test_initialization(self):
-        """GateSet initializes correctly."""
-        gate_set = GateSet()
-        
-        assert len(gate_set.gates) == 4  # Default gates
+        """Test default gate set initialization."""
+        gate_set = create_default_gate_set()
+        assert len(gate_set.gates) == 6  # Default gates (eta_ind, stress, k_eff, cascade_probability, temperature, latency)
+        gate_names = [gate.name for gate in gate_set.gates]
+        assert "eta_ind" in gate_names
+        assert "stress" in gate_names
+        assert "k_eff" in gate_names
+        assert "cascade_probability" in gate_names
+        assert "temperature_packet" in gate_names
+        assert "max_latency_ms" in gate_names
     
     def test_evaluate_all(self):
         """Test evaluating all gates."""
-        gate_set = GateSet()
-        
+        gate_set = create_default_gate_set()
+
         metrics = {
             "eta_ind": 0.9,
             "stress": 0.5e9,
             "k_eff": 7000.0,
             "cascade_probability": 1e-7,
+            "temperature_packet": 300.0,
+            "max_latency_ms": 10.0,
         }
-        
+
         results = gate_set.evaluate_all(metrics)
-        
-        assert len(results) == 4
+
+        assert len(results) == 6
         assert all(r.status == GateStatus.PASS for r in results)
     
     def test_get_overall_status_pass(self):
@@ -286,23 +296,25 @@ class TestGateSet:
     def test_evaluate_and_summarize(self):
         """Test evaluate_and_summarize method."""
         gate_set = GateSet()
-        
+
         metrics = {
             "eta_ind": 0.9,
             "stress": 0.5e9,
             "k_eff": 7000.0,
             "cascade_probability": 1e-7,
+            "temperature_packet": 300.0,
+            "max_latency_ms": 10.0,
         }
-        
+
         summary = gate_set.evaluate_and_summarize(metrics)
-        
+
         assert "overall_status" in summary
         assert "passed" in summary
         assert "failed" in summary
         assert "warnings" in summary
         assert "results" in summary
         assert summary["overall_status"] == "pass"
-        assert summary["passed"] == 4
+        assert summary["passed"] == 6
 
 
 class TestEvaluateMonteCarloGates:
@@ -316,11 +328,12 @@ class TestEvaluateMonteCarloGates:
             "k_eff_min": 7000.0,
             "cascade_probability": 1e-7,
         }
-        
+
         summary = evaluate_monte_carlo_gates(monte_carlo_results)
-        
-        assert summary["overall_status"] == "pass"
-        assert summary["passed"] == 4
+
+        # Temperature metric missing causes warning status
+        assert summary["overall_status"] == "warning"
+        assert summary["warnings"] >= 1
     
     def test_evaluate_monte_carlo_gates_fail(self):
         """Test gate evaluation with failing metrics."""
@@ -330,11 +343,11 @@ class TestEvaluateMonteCarloGates:
             "k_eff_min": 5000.0,
             "cascade_probability": 1e-4,
         }
-        
+
         summary = evaluate_monte_carlo_gates(monte_carlo_results)
-        
+
         assert summary["overall_status"] == "fail"
-        assert summary["failed"] > 0
+        assert summary["failed"] >= 4
 
 
 if __name__ == "__main__":

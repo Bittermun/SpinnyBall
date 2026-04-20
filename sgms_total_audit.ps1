@@ -1,5 +1,5 @@
-# Project Aethelgard: Total Audit & Repro Script
-Write-Host "--- Aethelgard Sovereign Audit Initiative ---" -ForegroundColor Cyan
+# Project Total Audit & Repro Script
+Write-Host "--- Sovereign Audit Initiative ---" -ForegroundColor Cyan
 
 # 1. Scaling Audit
 Write-Host "[1/3] Executing LOB Scaling & Survivability Audit..." -ForegroundColor Yellow
