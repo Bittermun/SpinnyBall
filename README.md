@@ -6,44 +6,6 @@
 
 **Status**: Gyroscopic Mass-Stream Digital Twin (Phase 1 Complete)
 **Target**: First-Principles Closed-Loop Shepherded Gyroscopic Mass-Stream Simulation
-**Core Claim**: Momentum-flux anchoring achieves 1,000,000× energy efficiency vs drag braking
-
-## Phase 1 Completion
-
-Phase 1 has been completed with the following enhancements:
-
-### Stage 1: PID Controller Enhancement
-- Full PID controller with integral and derivative terms
-- Anti-windup with output and integral clamping
-- Derivative filtering with low-pass filter
-- Delay compensation (Smith predictor pattern)
-- Tuning methods: Ziegler-Nichols and manual tuning
-- Integrated with `simulate_controller()` in `sgms_anchor_control.py`
-
-### Stage 2: Thermal Management System
-- Cryocooler performance model with temperature-dependent cooling power
-- Quench detection logic with hysteresis and heating rate monitoring
-- Lumped-parameter thermal model (2-node: stator + rotor)
-- Radiative cooling with Stefan-Boltzmann law
-- Conductive heat transfer between components
-- Integrated with `dynamics/thermal_model.py`
-
-### Stage 3: Critical-State Flux-Pinning
-- GdBCO material properties with J_c(B, T) dependence
-- Bean-London critical-state model for flux-pinning
-- Dynamic stiffness calculation k_fp(T, B, displacement)
-- Magnetization hysteresis tracking
-- Integrated with `dynamics/stiffness_verification.py` and `sgms_anchor_v1.py`
-- Backward compatibility maintained
-
-### Stage 4: Integration Testing & Documentation
-- End-to-end integration tests
-- Scenario-based tests (normal operation, quench events, temperature excursions)
-- Performance benchmarks
-- Integration architecture documentation (`docs/phase1_integration_architecture.md`)
-
-See `background/phase1_completion_plan.md` for detailed implementation plan.
-
 ---
 
 ##  Executive Summary
@@ -60,12 +22,9 @@ The system leverages **six integrated physics domains**:
 4. **Passive Superconducting Flux-Pinning** - GdBCO zero-power stabilization layer
 5. **Coupled Energy & Thermal Equilibrium** - Metabolic harvesting vs cryogenic cooling balance
 6. **Advanced Predictive Diagnostics** - ML-based failure prediction (future phase)
-
-See `background/physics_simulator_audit.md` for complete implementation status.
-
 ---
 
-##  Core Innovation: Momentum-Flux Anchoring
+## Momentum-Flux Anchoring
 
 **Force Generation**:
 - F_anchor = λ·u²·sin(θ)
@@ -223,56 +182,7 @@ Available extras:
 
 ##  Development Status
 
-### Phase 0: Foundation ✅ COMPLETE
-- [x] Reduced-order momentum-flux model
-- [x] Energy efficiency proof (10W vs 10MW)
-- [x] 40-node lattice resilience testing
-- [x] Sensitivity analysis (Sobol indices)
-- [x] MuJoCo 6-DOF spin validation
-- [x] metabolic yield mapping (CP economy)
-
-### Phase 1: Critical Path IN PROGRESS (80-120 hours)
-**Goal**: Thermally safe, controllably stable production system
-
-#### Delay Compensation & Latency Testing (COMPLETED)
-- [x] Smith predictor delay compensation in MPC (7-state CasADi model)
-- [x] Latency injection in Monte-Carlo framework (delayed feedback mechanism)
-- [x] Validation dashboard latency metrics
-- [x] Unit tests for all new functionality
-- [x] Logging infrastructure improvements
-
-#### Remaining Phase 1 Tasks
-- [ ] Complete PID controller (I+D terms, anti-windup) - *8-12 hrs*
-- [ ] Thermal management system (cryocooler model, quench detection) - *40-60 hrs* (basic radiative cooling ✅ complete)
-- [ ] Critical-state flux-pinning (Bean-London model) - *20-30 hrs*
-- [x] Full nutation dynamics (Euler equations) - *12-18 hrs* ✅
-- [ ] Integration testing + documentation - *20 hrs*
-
-**Deliverable**: Production-ready simulator for deployment planning
-
-### Phase 2: ML Enhancement ✅ COMPLETE
-- [x] VMD-IRCNN wobble detection (stub implementation with FFT-based decomposition)
-- [x] JAX thermal models with JIT compilation
-- [x] ML integration layer with fallback logic
-- [x] Dashboard ML endpoints (/ml/wobble-detect, /ml/thermal-predict, /ml/status)
-- [x] Unit tests for all ML components with performance benchmarking
-- [x] Logging infrastructure (backend/logging_config.py)
-- [x] JAX dependency added to pyproject.toml
-
 **Deliverable**: ML-enhanced digital twin with wobble detection and thermal prediction
-
-### Phase 2 Part 2: Full VMD-IRCNN Implementation ✅ COMPLETE
-- [x] True VMD decomposition with ADMM optimization (control_layer/vmd_decomposition.py)
-- [x] True IRCNN predictor with invertible residual blocks (control_layer/ircnn_predictor.py)
-- [x] Training data generator from high-fidelity simulator (control_layer/training_data_generator.py)
-- [x] Training pipeline with checkpointing and early stopping (control_layer/training_pipeline.py)
-- [x] State converter for ROM-VMD-IRCNN compatibility (control_layer/state_converter.py)
-- [x] ROM predictor integration with VMD-IRCNN option (control_layer/rom_predictor.py)
-- [x] ML integration layer with feature flags (control_layer/ml_integration.py)
-- [x] Feature flag configuration (config/ml_config.json)
-- [x] Unit tests for VMD, IRCNN, state converter, and training data
-- [x] Integration tests for state conversion and feature flag switching
-- [x] Training script with GPU support (train_vmd_ircnn.py)
 
 **Test Results**:
 - VMD unit tests: 13/17 passed (76.5% - 23.5% failure < 30% threshold)
@@ -287,36 +197,6 @@ Available extras:
 - GPU training operational on Python 3.11 with CUDA 12.1
 - CPU training completed (wobble detector: val loss 0.000014, predictor: val loss 0.000000)
 - Models saved to `data/models/wobble_detector/v1.0.0/` and `data/models/thermal_predictor/v1.0.0/`
-
-### Phase 3: MRT v0.1 Completion ✅ COMPLETE
-- [x] MuJoCo 6-DoF validation (trajectory cross-validation)
-- [x] Gyroscopic coupling verified against physics oracle
-- [x] Angular momentum conservation validated
-- [x] MRT v0.1 achieved (digital twin complete)
-
-**Deliverable**: Physics-validated digital twin ready for deployment planning
-
-### Phase 3: Advanced Diagnostics ✅ COMPLETE (60-78 hours)
-- [x] Complete latency injection with timing accuracy ±1 ms
-- [x] Enhanced VMD-IRCNN stub with adaptive FFT decomposition
-- [x] Deep residual network with skip connections
-- [x] Synthetic failure data pipeline (10 failure modes)
-- [x] Statistical anomaly detection (z-score + isolation forest)
-- [x] Real-time scoring engine (<10 ms per sample)
-- [x] Comprehensive test coverage (>85%)
-- [x] API documentation and integration report
-
-**Files Created**:
-- `control_layer/vmd_enhanced_stub.py` - Enhanced VMD-IRCNN stub
-- `control_layer/train_vmd_enhanced.py` - Training script
-- `control_layer/failure_modes.py` - Failure mode library
-- `control_layer/data_generator.py` - Synthetic data generator
-- `control_layer/data_quality.py` - Data quality checker
-- `control_layer/anomaly_detector.py` - Statistical anomaly detection
-- `tests/test_latency_injection.py` - Latency injection tests
-- `tests/test_anomaly_detection.py` - Anomaly detection tests
-- `docs/phase3_api_reference.md` - API documentation
-- `docs/phase3_integration_report.md` - Integration report
 
 **Test Results**:
 - Latency injection tests: 13/13 passed (100%)
@@ -430,16 +310,9 @@ The codebase now supports three configuration modes to align with different use 
 
 ### OPERATIONAL Mode
 - **Purpose**: Paper-derived operational scale validation
-- **Parameters**: 8.0 kg mass, 0.1 m radius, 5236 rad/s spin (paper targets)
+- **Parameters**: 8.0 kg mass, 0.1 m radius, 5236 rad/s spin
 - **Use case**: Operational-scale physics validation, paper verification
 - **Usage**: `MPCController(configuration_mode=ConfigurationMode.OPERATIONAL)`
-
-### Migration Notes (April 2026)
-- **Deprecated**: `tests/test_mpc.py` moved to `legacy/test_mpc.py` (uses placeholder parameters)
-- **New**: `tests/test_operational_scale.py` validates physics at paper target scale
-- **New**: `tests/test_parameter_sweeps.py` validates parameter scaling relationships
-- **Updated**: `sgms_anchor_mujoco.py` now uses paper target parameters (8.0 kg, 0.1m, 6000 N/m)
-- **Updated**: `control_layer/mpc_controller.py` now supports configuration mode selection
 
 See `docs/unified_geometry_table.md` for complete parameter comparison and code-paper gap analysis.
 
@@ -641,13 +514,9 @@ python -m backend.app
 
 Open digital_twin.html in browser to access the dashboard with real-time simulation state and Monte-Carlo analysis.
 
-### Blueprint Alignment
-
-This project is undergoing an incremental migration to evolve from a single-particle 2D magnetic steering demo into a **Minimal Rigorous Twin (MRT v0.1)** that implements the first-principles ideal blueprint for a closed-loop shepherded gyroscopic mass-stream digital twin.
-
 #### Key Physics Upgrade
 
-The governing equation for each Sovereign Bean (spin-stabilized magnetic packet, ~10–100 g, ≤50 krpm) is now:
+The governing equation for each spin-stabilized magnetic packet, ≤50 krpm is now:
 
 \[
 \mathbf{I} \dot{\boldsymbol{\omega}} + \boldsymbol{\omega} \times (\mathbf{I} \boldsymbol{\omega}) = \boldsymbol{\tau}_\text{mag} + \boldsymbol{\tau}_\text{grav} + \boldsymbol{\tau}_\text{solar} + \boldsymbol{\tau}_\text{tether}
@@ -660,16 +529,6 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 - **dynamics/**: Full 3D rigid-body dynamics with explicit gyroscopic coupling + quaternion attitudes
 - **control/**: Model-predictive control (MPC) and reduced-order model (ROM) predictors
 - **monte_carlo/**: Cascade risk assessment and pass/fail gates
-
-#### Implementation Status
-
-- ✅ Weeks 1–3: Core integrator refactor (Euler + quaternion dynamics, gyroscopic coupling term)
-- ✅ Weeks 4–6: Multi-body packet streams + basic MPC + stress/stiffness monitoring
-- ✅ Weeks 7–9: ROM→VMD-IRCNN predictor + Monte-Carlo harness + pass/fail gates
-- ✅ Weeks 10–12: Dashboard extension + FastAPI backend + digital twin visualization
-- ⏳ Pending: MuJoCo 6-DoF oracle validation
-
-See [background/ideal_blueprint_alignment.md](background/ideal_blueprint_alignment.md) for complete details.
 
 ### Independent References
 - MATLAB RK4 reference implementation (validated)
@@ -709,62 +568,11 @@ See [background/ideal_blueprint_alignment.md](background/ideal_blueprint_alignme
 
 ### Immediate Actions Required
 
-1. **External Data Acquisition** (CRITICAL):
+1. **External Data Acquisition**
    - GdBCO J_c(B,T) curves from SuperPower Inc. or NASA Glenn
    - Cryocooler performance curves @ 70-90K (Thales, Sunpower)
    - Eddy current loss coefficients for specific materials
 
-2. **Phase 1 Development** (80-120 hours):
-   - Complete PID controller implementation
-   - Build thermal management system
-   - Implement critical-state flux-pinning model
-   - Add full nutation dynamics
-
-3. **Documentation Polish**:
-   - API reference for all modules
-   - Tutorial notebooks for new users
-   - Deployment planning guide
-
-### Decision Points
-
-**Current Trajectory**: Full-scale production system development
-
-**Alternative Paths** (if scope needs reduction):
-- **Path A**: Paper/demo only (~10 hours additional)
-  - Polish existing reduced-order model
-  - Add "Future Work" section listing deferred items
-  - Submit to IEEE 2026
-
-- **Path B**: Production deployment (current plan, 80-120 hours)
-  - Complete Phase 1 critical path
-  - Acquire external material data
-  - Deliver deployment-ready simulator
-
-- **Path C**: Research platform (140-210 hours)
-  - Phase 1 + Phase 2 + advanced diagnostics
-  - Publish as comprehensive research tool
-  - Enable third-party extensions
-
----
-
-##  Economic Model (Sovereign AGI Economy)
-
-### Cognition Points (CP) Mapping
-```
-1 CP = 10⁶ kg·m/s delivered logistics momentum
-```
-
-### Current Yield
-- **Sustained**: 11,995,200 CP/hour
-- **Peak**: 15,000,000 CP/hour (optimal conditions)
-- **Efficiency**: 0.83 CP per Joule invested
-
-### Scaling Laws
-- Linear with node count (40 → 400 nodes)
-- Quadratic with stream velocity (within material limits)
-- Diminishing returns beyond optimal packet density
-
----
 
 ##  License & Citations
 
@@ -778,9 +586,6 @@ See [background/ideal_blueprint_alignment.md](background/ideal_blueprint_alignme
   year = {2025},
   note = {GitHub repository: github.com/bittermun/SpinnyBall}
 }
-```
-
-**IEEE 2026 Submission**: Ready (pending Phase 1 completion)
 
 ---
 
