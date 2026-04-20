@@ -30,6 +30,15 @@ from .stiffness_verification import (
     sweep_stiffness_velocity,
 )
 
+try:
+    from .jax_thermal import JAXThermalModel
+    _JAX_AVAILABLE = True
+except ImportError:
+    _JAX_AVAILABLE = False
+    JAXThermalModel = None
+
+# EDT (Electrodynamic Tethers) archived - see archived_edt/ directory
+
 __all__ = [
     "RigidBody",
     "euler_equations",
@@ -52,4 +61,5 @@ __all__ = [
     "StiffnessMetrics",
     "get_stiffness_alert_level",
     "sweep_stiffness_velocity",
+    "JAXThermalModel",
 ]

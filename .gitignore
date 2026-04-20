@@ -1,4 +1,3 @@
-```markdown
 # Compiled and build artifacts
 *.pyc
 __pycache__/
@@ -57,7 +56,18 @@ Thumbs.db
 *.lz
 *.lzo
 *.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
-```
+.tar.bz2
+.tar.xz
+.tar.zst
+
+# Project-specific
+data/
+artifacts/
+models/
+*.h5
+*.pkl
+*.pt
+*.pth
+.hypothesis/
+.playwright-mcp/
+.windsurf/

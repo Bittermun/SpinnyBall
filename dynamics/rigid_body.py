@@ -273,7 +273,26 @@ class RigidBody:
     def rotation_matrix(self) -> np.ndarray:
         """Get current rotation matrix from quaternion."""
         return R.from_quat(self.quaternion).as_matrix()
-    
+
+    def state_copy(self):
+        """
+        Create a copy of the rigid body state for latency injection.
+
+        Returns a simple object with copies of all state attributes
+        (position, velocity, quaternion, angular_velocity) to store
+        in the latency buffer for delayed application.
+
+        Returns:
+            Simple object with copied state attributes
+        """
+        from types import SimpleNamespace
+        return SimpleNamespace(
+            position=self.position.copy(),
+            velocity=self.velocity.copy(),
+            quaternion=self.quaternion.copy(),
+            angular_velocity=self.angular_velocity.copy(),
+        )
+
     @property
     def I(self) -> np.ndarray:
         """Inertia tensor in body frame (kg·m²)."""

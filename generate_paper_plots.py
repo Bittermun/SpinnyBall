@@ -55,7 +55,7 @@ plt.axhline(0.5, color='red', linestyle='--', alpha=0.5, label='Stability Thresh
 plt.axvline(500, color='yellow', linestyle=':', label='Catch Event')
 plt.fill_between(t*1000, 0, 0.5, color='red', alpha=0.1)
 
-plt.title("Aethelgard Node Stability: 10-Ton Payload Capture", fontsize=14, pad=20)
+plt.title("Node Stability: 10-Ton Payload Capture", fontsize=14, pad=20)
 plt.xlabel("Time (ms)", fontsize=12)
 plt.ylabel("Displacement (mm)", fontsize=12)
 plt.grid(True, alpha=0.2)

@@ -70,11 +70,11 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
   - Extended HTML dashboard with 3D quaternion attitude view (Three.js overlay) ✅
   - New "Digital Twin" tab with real-time η_ind gauge, libration damping plot, cascade-risk heatmap ✅
   - FastAPI backend integration ✅
-  - Full validation runs against MuJoCo 6-DoF oracle ⏳ (MuJoCo integration pending)
+  - Full validation runs against MuJoCo 6-DoF oracle ⏳ (MuJoCo integration pending - 8-12 hours)
   - Updated README with "Blueprint Alignment" section ✅
 
-### Phase 1: Thermal Modeling (COMPLETED)
-- **Status**: ✅ Complete
+### Phase 1: Thermal Modeling (COMPLETED - VERIFIED)
+- **Status**: ✅ Complete and verified in codebase
 - **Deliverables**:
   - dynamics/thermal_model.py: Stefan-Boltzmann radiation cooling ✅
   - Thermal fields added to Packet dataclass (temperature, emissivity, specific_heat) ✅
@@ -217,7 +217,10 @@ GATES = {
 
 ## Status
 
-- **Phase**: Weeks 10–12 (Dashboard Extension + Validation + Documentation)
-- **Completion**: ~95% (Weeks 1–12 complete, pending MuJoCo validation)
-- **Branch**: `feature/full-gyro-euler` (ready for creation)
-- **Next milestone**: MuJoCo 6-DoF oracle validation (optional)
+- **Phase**: MRT v0.1 (Minimal Rigorous Twin)
+- **Completion**: ~95% (Core physics, control, Monte-Carlo, thermal complete; pending MuJoCo validation, ISRU completion)
+- **Branch**: `main` (MRT v0.1 features integrated)
+- **Next milestones**:
+  - MuJoCo 6-DoF oracle validation (8-12 hours)
+  - ISRU module completion (8-12 hours)
+- **Total remaining effort**: 16-24 hours to complete MRT v0.1

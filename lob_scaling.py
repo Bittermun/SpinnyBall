@@ -10,7 +10,7 @@ R_LUNAR = 1737.1e3
 H_ORB = 100e3
 C_BELT = 2 * np.pi * (R_LUNAR + H_ORB)
 
-# Aethelgard Hardened Default Profile
+# Hardened Default Profile
 LOB_DEFAULT_PARAMS = {
     "u": 1600.0,
     "lam": 0.5,
@@ -131,7 +131,7 @@ def perform_audit(params: dict):
     )
     plt.axhline(5, color="orange", linestyle=":", label="Fail-Safe Threshold (5mm)")
 
-    plt.title("Aethelgard Survivability: Node 0 Blackout Event", fontsize=14)
+    plt.title("Survivability: Node 0 Blackout Event", fontsize=14)
     plt.xlabel("Time (ms)", fontsize=12)
     plt.ylabel("Displacement (mm)", fontsize=12)
     plt.grid(True, alpha=0.1)

@@ -53,7 +53,7 @@
       ]
     },
     {
-      "name": "aethelgard-resilience",
+      "name": "resilience",
       "category": "high-fidelity",
       "params": {
         "u": 10.0,

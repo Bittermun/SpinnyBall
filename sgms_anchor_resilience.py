@@ -1,5 +1,5 @@
 """
-Stream Resilience and Fracture Recovery for Aethelgard mass-packet architecture.
+Stream Resilience and Fracture Recovery for mass-packet architecture.
 Formalizes the 'Catcher-Recovery' and 'VPD Compression' protocols.
 Targets < 0.5mm displacement during 'Stream Fracture' events.
 """
@@ -96,7 +96,7 @@ def plot_resilience(t, x, force, fracture_time, filename="artifacts/resilience_r
     axes[0].plot(t[window], x[window] * 1000, color="#79c0ff", linewidth=2)
     axes[0].axvline(fracture_time, color="#ff7b72", linestyle="--", alpha=0.8, label="Fracture Event")
     axes[0].set_ylabel("Displacement (mm)")
-    axes[0].set_title("Aethelgard Stream Resilience: VPD Compensation Protocol")
+    axes[0].set_title("Stream Resilience: VPD Compensation Protocol")
     axes[0].grid(True, alpha=0.3)
     
     # 0.5mm target line

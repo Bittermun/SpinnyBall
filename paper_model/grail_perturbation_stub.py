@@ -1,6 +1,6 @@
 import numpy as np
 
-# Aethelgard: GRAIL Gravity Perturbation Stub
+# GRAIL Gravity Perturbation Stub
 # Maps Lunar LOB nodes to mascon-driven gravity anomalies (GL0660B model).
 #
 # Data Source: NASA PDS Geosciences Node (GRAIL spherical harmonics).

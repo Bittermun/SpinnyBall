@@ -1,8 +1,8 @@
 """
-Aethelgard Hardened: Core Analytical Physics Baseline (v1.0.0-IEEE-2026)
+Hardened: Core Analytical Physics Baseline (v1.0.0-IEEE-2026)
 
 This module contains the frozen analytical models and physics functions used for 
-the Aethelgard project papers. It is decoupled from the engineering simulation 
+the project papers. It is decoupled from the engineering simulation 
 scripts to ensure research results are reproducible against the baseline.
 
 Core Restoring Force Equation:

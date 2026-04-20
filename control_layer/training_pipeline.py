@@ -9,6 +9,7 @@ from __future__ import annotations
 
 import logging
 import json
+import os
 from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple
@@ -39,6 +40,7 @@ class TrainingConfig:
     epochs: int = 100
     patience: int = 20
     checkpoint_interval: int = 10
+    num_workers: Optional[int] = None  # None for auto-detect (min(4, os.cpu_count()))
     device: Optional[str] = None  # 'cuda', 'cpu', or None for auto-detect
 
 
@@ -99,22 +101,31 @@ class TrainingPipeline:
         if not TORCH_AVAILABLE:
             raise ImportError("PyTorch is required for training. Install with: pip install torch")
 
+        # Validate datasets are not empty
+        if len(train_dataset) == 0:
+            raise ValueError("Training dataset is empty")
+        if len(val_dataset) == 0:
+            raise ValueError("Validation dataset is empty")
+
         save_path = Path(save_dir)
         save_path.mkdir(parents=True, exist_ok=True)
+
+        # Determine num_workers
+        num_workers = self.config.num_workers if self.config.num_workers is not None else min(4, os.cpu_count() or 1)
 
         # Setup data loaders
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.config.batch_size,
             shuffle=True,
-            num_workers=4,
+            num_workers=num_workers,
             pin_memory=True if self.device == "cuda" else False,
         )
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
-            num_workers=4,
+            num_workers=num_workers,
             pin_memory=True if self.device == "cuda" else False,
         )
 
@@ -148,19 +159,26 @@ class TrainingPipeline:
             # Training phase
             model.train()
             train_loss = 0.0
-            for batch_idx, (data, target) in enumerate(train_loader):
-                data, target = data.to(self.device), target.to(self.device)
+            try:
+                for batch_idx, (data, target) in enumerate(train_loader):
+                    data, target = data.to(self.device), target.to(self.device)
 
-                optimizer.zero_grad()
-                output = model(data)
-                loss = criterion(output, target.float())
-                loss.backward()
+                    optimizer.zero_grad()
+                    output = model(data)
+                    loss = criterion(output, target.float())
+                    loss.backward()
 
-                # Gradient clipping
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    # Gradient clipping
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-                optimizer.step()
-                train_loss += loss.item()
+                    optimizer.step()
+                    train_loss += loss.item()
+            except RuntimeError as e:
+                if 'out of memory' in str(e).lower():
+                    logger.error(f"CUDA out of memory at epoch {epoch+1}. Try reducing batch size.")
+                    raise
+                else:
+                    raise
 
             train_loss /= len(train_loader)
             train_losses.append(train_loss)
@@ -168,12 +186,19 @@ class TrainingPipeline:
             # Validation phase
             model.eval()
             val_loss = 0.0
-            with torch.no_grad():
-                for data, target in val_loader:
-                    data, target = data.to(self.device), target.to(self.device)
-                    output = model(data)
-                    loss = criterion(output, target.float())
-                    val_loss += loss.item()
+            try:
+                with torch.no_grad():
+                    for data, target in val_loader:
+                        data, target = data.to(self.device), target.to(self.device)
+                        output = model(data)
+                        loss = criterion(output, target.float())
+                        val_loss += loss.item()
+            except RuntimeError as e:
+                if 'out of memory' in str(e).lower():
+                    logger.error(f"CUDA out of memory during validation at epoch {epoch+1}. Try reducing batch size.")
+                    raise
+                else:
+                    raise
 
             val_loss /= len(val_loader)
             val_losses.append(val_loss)
@@ -206,7 +231,8 @@ class TrainingPipeline:
             'train_losses': train_losses,
             'val_losses': val_losses,
             'best_val_loss': best_val_loss,
-            'config': self.config.__dict__,
+            'config': {k: str(v) if not isinstance(v, (int, float, str, bool, type(None))) else v 
+                      for k, v in self.config.__dict__.items()},
         }
         with open(save_path / "training_metrics.json", 'w') as f:
             json.dump(metrics, f, indent=2)
@@ -235,22 +261,31 @@ class TrainingPipeline:
         if not TORCH_AVAILABLE:
             raise ImportError("PyTorch is required for training. Install with: pip install torch")
 
+        # Validate datasets are not empty
+        if len(train_dataset) == 0:
+            raise ValueError("Training dataset is empty")
+        if len(val_dataset) == 0:
+            raise ValueError("Validation dataset is empty")
+
         save_path = Path(save_dir)
         save_path.mkdir(parents=True, exist_ok=True)
+
+        # Determine num_workers
+        num_workers = self.config.num_workers if self.config.num_workers is not None else min(4, os.cpu_count() or 1)
 
         # Setup data loaders
         train_loader = DataLoader(
             train_dataset,
             batch_size=self.config.batch_size,
             shuffle=True,
-            num_workers=4,
+            num_workers=num_workers,
             pin_memory=True if self.device == "cuda" else False,
         )
         val_loader = DataLoader(
             val_dataset,
             batch_size=self.config.batch_size,
             shuffle=False,
-            num_workers=4,
+            num_workers=num_workers,
             pin_memory=True if self.device == "cuda" else False,
         )
 
@@ -284,19 +319,26 @@ class TrainingPipeline:
             # Training phase
             model.train()
             train_loss = 0.0
-            for batch_idx, (data, target) in enumerate(train_loader):
-                data, target = data.to(self.device), target.to(self.device)
+            try:
+                for batch_idx, (data, target) in enumerate(train_loader):
+                    data, target = data.to(self.device), target.to(self.device)
 
-                optimizer.zero_grad()
-                output = model(data)
-                loss = criterion(output, target)
-                loss.backward()
+                    optimizer.zero_grad()
+                    output = model(data)
+                    loss = criterion(output, target)
+                    loss.backward()
 
-                # Gradient clipping
-                torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+                    # Gradient clipping
+                    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-                optimizer.step()
-                train_loss += loss.item()
+                    optimizer.step()
+                    train_loss += loss.item()
+            except RuntimeError as e:
+                if 'out of memory' in str(e).lower():
+                    logger.error(f"CUDA out of memory at epoch {epoch+1}. Try reducing batch size.")
+                    raise
+                else:
+                    raise
 
             train_loss /= len(train_loader)
             train_losses.append(train_loss)
@@ -304,12 +346,19 @@ class TrainingPipeline:
             # Validation phase
             model.eval()
             val_loss = 0.0
-            with torch.no_grad():
-                for data, target in val_loader:
-                    data, target = data.to(self.device), target.to(self.device)
-                    output = model(data)
-                    loss = criterion(output, target)
-                    val_loss += loss.item()
+            try:
+                with torch.no_grad():
+                    for data, target in val_loader:
+                        data, target = data.to(self.device), target.to(self.device)
+                        output = model(data)
+                        loss = criterion(output, target)
+                        val_loss += loss.item()
+            except RuntimeError as e:
+                if 'out of memory' in str(e).lower():
+                    logger.error(f"CUDA out of memory during validation at epoch {epoch+1}. Try reducing batch size.")
+                    raise
+                else:
+                    raise
 
             val_loss /= len(val_loader)
             val_losses.append(val_loss)
@@ -342,7 +391,8 @@ class TrainingPipeline:
             'train_losses': train_losses,
             'val_losses': val_losses,
             'best_val_loss': best_val_loss,
-            'config': self.config.__dict__,
+            'config': {k: str(v) if not isinstance(v, (int, float, str, bool, type(None))) else v 
+                      for k, v in self.config.__dict__.items()},
         }
         with open(save_path / "training_metrics.json", 'w') as f:
             json.dump(metrics, f, indent=2)
@@ -358,10 +408,14 @@ class TrainingPipeline:
         path: str,
     ):
         """Save model checkpoint."""
-        torch.save({
-            'epoch': epoch,
-            'model_state_dict': model.state_dict(),
-            'optimizer_state_dict': optimizer.state_dict(),
-            'loss': loss,
-        }, path)
-        logger.info(f"Saved checkpoint to {path}")
+        try:
+            torch.save({
+                'epoch': epoch,
+                'model_state_dict': model.state_dict(),
+                'optimizer_state_dict': optimizer.state_dict(),
+                'loss': loss,
+            }, path)
+            logger.info(f"Saved checkpoint to {path}")
+        except (OSError, IOError) as e:
+            logger.error(f"Failed to save checkpoint to {path}: {e}")
+            raise

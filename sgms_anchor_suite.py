@@ -5,7 +5,7 @@ from sgms_anchor_pipeline import run_experiment_suite
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Aethelgard Experiment Suite")
+    parser = argparse.ArgumentParser(description="Experiment Suite")
     parser.add_argument("--repro", action="store_true", help="Clean output directory before running.")
     parser.add_argument("--output", type=str, default="artifacts", help="Root directory for artifacts.")
     args = parser.parse_args()

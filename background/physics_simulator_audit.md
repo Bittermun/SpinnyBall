@@ -4,7 +4,7 @@
 
 **Current Status**: The repository contains a **hybrid reduced-order + high-fidelity simulation stack** that already implements ~85% of the physics domains specified in `backgroundinfo.txt`. 
 
-**Key Finding**: Unlike typical projects requiring external physics engines (MuJoCo, Drake, PyBullet), this codebase has **custom-built, domain-specific simulators** that are MORE appropriate for the Aethelgard use case than general-purpose tools.
+**Key Finding**: Unlike typical projects requiring external physics engines (MuJoCo, Drake, PyBullet), this codebase has **custom-built, domain-specific simulators** that are MORE appropriate for this use case than general-purpose tools.
 
 ---
 
@@ -17,10 +17,10 @@
 | **6-DOF Rigid Body Dynamics** | `sgms_anchor_mujoco.py` | ✅ Complete | MuJoCo integration for spin-stability validation |
 | **Gyroscopic Precession** | `sgms_v1.py` (lines 99-123) | ✅ Complete | τ = μ × B torque calculation, frozen-spin approximation |
 | **Lateral Momentum Exchange** | `sgms_anchor_v1.py` | ✅ Complete | F = λu²θ force law implementation |
-| **PID Control (P-term)** | `sgms_anchor_control.py` | ⚠️ Partial | Proportional control only, I+D terms pending |
+| **PID Control (Full PID)** | `sgms_anchor_control.py` | ✅ Complete | Full PID with I+D terms, anti-windup, delay compensation |
 | **Wave Propagation** | `sgms_anchor_resilience.py` | ⚠️ Partial | Shockwave dissipation tested, no dispersion model |
-| **Flux-Pinning Stiffness** | `sgms_anchor_logistics.py` | ⚠️ Partial | Linear spring model (k_fp), no critical-state model |
-| **Thermal Balance** | `sgms_anchor_metabolism.py` | ⚠️ Partial | Eddy current heating calculated, no active cooling model |
+| **Flux-Pinning Stiffness** | `dynamics/bean_london_model.py` | ✅ Complete | Bean-London critical-state model with J_c(B,T) |
+| **Thermal Management** | `dynamics/lumped_thermal.py` | ✅ Complete | Cryocooler model, quench detection, lumped-parameter thermal model |
 | **Energy Harvesting** | `metabolic_yield.py` | ✅ Complete | CP mapping, power budget tracking |
 | **40-Node Lattice** | `lob_scaling.py` | ✅ Complete | Global network tension coupling |
 | **Sensitivity Analysis** | `sgms_anchor_sensitivity.py` | ✅ Complete | Sobol indices for all parameters |
@@ -180,7 +180,7 @@ subject to: λ_min ≤ λ(x) ≤ λ_max
    - Momentum-flux force laws (F=λu²θ)
    - Superconducting flux-pinning
    - Kinetic stream metabolism
-   - Electrodynamic power harvesting
+   - Regenerative power harvesting
 
 2. **Existing MuJoCo Integration**: The repo already has `sgms_anchor_mujoco.py` for 6-DOF validation. This is used appropriately for what MuJoCo does well (rigid-body dynamics), while custom code handles domain-specific physics.
 

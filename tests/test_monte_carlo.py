@@ -229,50 +229,11 @@ class TestSpecificGates:
         
         result_pass = gate.evaluate(1e-7)
         assert result_pass.status == GateStatus.PASS
-        
+
         result_fail = gate.evaluate(1e-4)
         assert result_fail.status == GateStatus.FAIL
-    
-    def test_edt_libration_gate_pass(self):
-        """Test EDTLibrationGate with passing libration angle."""
-        from monte_carlo.pass_fail_gates import EDTLibrationGate
-        gate = EDTLibrationGate(max_libration_angle_deg=30.0)
-        
-        result_pass = gate.evaluate(0.4)  # 0.4 rad ≈ 23° < 30°
-        assert result_pass.status == GateStatus.PASS
-        
-        result_fail = gate.evaluate(0.6)  # 0.6 rad ≈ 34° > 30°
-        assert result_fail.status == GateStatus.FAIL
-    
-    def test_edt_temperature_gate_pass(self):
-        """Test EDTTemperatureGate with passing temperature."""
-        from monte_carlo.pass_fail_gates import EDTTemperatureGate
-        gate = EDTTemperatureGate(max_temperature=450.0)
-        
-        result_pass = gate.evaluate(400.0)  # 400K < 450K
-        assert result_pass.status == GateStatus.PASS
-        
-        result_fail = gate.evaluate(500.0)  # 500K > 450K
-        assert result_fail.status == GateStatus.FAIL
-    
-    def test_edt_current_gate_pass(self):
-        """Test EDTCurrentGate with passing current."""
-        from monte_carlo.pass_fail_gates import EDTCurrentGate
-        gate = EDTCurrentGate(max_current=10.0)
-        
-        result_pass = gate.evaluate(5.0)  # 5A < 10A
-        assert result_pass.status == GateStatus.PASS
-        
-        result_fail = gate.evaluate(15.0)  # 15A > 10A
-        assert result_fail.status == GateStatus.FAIL
-    
-    def test_edt_power_gate_pass(self):
-        """Test EDTPowerGate with passing power."""
-        from monte_carlo.pass_fail_gates import EDTPowerGate
-        gate = EDTPowerGate(min_power=0.0)
-        
-        result_pass = gate.evaluate(100.0)  # 100W > 0W
-        assert result_pass.status == GateStatus.PASS
+
+    # EDT gate tests removed - EDT module archived
 
 
 class TestGateSet:
@@ -281,7 +242,7 @@ class TestGateSet:
     def test_initialization(self):
         """Test default gate set initialization."""
         gate_set = create_default_gate_set()
-        assert len(gate_set.gates) == 10  # Default gates (eta_ind, stress, k_eff, cascade_probability, temperature, latency, +4 EDT gates)
+        assert len(gate_set.gates) == 6  # Default gates (eta_ind, stress, k_eff, cascade_probability, temperature, latency)
         gate_names = [gate.name for gate in gate_set.gates]
         assert "eta_ind" in gate_names
         assert "stress" in gate_names
@@ -289,10 +250,6 @@ class TestGateSet:
         assert "cascade_probability" in gate_names
         assert "temperature_packet" in gate_names
         assert "max_latency_ms" in gate_names
-        assert "edt_libration_angle" in gate_names
-        assert "edt_temperature" in gate_names
-        assert "edt_current" in gate_names
-        assert "edt_power" in gate_names
     
     def test_evaluate_all(self):
         """Test evaluating all gates."""
@@ -305,15 +262,11 @@ class TestGateSet:
             "cascade_probability": 1e-7,
             "temperature_packet": 300.0,
             "max_latency_ms": 10.0,
-            "edt_libration_angle": 0.1,
-            "edt_temperature": 400.0,
-            "edt_current": 5.0,
-            "edt_power": 100.0,
         }
 
         results = gate_set.evaluate_all(metrics)
 
-        assert len(results) == 10
+        assert len(results) == 6
         assert all(r.status == GateStatus.PASS for r in results)
     
     def test_get_overall_status_pass(self):
@@ -351,10 +304,6 @@ class TestGateSet:
             "cascade_probability": 1e-7,
             "temperature_packet": 300.0,
             "max_latency_ms": 10.0,
-            "edt_libration_angle": 0.1,
-            "edt_temperature": 400.0,
-            "edt_current": 5.0,
-            "edt_power": 100.0,
         }
 
         summary = gate_set.evaluate_and_summarize(metrics)
@@ -365,7 +314,7 @@ class TestGateSet:
         assert "warnings" in summary
         assert "results" in summary
         assert summary["overall_status"] == "pass"
-        assert summary["passed"] == 10
+        assert summary["passed"] == 6
 
 
 class TestEvaluateMonteCarloGates:
