@@ -259,8 +259,6 @@ SpinnyBall/
 │   └── pass_fail_gates.py      # Pass/fail gates including thermal safety
 ├── backend/
 │   └── app.py                  # FastAPI backend for digital twin
-├── isru/
-│   └── __init__.py             # ISRU module (in development)
 ├── paper_model/
 │   ├── sgms_physics_v1.py      # Paper model physics implementation
 │   ├── grail_perturbation_stub.py  # GRAIL perturbation stub

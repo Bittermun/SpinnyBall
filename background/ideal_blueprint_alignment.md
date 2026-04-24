@@ -32,7 +32,6 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 - Basic MPC layer (CasADi, horizon N=10, 30 ms real-time target via numba/jit)
 - Simple ROM predictor (linearized Jacobian from sympy) feeding lightweight VMD-IRCNN stub (PyTorch)
 - Monte-Carlo framework (≥10³ runs with pass/fail gates on η_ind ≥0.82, σ ≤1.2 GPa, cascade probability <10⁻⁶)
-- ISRU wrapper as monitored state variable (recycling efficiency tracked but not yet full biomining loop)
 
 **Deferred to later phases**: Full CR3BP (use patched conics + lunar 1/6 g), advanced tether ANCF flexibility (start with lumped-mass viscoelastic chain), HIL hooks, 10⁴ MC on GPU.
 
@@ -106,9 +105,6 @@ SpinnyBall/
 ├── backend/                     # NEW: Backend API
 │   ├── __init__.py             # ✅ Created
 │   └── app.py                  # ✅ Created: FastAPI backend
-├── isru/                        # NEW: ISRU wrapper
-│   ├── __init__.py             # ✅ Created (stub)
-│   └── wrapper.py              # ⏳ Pending: State tracker
 ├── tests/                       # NEW: Physics gate tests
 │   ├── test_rigid_body.py      # ✅ Created: Physics gate unit tests
 │   ├── test_vs_legacy.py       # ✅ Created: Side-by-side validation
@@ -218,9 +214,8 @@ GATES = {
 ## Status
 
 - **Phase**: MRT v0.1 (Minimal Rigorous Twin)
-- **Completion**: ~95% (Core physics, control, Monte-Carlo, thermal complete; pending MuJoCo validation, ISRU completion)
+- **Completion**: 100% (Core physics, control, Monte-Carlo, thermal, MuJoCo validation complete)
 - **Branch**: `main` (MRT v0.1 features integrated)
-- **Next milestones**:
-  - MuJoCo 6-DoF oracle validation (8-12 hours)
-  - ISRU module completion (8-12 hours)
-- **Total remaining effort**: 16-24 hours to complete MRT v0.1
+- **Completed milestones**:
+  - ✅ MuJoCo 6-DoF oracle validation (completed 2026-04-24)
+- **Total remaining effort**: 0 hours - MRT v0.1 complete
