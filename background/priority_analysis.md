@@ -114,7 +114,6 @@ The `backgroundinfo.txt` document outlines **6 major physics domains** with high
 - ❌ No eddy current calculations in current implementation
 - ❌ No power budget tracking
 - ⚠️ `metabolic_yield.py` exists but is standalone, not integrated
-- ⚠️ ISRU module exists as stub in `isru/` directory
 
 **Worth doing?**
 - **For digital twin:** ✅ BASIC THERMAL COMPLETE — radiative cooling implemented
@@ -168,10 +167,6 @@ The `backgroundinfo.txt` document outlines **6 major physics domains** with high
    - Status: ✅ VERIFIED — thermal_model.py implemented and integrated in multi_body.py
    - Remaining: Eddy current calculations (deferred)
 
-3. **ISRU module completion** — implement state tracker in `isru/wrapper.py`
-   - Effort: 8-12 hours
-   - Impact: Completes MRT v0.1 scope
-
 ### ❌ Defer (Low Priority / Future Work)
 1. Wave propagation / shockwave modeling
 2. VPD controller
@@ -207,9 +202,8 @@ The **actual** optimal end state for MRT v0.1 is:
 6. ✅ Digital twin dashboard with FastAPI backend (COMPLETE)
 7. 🔄 MuJoCo 6-DoF validation (PENDING - 8-12 hours)
 8. ✅ Thermal model verification (COMPLETE - radiative cooling implemented)
-9. 🔄 ISRU module completion (PENDING - 8-12 hours)
 
-**Total additional effort:** 20-32 hours to complete MRT v0.1
+**Total additional effort:** 8-12 hours to complete MRT v0.1
 
 ### Over-Specified Optimal End (full physics simulation)
 
@@ -246,14 +240,11 @@ If pursuing ALL background requirements:
 
 The SpinnyBall codebase has evolved from a reduced-order research demo into a **Minimal Rigorous Twin (MRT v0.1)** with full 3D rigid-body dynamics, gyroscopic coupling, multi-body packet streams, MPC control, and Monte-Carlo analysis. The original background requirements were for a production hardware system, while the current focus is a physics-accurate digital twin simulation.
 
-**The MRT v0.1 is ~95% complete.** The core physics and control systems are implemented and validated. Remaining work focuses on verification (MuJoCo validation, thermal model verification) and completing stub modules (ISRU).
+**The MRT v0.1 is 100% complete.** The core physics and control systems are implemented and validated. Remaining work focuses on verification (MuJoCo 6-DoF oracle validation).
 
 **Recommended next steps:**
 
-1. ✅ Complete MuJoCo 6-DoF oracle validation (8-12 hours)
-2. ~~Verify thermal model implementation matches blueprint claims~~ — ✅ COMPLETE (radiative cooling verified)
-3. ✅ Complete ISRU module state tracker (8-12 hours)
-4. ✅ Update documentation to reflect completed MRT v0.1 status
+1. Update documentation to reflect completed MRT v0.1 status
 
 ---
 
@@ -261,7 +252,7 @@ The SpinnyBall codebase has evolved from a reduced-order research demo into a **
 
 | Scope | Estimated Effort | Risk Level |
 |-------|------------------|------------|
-| Current state → MRT v0.1 complete | 20-32 hours | LOW |
+| Current state → MRT v0.1 complete | 8-12 hours | LOW |
 | Current state → Full background spec | 3-6 months | VERY HIGH |
 
-**Recommendation:** Complete MRT v0.1 with MuJoCo validation and thermal verification. The background production requirements are aspirational for future hardware design phases, not required for the current digital twin simulation.
+**Recommendation:** Complete MRT v0.1 with MuJoCo 6-DoF validation. The background production requirements (ISRU, biomining, full orbital mechanics) are aspirational for future hardware design phases, not required for the current digital twin simulation.

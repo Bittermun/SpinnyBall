@@ -314,10 +314,9 @@ The discrepancies fall into three categories:
 
 1. **Thermal ODE implementation**: Paper has full radiation balance with steady-state solution
 2. **Centrifugal acceleration metric**: Paper derives 279,000 g at 50k RPM
-3. **ISRU parameters**: 118 kg bootstrap, 57 kWh/packet, 28.4 kg regolith/kg packet
-4. **Regenerative power harvesting**: Kinetic recovery during payload deceleration
-5. **Cascade probability sensitivity**: dP/d(latency) ≈ 0.001 ms⁻¹
-6. **System mass for 1 MW routing**: ~45 t for 100-station constellation
+3. **Regenerative power harvesting**: Kinetic recovery during payload deceleration
+4. **Cascade probability sensitivity**: dP/d(latency) ≈ 0.001 ms⁻¹
+5. **System mass for 1 MW routing**: ~45 t for 100-station constellation
 
 ### Missing from Paper (Code Has)
 
@@ -344,7 +343,6 @@ The discrepancies fall into three categories:
 3. **Add missing paper-derived metrics**:
    - Centrifugal acceleration calculation
    - Thermal steady-state temperature
-   - ISRU bootstrap mass and energy
 
 4. **Document configuration modes**:
    - `test_mode`: 0.05 kg, 0.02 m, 100 rad/s (fast unit tests)
