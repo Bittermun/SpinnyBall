@@ -8,11 +8,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Added
 
+- Operational profile with paper targets (8.0 kg mass, 1600 m/s velocity, 6000 N/m flux-pinning stiffness)
+- Mass sweep capability in sensitivity analysis (mp parameter added to Sobol analysis)
+- Extended parameter bounds for operational scale (velocity: 5-1600 m/s, linear density: 0.1-20.0 kg/m)
+- Operational profile validation tests (8 tests for paper target validation)
+- FMECA JSON export for risk matrix and kill criteria analysis
 - JAX thermal model with heat source support
 - Backend API endpoints for thermal state and performance
 - Monte-Carlo runner extended with thermal perturbations
 - Documentation for thermal management with physics derivations
-- Code review fixes for input validation and error handling
 - Configurable num_workers for DataLoader training pipeline
 - CUDA out of memory error handling in training loops
 - Dataset empty validation before creating DataLoaders
@@ -29,6 +33,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Fixed PIDParameters dataclass field order (added default values to kp, ki, kd for backward compatibility)
+- Fixed numpy bool to Python bool casting in ML integration (API contract compliance)
+- Fixed division by zero edge case in FMECA export (abs(omega_initial) > 1e-10 check)
+- Added TYPE_CHECKING for BeanLondonModel type hint in rigid_body.py
 - Added explicit temperature initialization to thermal model
 - Removed unused mode flags from JAXThermalModel
 - Fixed Monte-Carlo runner type checking

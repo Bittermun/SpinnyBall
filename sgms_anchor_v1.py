@@ -41,12 +41,11 @@ DEFAULT_GDBCO_PROPS = GdBCOProperties(
     alpha=0.5,
     thickness=1e-6,
     width=0.012,
-    length=1.0,  # 1 meter of tape
 )
 DEFAULT_FLUX_PINNING_GEOMETRY = {
     "thickness": DEFAULT_GDBCO_PROPS.thickness,
     "width": DEFAULT_GDBCO_PROPS.width,
-    "length": 1.0,
+    "length": 1.0,  # 1 meter of tape (geometry parameter, not material property)
 }
 
 

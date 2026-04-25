@@ -12,7 +12,7 @@ from dynamics.cryocooler_model import CryocoolerModel, CryocoolerSpecs, DEFAULT_
 from dynamics.quench_detector import QuenchDetector, QuenchThresholds
 from dynamics.lumped_thermal import LumpedThermalModel, LumpedThermalParams
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
-from dynamics.bean_london import BeanLondonModel
+from dynamics.bean_london_model import BeanLondonModel
 from sgms_anchor_v1 import simulate_anchor_with_flux_pinning
 
 

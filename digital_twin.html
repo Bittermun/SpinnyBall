@@ -385,6 +385,7 @@ input[type=range] {
           <div class="stat-card">
             <div class="stat-card-title">Cascade Prob</div>
             <div class="stat-card-value" id="statCascade">0%</div>
+            <div class="stat-card-subtitle" id="statCascadeContext">FMECA v1.2: 12% → Target &lt;1e-6</div>
           </div>
         </div>
       </div>
@@ -861,14 +862,24 @@ async function runMonteCarlo() {
     document.getElementById('statFree').textContent = results.n_failure;
     document.getElementById('statCascade').textContent = (results.cascade_probability * 100).toFixed(2) + '%';
 
-    // Color-code cascade probability
+    // Color-code cascade probability with FMECA context
     const cascadeEl = document.getElementById('statCascade');
-    if (results.cascade_probability < 1e-6) {
+    const cascadeContextEl = document.getElementById('statCascadeContext');
+    const fmeca_residual = 0.12; // 12% from FMECA v1.2
+    const target = 1e-6; // <1e-6 target
+
+    if (results.cascade_probability < target) {
       cascadeEl.className = 'stat-card-value good';
-    } else if (results.cascade_probability < 0.01) {
+      cascadeContextEl.textContent = 'Target Met: <1e-6';
+      cascadeContextEl.style.color = '#3fb950';
+    } else if (results.cascade_probability < fmeca_residual) {
       cascadeEl.className = 'stat-card-value warn';
+      cascadeContextEl.textContent = `Risk Reduction: ${(results.cascade_probability * 100).toFixed(1)}% → ${fmeca_residual * 100}% (FMECA)`;
+      cascadeContextEl.style.color = '#d29922';
     } else {
       cascadeEl.className = 'stat-card-value bad';
+      cascadeContextEl.textContent = `Exceeds FMECA: ${(results.cascade_probability * 100).toFixed(1)}% > ${fmeca_residual * 100}%`;
+      cascadeContextEl.style.color = '#f85149';
     }
 
     console.log('Monte Carlo results:', results);

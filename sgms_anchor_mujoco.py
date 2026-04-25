@@ -47,14 +47,14 @@ config = ConfigValues()
 
 @dataclass
 class PacketParams:
-    mp: float = 8.0             # Packet mass (kg) - Paper target: BFRP sleeve r≈0.1m, ρ=2500 kg/m³
-    major_axis: float = 0.1     # Semi-major axis a (m) - Matches paper derivation
-    minor_axis: float = 0.046   # Semi-minor axis b=c (m)
-    omega_spin: float = 5236.0  # rad/s (~50,000 RPM) - Matches paper
+    mp: float = 2.0             # Packet mass (kg) - Canonical RKN XML v1.1 (Phase-14 baseline)
+    major_axis: float = 0.04    # Semi-major axis a (m) - Canonical RKN XML v1.1 (L/D=1.5)
+    minor_axis: float = 0.06    # Semi-minor axis c (m) - Canonical RKN XML v1.1 (L/D=1.5)
+    omega_spin: float = 5236.0  # rad/s (~50,000 RPM) - Nominal (35,000-60,000 RPM range)
     omega_max: float = 5657.0   # rad/s (~54,000 RPM) - Derived from σ_θ = ρr²ω² ≤ 800 MPa
     u_velocity: float = None    # m/s - Set from config (debug: 10.0, operational: 1600.0)
     lam: float = 16.6667        # kg/m (s=0.12m) - Placeholder
-    k_fp: float = 6000.0        # GdBCO pinning stiffness (N/m) - Updated to meet gate threshold
+    k_fp: float = 4500.0        # GdBCO pinning stiffness (N/m) - Baseline >200 N/m, heritage 6-10× scaling
     node_mass: float = 1000.0   # Station mass (kg)
     num_packets: int = 40       # Sim pool
     # Thermal parameters from paper
@@ -103,12 +103,13 @@ class SpinPacketValidation:
         self.trajectory_history = []
 
     def _build_xml(self):
-        # Calculate inertia for prolate spheroid (for the XML to be accurate)
+        # Use canonical inertia from RKN XML v1.1
         m = self.p.mp
         a = self.p.major_axis
-        b = self.p.minor_axis
-        ix = 0.4 * m * b**2
-        iy = 0.2 * m * (a**2 + b**2)
+        c = self.p.minor_axis
+        # Canonical values from RKN XML v1.1: I_axial ≈ 0.00128 kg·m², I_trans ≈ 0.00208 kg·m²
+        ix = 0.00128  # I_axial (about major axis)
+        iy = 0.00208  # I_trans (about transverse axes)
         iz = iy
         
         xml = f"""

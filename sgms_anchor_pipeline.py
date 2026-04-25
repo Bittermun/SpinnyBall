@@ -46,6 +46,7 @@ from sgms_anchor_v1 import (
     sweep_anchor_grid,
     sweep_velocity,
 )
+from monte_carlo.pass_fail_gates import create_default_gate_set
 
 
 def load_experiment_config(path: str | Path) -> dict:
@@ -193,6 +194,130 @@ def _run_sensitivity(params: dict, sensitivity_spec: dict, experiment_dir: Path)
     return compact, files
 
 
+def export_fmeca_json(results: dict) -> dict:
+    """
+    Map experiment results to FMECA v1.2 failure modes.
+
+    FMECA (Failure Modes, Effects, and Criticality Analysis) mapping:
+    - FM-01: Spin decay → check ω_final vs ω_initial
+    - FM-06: Hitch slip → check capture efficiency η_ind
+    - FM-09: Shepherd AI latency → check MPC latency
+    - FM-12: Thermal runaway → check temperature limits
+    - FM-15: Structural failure → check stress limits
+
+    Args:
+        results: Experiment results dictionary with metrics
+
+    Returns:
+        FMECA risk matrix with failure modes, severity, probability, and risk
+    """
+    fmeca = {
+        "schema_version": "1.2",
+        "generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
+        "failure_modes": {},
+        "kill_criteria": {},
+    }
+
+    # Extract metrics from results
+    metrics = results.get("anchor", {}).get("continuum_metrics", {})
+
+    # FM-01: Spin decay (severity 8 - high)
+    # Check if spin rate decays significantly
+    omega_initial = metrics.get("omega_initial", 1.0)
+    omega_final = metrics.get("omega_final", 1.0)
+    spin_decay_ratio = omega_final / omega_initial if abs(omega_initial) > 1e-10 else 0.0
+    spin_decay_prob = max(0.0, 1.0 - spin_decay_ratio)  # Higher decay = higher probability
+
+    fmeca["failure_modes"]["FM-01"] = {
+        "mode": "Spin decay",
+        "description": "Loss of rotational kinetic energy",
+        "severity": 8,
+        "probability": float(spin_decay_prob),
+        "risk": 8 * spin_decay_prob,
+        "status": "PASS" if spin_decay_ratio > 0.9 else "FAIL" if spin_decay_ratio < 0.5 else "WARNING",
+    }
+
+    # FM-06: Hitch slip (severity 9 - critical)
+    # Check induction efficiency
+    eta_ind = metrics.get("eta_ind", 0.9)
+    hitch_slip_prob = max(0.0, 1.0 - eta_ind / 0.82)  # Below threshold = higher probability
+
+    fmeca["failure_modes"]["FM-06"] = {
+        "mode": "Hitch slip",
+        "description": "Loss of magnetic coupling during induction",
+        "severity": 9,
+        "probability": float(hitch_slip_prob),
+        "risk": 9 * hitch_slip_prob,
+        "status": "PASS" if eta_ind >= 0.82 else "FAIL",
+    }
+
+    # FM-09: Shepherd AI latency (severity 6 - medium)
+    # Check control latency from trade study
+    trade_results = results.get("trade_study", {}).get("rows", [])
+    max_latency = 0.0
+    for row in trade_results:
+        latency = row.get("max_latency_ms", 0.0)
+        max_latency = max(max_latency, latency)
+
+    latency_prob = max(0.0, (max_latency - 10.0) / 20.0)  # Above 10ms = increasing probability
+
+    fmeca["failure_modes"]["FM-09"] = {
+        "mode": "Shepherd AI latency",
+        "description": "Control loop latency exceeds real-time requirements",
+        "severity": 6,
+        "probability": float(min(1.0, latency_prob)),
+        "risk": 6 * min(1.0, latency_prob),
+        "status": "PASS" if max_latency <= 10.0 else "WARNING" if max_latency <= 30.0 else "FAIL",
+    }
+
+    # FM-12: Thermal runaway (severity 10 - catastrophic)
+    # Check temperature limits
+    temp_max = metrics.get("temperature_max", 300.0)
+    thermal_prob = max(0.0, (temp_max - 400.0) / 100.0)  # Above 400K = increasing probability
+
+    fmeca["failure_modes"]["FM-12"] = {
+        "mode": "Thermal runaway",
+        "description": "Temperature exceeds safe operating limits",
+        "severity": 10,
+        "probability": float(min(1.0, thermal_prob)),
+        "risk": 10 * min(1.0, thermal_prob),
+        "status": "PASS" if temp_max <= 400.0 else "WARNING" if temp_max <= 450.0 else "FAIL",
+    }
+
+    # FM-15: Structural failure (severity 10 - catastrophic)
+    # Check stress limits
+    stress_max = metrics.get("stress_max", 0.0)
+    stress_limit = 0.8e9  # 800 MPa with SF=1.5
+    stress_prob = max(0.0, (stress_max - stress_limit) / stress_limit)
+
+    fmeca["failure_modes"]["FM-15"] = {
+        "mode": "Structural failure",
+        "description": "Centrifugal stress exceeds material limits",
+        "severity": 10,
+        "probability": float(min(1.0, stress_prob)),
+        "risk": 10 * min(1.0, stress_prob),
+        "status": "PASS" if stress_max <= stress_limit else "FAIL",
+    }
+
+    # Kill criteria flags
+    fmeca["kill_criteria"] = {
+        "energy_dissipation_exceeded": spin_decay_ratio < 0.95,  # >5% energy loss
+        "misalignment_exceeded": metrics.get("max_displacement", 0.0) > 0.1,  # >10cm
+        "induction_failed": eta_ind < 0.82,
+        "thermal_limit_exceeded": temp_max > 450.0,
+        "stress_limit_exceeded": stress_max > stress_limit,
+        "any_kill_criteria": any([
+            spin_decay_ratio < 0.95,
+            metrics.get("max_displacement", 0.0) > 0.1,
+            eta_ind < 0.82,
+            temp_max > 450.0,
+            stress_max > stress_limit,
+        ]),
+    }
+
+    return fmeca
+
+
 def run_experiment_suite(
     config_path: str | Path,
     output_root: str | Path = "artifacts",
@@ -299,11 +424,19 @@ def run_experiment_suite(
         _json_dump(summary, summary_path)
         summaries_by_slug[slug] = summary
         profile_rows_input.append(summary)
+
+        # Export FMECA risk matrix
+        fmeca = export_fmeca_json(summary)
+        fmeca_path = experiment_dir / "fmeca_risk.json"
+        _json_dump(fmeca, fmeca_path)
+        files.append(str(fmeca_path))
+
         manifest["experiments"].append(
             {
                 "name": name,
                 "slug": slug,
                 "summary_path": str(summary_path),
+                "fmeca_path": str(fmeca_path),
                 "profile": profile_meta,
                 "claim_context": claim_context,
                 "files": files,

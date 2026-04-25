@@ -3,7 +3,7 @@ Full 3D rigid-body dynamics with explicit gyroscopic coupling.
 
 Implements the corrected Euler rotational dynamics equation:
 
-    I * ω̇ + ω × (I * ω) = τ_mag + τ_grav + τ_solar + τ_tether
+    I * ω̇ + ω × (I * ω) = τ_mag + τ_grav + τ_solar + τ_tether + τ_flux_pin
 
 where ω × (I * ω) is the skew-symmetric gyroscopic coupling term that
 produces precession and libration. Uses quaternion attitudes to avoid gimbal lock.
@@ -19,13 +19,24 @@ Reference: Goldstein, Classical Mechanics (3rd ed.), Chapter 4
 
 from __future__ import annotations
 
-from typing import Callable, Optional
+from typing import TYPE_CHECKING, Callable, Optional
 
 import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.spatial.transform import Rotation as R
 
 from .gyro_matrix import skew_symmetric
+
+if TYPE_CHECKING:
+    from .bean_london_model import BeanLondonModel
+
+# Optional flux-pinning model
+try:
+    from .bean_london_model import BeanLondonModel
+    BEAN_LONDON_AVAILABLE = True
+except ImportError:
+    BEAN_LONDON_AVAILABLE = False
+    BeanLondonModel = None
 
 
 def validate_quaternion(q: np.ndarray) -> np.ndarray:
@@ -219,6 +230,7 @@ class RigidBody:
         quaternion: np.ndarray = None,
         angular_velocity: np.ndarray = None,
         I_inv: np.ndarray = None,
+        flux_model: Optional[BeanLondonModel] = None,
     ):
         """
         Initialize rigid body.
@@ -231,6 +243,7 @@ class RigidBody:
             quaternion: Initial quaternion [qx, qy, qz, qw] (scalar-last), default [0, 0, 0, 1]
             angular_velocity: Initial angular velocity [ωx, ωy, ωz] (rad/s), default [0, 0, 0]
             I_inv: Precomputed inertia tensor inverse (optional, for performance)
+            flux_model: Optional BeanLondonModel for flux-pinning force calculation
         """
         self.mass = mass
         self._I = np.asarray(I, dtype=float)
@@ -249,20 +262,23 @@ class RigidBody:
             self._I_inv = I_inv
         else:
             self._I_inv = None
-        
+
+        # Flux-pinning model (optional)
+        self.flux_model = flux_model
+
         # Translational state
         self.position = np.zeros(3) if position is None else np.asarray(position, dtype=float)
         self.velocity = np.zeros(3) if velocity is None else np.asarray(velocity, dtype=float)
-        
+
         # Rotational state
         if quaternion is None:
             self.quaternion = np.array([0.0, 0.0, 0.0, 1.0])  # Identity rotation
         else:
             self.quaternion = np.asarray(quaternion, dtype=float)
             self.quaternion = normalize_quaternion(self.quaternion)
-        
+
         self.angular_velocity = np.zeros(3) if angular_velocity is None else np.asarray(angular_velocity, dtype=float)
-        
+
         # Combined state vector for integrator
         self.state = np.concatenate([
             self.quaternion,
@@ -407,5 +423,59 @@ class RigidBody:
             self.quaternion = normalize_quaternion(np.asarray(quaternion, dtype=float))
         if angular_velocity is not None:
             self.angular_velocity = np.asarray(angular_velocity, dtype=float)
-        
+
         self.state = np.concatenate([self.quaternion, self.angular_velocity])
+
+    def compute_flux_pinning_force(
+        self,
+        B_field: np.ndarray,
+        superconductor_temp: float,
+        displacement: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """
+        Compute 6-DoF flux-pinning force via Bean-London model.
+
+        Returns force [3] and torque [3] as concatenated array [6].
+        Force and torque are in body frame.
+
+        Args:
+            B_field: Magnetic field vector at position [Bx, By, Bz] (T)
+            superconductor_temp: Superconductor temperature (K)
+            displacement: Optional displacement vector [dx, dy, dz] (m).
+                          If None, uses current position.
+
+        Returns:
+            6-DoF force/torque vector [Fx, Fy, Fz, τx, τy, τz] in body frame
+        """
+        if self.flux_model is None:
+            return np.zeros(6)
+
+        # Use current position if displacement not provided
+        if displacement is None:
+            displacement = self.position
+
+        # Compute B-field magnitude
+        B_mag = np.linalg.norm(B_field)
+
+        # Compute pinning force for each axis using Bean-London model
+        force = np.zeros(3)
+        for i in range(3):
+            force[i] = self.flux_model.compute_pinning_force(
+                displacement[i], B_mag, superconductor_temp
+            )
+
+        # Compute torque from force (τ = r × F)
+        # For simplified model, assume force acts at center of mass
+        # Torque arises from angular displacement (libration)
+        # Use stiffness to compute restoring torque
+        torque = np.zeros(3)
+        for i in range(3):
+            # Angular displacement approximation from quaternion
+            # Small angle approximation: θ ≈ 2 * q_xyz
+            angular_disp = 2.0 * self.quaternion[i] if i < 3 else 0.0
+            stiffness = self.flux_model.get_stiffness(
+                angular_disp, B_mag, superconductor_temp
+            )
+            torque[i] = -stiffness * angular_disp
+
+        return np.concatenate([force, torque])

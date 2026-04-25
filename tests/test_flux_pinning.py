@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
-from dynamics.bean_london import BeanLondonModel
+from dynamics.bean_london_model import BeanLondonModel
 from dynamics.stiffness_verification import calculate_flux_pinning_stiffness
 
 

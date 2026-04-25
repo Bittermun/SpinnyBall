@@ -2,16 +2,34 @@
 Effective stiffness (k_eff) verification for gyroscopic mass-stream system.
 
 Implements verification against the constraint: k_eff ≥ 6,000 N/m.
+
+Includes configurable heritage scaling multipliers (4-7×) from FMECA v1.2
+for conservative bounding runs at high-speed regimes beyond heritage data.
 """
 
 from __future__ import annotations
 
 import numpy as np
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Optional
 from dataclasses import dataclass
 
 from dynamics.gdBCO_material import GdBCOMaterial
 from dynamics.bean_london_model import BeanLondonModel
+
+
+@dataclass
+class HeritageScalingConfig:
+    """Configuration for heritage scaling multipliers from FMECA v1.2."""
+    # Scaling multiplier for stiffness (4-7×)
+    stiffness_multiplier: float = 1.0  # Default: nominal (no scaling)
+    
+    # Label for documentation
+    mode: str = "nominal"  # "nominal" or "conservative (FMECA 4-7× heritage)"
+    
+    def __post_init__(self):
+        """Update mode label based on multiplier."""
+        if self.stiffness_multiplier > 1.0:
+            self.mode = f"conservative (stiffness×{self.stiffness_multiplier})"
 
 
 @dataclass
@@ -21,6 +39,8 @@ class StiffnessMetrics:
     min_k_eff: float  # Minimum required stiffness (N/m)
     within_limit: bool
     utilization: float  # fraction of minimum
+    scaling_multiplier: float = 1.0  # Heritage scaling applied
+    scaling_mode: str = "nominal"  # Documentation of scaling mode
 
 
 def calculate_effective_stiffness(
@@ -28,6 +48,7 @@ def calculate_effective_stiffness(
     velocity: float,
     g_gain: float,
     k_fp: float = 0.0,
+    scaling_config: Optional[HeritageScalingConfig] = None,
 ) -> float:
     """
     Calculate effective stiffness of the mass-stream anchor system.
@@ -40,18 +61,27 @@ def calculate_effective_stiffness(
         velocity: Stream velocity (m/s)
         g_gain: Control gain (rad/m)
         k_fp: Flux-pinning stiffness (N/m)
+        scaling_config: Heritage scaling configuration (optional)
     
     Returns:
-        Effective stiffness k_eff (N/m)
+        Effective stiffness k_eff (N/m) with heritage scaling applied if configured
     """
+    if scaling_config is None:
+        scaling_config = HeritageScalingConfig()
+    
     k_control = lambda_density * velocity**2 * g_gain
     k_eff = k_control + k_fp
+    
+    # Apply heritage scaling multiplier for stiffness
+    k_eff *= scaling_config.stiffness_multiplier
+    
     return k_eff
 
 
 def verify_stiffness_constraint(
     k_eff: float,
     min_k_eff: float = 6000.0,  # N/m
+    scaling_config: Optional[HeritageScalingConfig] = None,
 ) -> StiffnessMetrics:
     """
     Verify that effective stiffness meets minimum requirement.
@@ -59,10 +89,14 @@ def verify_stiffness_constraint(
     Args:
         k_eff: Calculated effective stiffness (N/m)
         min_k_eff: Minimum required stiffness (N/m)
+        scaling_config: Heritage scaling configuration (optional)
     
     Returns:
-        StiffnessMetrics object with verification results
+        StiffnessMetrics object with verification results and scaling info
     """
+    if scaling_config is None:
+        scaling_config = HeritageScalingConfig()
+    
     within_limit = k_eff >= min_k_eff
     utilization = k_eff / min_k_eff if min_k_eff > 0 else float('inf')
     
@@ -71,6 +105,8 @@ def verify_stiffness_constraint(
         min_k_eff=min_k_eff,
         within_limit=within_limit,
         utilization=utilization,
+        scaling_multiplier=scaling_config.stiffness_multiplier,
+        scaling_mode=scaling_config.mode,
     )
 
 
@@ -80,6 +116,7 @@ def verify_anchor_stiffness(
     g_gain: float,
     k_fp: float = 0.0,
     min_k_eff: float = 6000.0,
+    scaling_config: Optional[HeritageScalingConfig] = None,
 ) -> StiffnessMetrics:
     """
     Calculate and verify stiffness for an anchor.
@@ -90,12 +127,13 @@ def verify_anchor_stiffness(
         g_gain: Control gain (rad/m)
         k_fp: Flux-pinning stiffness (N/m)
         min_k_eff: Minimum required stiffness (N/m)
+        scaling_config: Heritage scaling configuration (optional)
     
     Returns:
-        StiffnessMetrics object
+        StiffnessMetrics object with scaling info
     """
-    k_eff = calculate_effective_stiffness(lambda_density, velocity, g_gain, k_fp)
-    return verify_stiffness_constraint(k_eff, min_k_eff)
+    k_eff = calculate_effective_stiffness(lambda_density, velocity, g_gain, k_fp, scaling_config)
+    return verify_stiffness_constraint(k_eff, min_k_eff, scaling_config)
 
 
 def get_stiffness_alert_level(metrics: StiffnessMetrics) -> str:

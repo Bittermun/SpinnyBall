@@ -43,10 +43,10 @@ class PIDMode(Enum):
 @dataclass
 class PIDParameters:
     """PID controller parameters (following MPC controller pattern)."""
+    kp: float = 1.0  # Proportional gain
+    ki: float = 0.0  # Integral gain
+    kd: float = 0.0  # Derivative gain
     mode: PIDMode = PIDMode.POSITION
-    kp: float  # Proportional gain
-    ki: float  # Integral gain
-    kd: float  # Derivative gain
     tau_filter: float = 0.1  # Derivative filter time constant (s)
     output_min: float = -np.inf  # Anti-windup lower bound
     output_max: float = np.inf  # Anti-windup upper bound

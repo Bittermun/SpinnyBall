@@ -23,13 +23,14 @@ from sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics
 
 
 DEFAULT_PROBLEM = {
-    "num_vars": 4,
-    "names": ["u", "g_gain", "eps", "lam"],
+    "num_vars": 5,
+    "names": ["u", "g_gain", "eps", "lam", "mp"],
     "bounds": [
-        [5.0, 520.0],
-        [0.02, 0.2],
-        [0.0, 1e-3],
-        [0.1, 2.0],
+        [5.0, 1600.0],    # u (m/s) - extended to operational target
+        [0.02, 0.2],      # g_gain
+        [0.0, 1e-3],      # eps
+        [0.1, 20.0],      # lam (kg/m) - extended for operational scale
+        [0.05, 8.0],      # mp (kg) - added for mass sweep
     ],
 }
 
@@ -51,8 +52,8 @@ def _copy_params(base_params: dict | None = None) -> dict:
 
 def evaluate_parameter_vector(vector: np.ndarray, base_params: dict | None = None) -> dict:
     params = _copy_params(base_params)
-    u, g_gain, eps, lam = [float(v) for v in vector]
-    params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam})
+    u, g_gain, eps, lam, mp = [float(v) for v in vector]
+    params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam, "mp": mp})
     return analytical_metrics(params)
 
 
