@@ -22,6 +22,9 @@ from .pass_fail_gates import (
     StressGate,
     StiffnessGate,
     CascadeProbabilityGate,
+    StreamBalanceGate,
+    TemperatureGate,
+    LatencyGate,
     create_default_gate_set,
     evaluate_monte_carlo_gates,
 )
@@ -41,6 +44,9 @@ __all__ = [
     "StressGate",
     "StiffnessGate",
     "CascadeProbabilityGate",
+    "StreamBalanceGate",
+    "TemperatureGate",
+    "LatencyGate",
     "create_default_gate_set",
     "evaluate_monte_carlo_gates",
 ]

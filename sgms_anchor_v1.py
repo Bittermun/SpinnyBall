@@ -31,6 +31,14 @@ from scipy.integrate import solve_ivp
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
 
+try:
+    from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
+    STREAM_BALANCE_AVAILABLE = True
+except ImportError:
+    STREAM_BALANCE_AVAILABLE = False
+    StreamBalanceController = None
+    StreamBalanceConfig = None
+
 
 # Default Bean-London model configuration (for backward compatibility)
 DEFAULT_GDBCO_PROPS = GdBCOProperties(
@@ -63,12 +71,18 @@ DEFAULT_PARAMS = {
     "packet_sigma_s": 0.01,
     "packet_phase_s": 0.0,
     "k_fp": 0.0,
+    "k_drag": 0.01,  # Eddy-current drag coefficient (N·s/m)
     "x0": 0.1,
     "v0": 0.0,
     "t_max": 400.0,
     "rtol": 1e-8,
     "atol": 1e-10,
     "max_step": 0.25,
+    "use_dynamic_epsilon": False,  # Enable dynamic stream balance control
+    "epsilon_target": 1e-4,  # Target ε < 10⁻⁴
+    "cryocooler_power": 5.0,  # Cryocooler cooling power (W)
+    "temperature": 77.0,  # Operating temperature (K)
+    "B_field": 1.0,  # Magnetic field (T)
 }
 
 
@@ -279,6 +293,13 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     else:
         t_eval = np.asarray(t_eval, dtype=float)
 
+    # Initialize stream balance controller if enabled
+    balance_controller = None
+    dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
+    if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
+        config = StreamBalanceConfig(target_epsilon=params.get("epsilon_target", 1e-4))
+        balance_controller = StreamBalanceController(config)
+
     dt_noise = params["disturbance_hold_s"]
     noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
     noise_t = np.linspace(0.0, dt_noise * (noise_steps - 1), noise_steps)
@@ -289,7 +310,23 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
 
     def rhs(t: float, y: np.ndarray) -> list[float]:
         x, vx = y
-        force = net_anchor_force(x, vx, t, params, disturbance_theta=noise_at(t))
+        
+        # Update dynamic epsilon if controller is active
+        nonlocal dynamic_epsilon
+        if balance_controller is not None:
+            # Simulate flow measurements with small perturbation to test controller
+            # In real implementation, this would come from actual packet flow sensors
+            flow_perturbation = 0.01 * np.sin(2 * np.pi * 0.1 * t)  # 0.1 Hz oscillation
+            flow_plus = params["lam"] * params["u"] * (1.0 + flow_perturbation)
+            flow_minus = params["lam"] * params["u"] * (1.0 - flow_perturbation)
+            epsilon_measured = balance_controller.measure_imbalance(flow_plus, flow_minus)
+            dt = 0.01  # Fixed control update rate
+            dynamic_epsilon, _ = balance_controller.update(dt)
+        
+        # Use dynamic epsilon in force calculation
+        sim_params = params.copy()
+        sim_params["eps"] = dynamic_epsilon
+        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t))
         return [vx, force / params["ms"]]
 
     sol = solve_ivp(
@@ -308,11 +345,16 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     f_minus = np.empty_like(sol.t)
     f_damp = np.empty_like(sol.t)
     disturbance = np.empty_like(sol.t)
+    epsilon_history = np.empty_like(sol.t)
+    
     for i, t in enumerate(sol.t):
         disturbance[i] = noise_at(float(t))
-        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], params)
+        sim_params = params.copy()
+        sim_params["eps"] = dynamic_epsilon
+        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
         force[i] = fp + fm + fpin + fd
+        epsilon_history[i] = dynamic_epsilon
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -321,10 +363,12 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             "vx_final_m_s": float(sol.y[1][-1]),
             "x_peak_m": float(np.max(np.abs(sol.y[0]))),
             "force_peak_n": float(np.max(np.abs(force))),
+            "epsilon_mean": float(np.mean(epsilon_history)),
+            "epsilon_max": float(np.max(epsilon_history)),
         }
     )
 
-    return {
+    result = {
         "t": sol.t,
         "x": sol.y[0],
         "vx": sol.y[1],
@@ -333,9 +377,15 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         "f_minus": f_minus,
         "f_damp": f_damp,
         "disturbance_theta": disturbance,
+        "epsilon_history": epsilon_history,
         "metrics": metrics,
         "params": params,
     }
+    
+    if balance_controller is not None:
+        result["balance_diagnostics"] = balance_controller.get_diagnostics()
+    
+    return result
 
 
 def simulate_discrete_anchor(params: dict | None = None, t_eval: np.ndarray | None = None, seed: int = 0) -> dict:

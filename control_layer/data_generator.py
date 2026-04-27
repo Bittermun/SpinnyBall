@@ -24,11 +24,101 @@ from control_layer.failure_modes import (
 from control_layer.training_data_generator import TrainingDataGenerator, GeneratorConfig
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.rigid_body import RigidBody
+from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
 
 logger = logging.getLogger(__name__)
 
 # Constants for data generation
 FAILURE_DURATION_TIMESTEPS = 50  # Number of timesteps to label as failure after event
+
+
+def generate_packet_loss_perturbation(
+    n_packets: int,
+    loss_rate: float = 0.01,
+    random_seed: int = None,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate packet loss perturbation for counter-streams.
+    
+    Args:
+        n_packets: Number of packets in stream
+        loss_rate: Packet loss probability (0-1)
+        random_seed: Random seed for reproducibility
+    
+    Returns:
+        Tuple of (loss_plus, loss_minus) - binary arrays indicating lost packets
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    
+    # Independent loss for each stream
+    loss_plus = np.random.random(n_packets) < loss_rate
+    loss_minus = np.random.random(n_packets) < loss_rate
+    
+    return loss_plus.astype(int), loss_minus.astype(int)
+
+
+def generate_timing_jitter_perturbation(
+    n_packets: int,
+    jitter_std: float = 1e-6,
+    packet_period: float = 0.01,
+    random_seed: int = None,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate timing jitter perturbation for counter-streams.
+    
+    Args:
+        n_packets: Number of packets in stream
+        jitter_std: RMS timing jitter (s)
+        packet_period: Nominal packet period (s)
+        random_seed: Random seed for reproducibility
+    
+    Returns:
+        Tuple of (jitter_plus, jitter_minus) - timing jitter arrays (s)
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    
+    # Gaussian jitter for each stream
+    jitter_plus = np.random.normal(0, jitter_std, n_packets)
+    jitter_minus = np.random.normal(0, jitter_std, n_packets)
+    
+    return jitter_plus, jitter_minus
+
+
+def generate_mass_drift_perturbation(
+    n_packets: int,
+    drift_rate: float = 0.001,
+    nominal_mass: float = 0.05,
+    random_seed: int = None,
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Generate mass drift perturbation for counter-streams.
+    
+    Args:
+        n_packets: Number of packets in stream
+        drift_rate: Mass drift rate (fraction per packet)
+        nominal_mass: Nominal packet mass (kg)
+        random_seed: Random seed for reproducibility
+    
+    Returns:
+        Tuple of (mass_plus, mass_minus) - mass arrays (kg)
+    """
+    if random_seed is not None:
+        np.random.seed(random_seed)
+    
+    # Random walk mass drift
+    drift_plus = np.cumsum(np.random.normal(0, drift_rate * nominal_mass, n_packets))
+    drift_minus = np.cumsum(np.random.normal(0, drift_rate * nominal_mass, n_packets))
+    
+    mass_plus = nominal_mass + drift_plus
+    mass_minus = nominal_mass + drift_minus
+    
+    # Ensure positive mass
+    mass_plus = np.maximum(mass_plus, 0.1 * nominal_mass)
+    mass_minus = np.maximum(mass_minus, 0.1 * nominal_mass)
+    
+    return mass_plus, mass_minus
 
 
 @dataclass

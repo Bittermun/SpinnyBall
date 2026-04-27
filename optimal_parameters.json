@@ -18,7 +18,22 @@
     "t_max": 240.0,
     "rtol": 1e-08,
     "atol": 1e-10,
-    "max_step": 0.25
+    "max_step": 0.25,
+    "use_dynamic_epsilon": false,
+    "epsilon_target": 1e-4
+  },
+  "stream_balance_control": {
+    "target_epsilon": 1e-4,
+    "max_epsilon": 1e-2,
+    "min_epsilon": 0.0,
+    "control_mode": "pi",
+    "kp": 1000.0,
+    "ki": 100.0,
+    "kd": 10.0,
+    "integral_limit": 1e-3,
+    "measurement_window": 100,
+    "packet_loss_threshold": 0.01,
+    "timing_jitter_threshold": 1e-6
   },
   "sensitivity": {
     "u": 0.44703619172221665,

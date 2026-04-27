@@ -258,6 +258,29 @@ class LatencyGate(PassFailGate):
         )
 
 
+class StreamBalanceGate(PassFailGate):
+    """
+    Gate for stream balance (ε tolerance).
+
+    Requirement: ε < 10⁻⁴ (0.01% mismatch between counter-streams)
+    """
+
+    def __init__(
+        self,
+        max_epsilon: float = 1e-4,
+        warning_threshold: Optional[float] = None,
+    ):
+        if warning_threshold is None:
+            warning_threshold = max_epsilon * 0.8  # 80% of limit
+
+        super().__init__(
+            name="epsilon",
+            threshold=max_epsilon,
+            comparison="<=",
+            warning_threshold=warning_threshold,
+        )
+
+
 # EDT gates archived - see archived_edt/ directory
 
 
@@ -284,6 +307,7 @@ class GateSet:
                 CascadeProbabilityGate(),
                 TemperatureGate(gate_type="packet"),
                 LatencyGate(),
+                StreamBalanceGate(),
             ]
         else:
             self.gates = gates
