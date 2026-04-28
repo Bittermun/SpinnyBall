@@ -1,0 +1,49 @@
+{
+  "environment_profiles": {
+    "liquid_nitrogen": {
+      "name": "Liquid Nitrogen (LN2)",
+      "temperature": 77.0,
+      "B_field": 1.0,
+      "radiation_flux": 0.0,
+      "gravity": 9.81,
+      "description": "Standard liquid nitrogen cryogenic environment (77K, 1T)"
+    },
+    "liquid_helium": {
+      "name": "Liquid Helium (LHe)",
+      "temperature": 4.2,
+      "B_field": 1.0,
+      "radiation_flux": 0.0,
+      "gravity": 9.81,
+      "description": "Liquid helium cryogenic environment (4.2K, 1T)"
+    },
+    "space_orbit": {
+      "name": "Low Earth Orbit",
+      "temperature": 300.0,
+      "B_field": 0.00005,
+      "radiation_flux": 1361.0,
+      "gravity": 8.87,
+      "description": "Low Earth orbit environment (300K, 50μT, solar flux)"
+    },
+    "lunar_surface": {
+      "name": "Lunar Surface",
+      "temperature": 250.0,
+      "B_field": 0.00001,
+      "radiation_flux": 1361.0,
+      "gravity": 1.62,
+      "description": "Lunar surface environment (250K, 10μT, solar flux, 1/6g)"
+    },
+    "ground_test": {
+      "name": "Ground Test Facility",
+      "temperature": 293.0,
+      "B_field": 0.00005,
+      "radiation_flux": 0.0,
+      "gravity": 9.81,
+      "description": "Standard ground test facility (20°C, Earth field)"
+    }
+  },
+  "calibration_metadata": {
+    "units": "SI (K, T, W/m², m/s²)",
+    "timestamp": "2026-04-27",
+    "status": "Ready"
+  }
+}

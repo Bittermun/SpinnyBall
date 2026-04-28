@@ -1,0 +1,262 @@
+"""
+T3 Sweep: Fault rate [10^-6 to 10^-3] / hr with cascade threshold analysis.
+
+Sweep parameters:
+- fault_rate ∈ [10^-6, 10^-3] / hr
+- cascade_threshold = 1.05
+- Target: Containment in ≤2 nodes, 95% of runs
+- Question: Does the system contain failures or amplify them?
+"""
+
+import numpy as np
+import matplotlib.pyplot as plt
+from typing import Dict, List, Tuple
+import logging
+
+from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig, Perturbation, PerturbationType
+from dynamics.multi_body import MultiBodyStream, Packet, SNode
+from dynamics.rigid_body import RigidBody
+
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+
+def create_stream_factory_with_nodes(n_nodes: int = 10):
+    """Create a stream factory with specified number of nodes."""
+    def factory():
+        mass = 0.05
+        I = np.diag([0.0001, 0.00011, 0.00009])
+        packets = [Packet(id=0, body=RigidBody(mass, I), eta_ind=0.9)]
+
+        # Create nodes with stiffness
+        nodes = []
+        for i in range(n_nodes):
+            node = SNode(
+                id=i,
+                position=np.array([i * 10.0, 0.0, 0.0]),  # Spaced 10m apart
+                max_packets=10,
+                eta_ind_min=0.82,
+                k_fp=4500.0,  # Flux-pinning stiffness
+            )
+            nodes.append(node)
+
+        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=100.0)
+        return stream
+    return factory
+
+
+def run_t3_sweep(
+    fault_rate_range: Tuple[float, float] = (1e-6, 1e-3),
+    n_fault_rate_points: int = 8,
+    cascade_threshold: float = 1.05,
+    containment_threshold: int = 2,
+    n_nodes: int = 10,
+    n_realizations_per_point: int = 100,
+    time_horizon: float = 10.0,
+) -> Dict:
+    """
+    Run T3 sweep: fault rate vs cascade/containment metrics.
+
+    Args:
+        fault_rate_range: (min_per_hr, max_per_hr)
+        n_fault_rate_points: Number of fault rate points (log scale)
+        cascade_threshold: Stiffness reduction factor for cascade
+        containment_threshold: Max nodes allowed for containment success
+        n_nodes: Number of nodes in the lattice
+        n_realizations_per_point: Monte-Carlo runs per fault rate
+        time_horizon: Simulation time horizon (s)
+
+    Returns:
+        Dictionary with sweep results
+    """
+    fault_rates = np.logspace(np.log10(fault_rate_range[0]), np.log10(fault_rate_range[1]), n_fault_rate_points)
+
+    # Results storage
+    cascade_probability = []
+    nodes_affected_mean = []
+    nodes_affected_std = []
+    containment_rate = []
+    success_rate = []
+
+    logger.info(f"Starting T3 sweep: {n_fault_rate_points} fault rate points, {n_realizations_per_point} runs each")
+    logger.info(f"Total Monte-Carlo runs: {n_fault_rate_points * n_realizations_per_point}")
+
+    for fault_rate in fault_rates:
+        logger.info(f"Fault rate: {fault_rate:.2e} /hr")
+
+        # Configure Monte-Carlo
+        config = MonteCarloConfig(
+            n_realizations=n_realizations_per_point,
+            time_horizon=time_horizon,
+            dt=0.01,
+            fault_rate=fault_rate,
+            cascade_threshold=cascade_threshold,
+            containment_threshold=containment_threshold,
+            pass_fail_gates={
+                "eta_ind": (0.82, ">="),
+                "stress": (1.2e9, "<="),
+                "k_eff": (6000.0, ">="),
+            },
+        )
+
+        # Run Monte-Carlo with individual result tracking
+        runner = CascadeRunner(config)
+        stream_factory = create_stream_factory_with_nodes(n_nodes=n_nodes)
+
+        # Run individual realizations to track nodes_affected
+        individual_results = []
+        for i in range(n_realizations_per_point):
+            stream = stream_factory()
+            result = runner.run_realization(stream, i)
+            individual_results.append(result)
+
+        # Calculate aggregated statistics
+        success_count = sum(1 for r in individual_results if r.success)
+        cascade_count = sum(1 for r in individual_results if r.cascade_occurred)
+
+        cascade_probability.append(cascade_count / n_realizations_per_point)
+        success_rate.append(success_count / n_realizations_per_point)
+
+        # Calculate nodes affected statistics
+        nodes_affected_list = [r.nodes_affected for r in individual_results]
+        nodes_affected_mean.append(np.mean(nodes_affected_list))
+        nodes_affected_std.append(np.std(nodes_affected_list))
+
+        # Calculate containment rate
+        containment_count = sum(1 for r in individual_results if r.containment_successful)
+        containment_rate.append(containment_count / n_realizations_per_point)
+
+    return {
+        'fault_rates': fault_rates,
+        'cascade_probability': np.array(cascade_probability),
+        'nodes_affected_mean': np.array(nodes_affected_mean),
+        'nodes_affected_std': np.array(nodes_affected_std),
+        'containment_rate': np.array(containment_rate),
+        'success_rate': np.array(success_rate),
+        'cascade_threshold': cascade_threshold,
+        'containment_threshold': containment_threshold,
+        'n_nodes': n_nodes,
+    }
+
+
+def plot_t3_results(results: Dict, output_file: str = 'sweep_t3_fault_cascade.png'):
+    """Plot T3 sweep results."""
+    fault_rates = results['fault_rates']
+    cascade_probability = results['cascade_probability']
+    containment_rate = results['containment_rate']
+    success_rate = results['success_rate']
+
+    fig, axes = plt.subplots(2, 1, figsize=(10, 10))
+
+    # Plot 1: Cascade probability vs fault rate (log-log)
+    axes[0].loglog(fault_rates, cascade_probability, 'ro-', markersize=6, linewidth=2, label='Cascade Probability')
+    axes[0].axhline(1e-6, color='green', linestyle='--', linewidth=2, label='Target (<10⁻⁶)')
+    axes[0].axhline(1e-4, color='orange', linestyle=':', linewidth=1, label='FMECA residual (10⁻⁴)')
+    axes[0].set_xlabel('Fault Rate (per hour)')
+    axes[0].set_ylabel('Cascade Probability')
+    axes[0].set_title('Cascade Probability vs Fault Rate')
+    axes[0].legend()
+    axes[0].grid(True, alpha=0.3)
+
+    # Plot 2: Containment rate and success rate vs fault rate
+    ax2 = axes[1]
+    ax2.semilogx(fault_rates, containment_rate * 100, 'bo-', markersize=6, linewidth=2, label='Containment Rate (%)')
+    ax2.semilogx(fault_rates, success_rate * 100, 'gs-', markersize=6, linewidth=2, label='Success Rate (%)')
+    ax2.axhline(95, color='red', linestyle='--', linewidth=2, label='Target (95%)')
+    ax2.set_xlabel('Fault Rate (per hour)')
+    ax2.set_ylabel('Rate (%)')
+    ax2.set_title('Containment & Success Rate vs Fault Rate')
+    ax2.legend()
+    ax2.grid(True, alpha=0.3)
+    ax2.set_ylim([0, 105])
+
+    plt.tight_layout()
+    plt.savefig(output_file, dpi=150)
+    plt.close()
+    logger.info(f"Saved T3 sweep plot: {output_file}")
+
+
+def analyze_containment_threshold(results: Dict) -> Dict:
+    """Analyze containment threshold from sweep results."""
+    fault_rates = results['fault_rates']
+    cascade_probability = results['cascade_probability']
+    containment_rate = results['containment_rate']
+
+    # Find fault rate where cascade probability exceeds 1e-6
+    cascade_threshold_idx = np.where(cascade_probability > 1e-6)[0]
+    if len(cascade_threshold_idx) > 0:
+        cascade_threshold_fault_rate = fault_rates[cascade_threshold_idx[0]]
+    else:
+        cascade_threshold_fault_rate = fault_rates[-1]  # Max fault rate tested
+
+    # Find fault rate where containment rate drops below 95%
+    containment_threshold_idx = np.where(containment_rate < 0.95)[0]
+    if len(containment_threshold_idx) > 0:
+        containment_threshold_fault_rate = fault_rates[containment_threshold_idx[0]]
+    else:
+        containment_threshold_fault_rate = fault_rates[-1]
+
+    # Determine overall system behavior
+    if np.mean(cascade_probability) < 1e-6:
+        system_behavior = "contains_failures"
+    elif np.mean(cascade_probability) > 1e-4:
+        system_behavior = "amplifies_failures"
+    else:
+        system_behavior = "mixed"
+
+    return {
+        'cascade_threshold_fault_rate': cascade_threshold_fault_rate,
+        'containment_threshold_fault_rate': containment_threshold_fault_rate,
+        'system_behavior': system_behavior,
+        'mean_cascade_probability': np.mean(cascade_probability),
+        'mean_containment_rate': np.mean(containment_rate),
+    }
+
+
+if __name__ == "__main__":
+    # Run sweep
+    results = run_t3_sweep(
+        fault_rate_range=(1e-6, 1e-3),
+        n_fault_rate_points=8,
+        cascade_threshold=1.05,
+        containment_threshold=2,
+        n_nodes=10,
+        n_realizations_per_point=50,  # Reduced for speed
+        time_horizon=10.0,
+    )
+
+    # Plot results
+    plot_t3_results(results)
+
+    # Analyze containment threshold
+    analysis = analyze_containment_threshold(results)
+
+    # Print summary
+    print("\n=== T3 SWEEP SUMMARY ===")
+    print(f"System behavior: {analysis['system_behavior']}")
+    print(f"Mean cascade probability: {analysis['mean_cascade_probability']:.2e}")
+    print(f"Mean containment rate: {analysis['mean_containment_rate']*100:.1f}%")
+    print(f"\nFault rate where cascade probability > 10⁻⁶: {analysis['cascade_threshold_fault_rate']:.2e} /hr")
+    print(f"Fault rate where containment rate < 95%: {analysis['containment_threshold_fault_rate']:.2e} /hr")
+
+    print("\nDetailed results:")
+    for fr, cp, cr, sr in zip(
+        results['fault_rates'],
+        results['cascade_probability'],
+        results['containment_rate'],
+        results['success_rate']
+    ):
+        print(f"  fault_rate={fr:.2e}: cascade={cp:.2e}, containment={cr*100:.1f}%, success={sr*100:.1f}%")
+
+    print("\nConclusion:")
+    if analysis['system_behavior'] == "contains_failures":
+        print("✓ System contains failures - cascade probability remains low")
+    elif analysis['system_behavior'] == "amplifies_failures":
+        print("✗ System amplifies failures - cascade probability high")
+    else:
+        print("⚠ System shows mixed behavior - depends on fault rate")
+
+    if analysis['mean_containment_rate'] >= 0.95:
+        print("✓ Containment in ≤2 nodes achieved in ≥95% of runs")
+    else:
+        print("✗ Containment in ≤2 nodes not achieved consistently")

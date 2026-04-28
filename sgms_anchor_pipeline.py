@@ -329,6 +329,9 @@ def run_experiment_suite(
     default_params = _merge_params(DEFAULT_PARAMS, defaults.get("params"))
     profiles_path = defaults.get("profiles_path")
     profile_data = load_anchor_profiles(profiles_path) if profiles_path else {"profiles": []}
+    material_catalog_path = defaults.get("material_catalog_path", "paper_model/gdbco_apc_catalog.json")
+    geometry_catalog_path = defaults.get("geometry_catalog_path", "geometry_profiles.json")
+    environment_catalog_path = defaults.get("environment_catalog_path", "environment_profiles.json")
     calibration_path = defaults.get("calibration_path")
     calibration_data = load_anchor_calibration(calibration_path) if calibration_path else {"defaults": {}, "profiles": {}}
     claims_path = defaults.get("claims_path")
@@ -339,6 +342,8 @@ def run_experiment_suite(
     run_dir = output_root / run_label
     run_dir.mkdir(parents=True, exist_ok=True)
 
+    skipped_experiments = []
+    
     manifest = {
         "run_label": run_label,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -360,14 +365,32 @@ def run_experiment_suite(
         experiment_dir.mkdir(parents=True, exist_ok=True)
 
         if experiment.get("profile"):
-            resolved = resolve_profile_params(
-                profile_data,
-                experiment["profile"],
-                overrides=experiment.get("params"),
-                base_params=default_params,
-            )
-            params = resolved["params"]
-            profile_meta = resolved["profile"]
+            try:
+                resolved = resolve_profile_params(
+                    profile_data,
+                    experiment["profile"],
+                    overrides=experiment.get("params"),
+                    base_params=default_params,
+                    material_catalog_path=material_catalog_path,
+                    geometry_catalog_path=geometry_catalog_path,
+                    environment_catalog_path=environment_catalog_path,
+                )
+                params = resolved["params"]
+                profile_meta = resolved["profile"]
+                # Pass material_profile to params for physics modules
+                if profile_meta.get("material_profile"):
+                    params["material_profile"] = profile_meta["material_profile"]
+                # Pass geometry_profile to params for physics modules
+                if profile_meta.get("geometry_profile"):
+                    params["geometry_profile"] = profile_meta["geometry_profile"]
+                # Pass environment_profile to params for physics modules
+                if profile_meta.get("environment_profile"):
+                    params["environment_profile"] = profile_meta["environment_profile"]
+            except (KeyError, ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as e:
+                print(f"ERROR: Failed to resolve profile '{experiment['profile']}': {e}")
+                print(f"Skipping experiment: {name}")
+                skipped_experiments.append({"name": name, "profile": experiment["profile"], "error": str(e)})
+                continue
         else:
             params = _merge_params(default_params, experiment.get("params"))
             profile_meta = {
@@ -462,6 +485,13 @@ def run_experiment_suite(
     write_dashboard_html(dashboard_payload, dashboard_path)
     manifest["dashboard_data_path"] = str(dashboard_data_path)
     manifest["dashboard_path"] = str(dashboard_path)
+    
+    if skipped_experiments:
+        manifest["skipped_experiments"] = skipped_experiments
+        print(f"\nWARNING: {len(skipped_experiments)} experiment(s) skipped due to errors")
+        for skipped in skipped_experiments:
+            print(f"  - {skipped['name']}: {skipped['error']}")
+    
     _json_dump(manifest, run_dir / "manifest.json")
     return manifest
 
@@ -473,4 +503,5 @@ def main() -> None:
 
 
 if __name__ == "__main__":
+    main()
     main()

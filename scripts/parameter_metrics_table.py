@@ -14,6 +14,7 @@ Output:
 """
 
 import sys
+import json
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -22,7 +23,6 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
 from sgms_anchor_v1 import analytical_metrics
 import numpy as np
-import json
 
 print("=" * 80)
 print("COMPREHENSIVE PARAMETER METRICS TABLE")
@@ -42,8 +42,28 @@ test_configs = [
 ]
 
 # Base parameters (use operational as base)
-data = load_anchor_profiles("anchor_profiles.json")
-base_params = resolve_profile_params(data, "operational")["params"]
+try:
+    if not Path("anchor_profiles.json").exists():
+        print(f"ERROR: anchor_profiles.json not found")
+        sys.exit(1)
+    data = load_anchor_profiles("anchor_profiles.json")
+    resolved = resolve_profile_params(data, "operational")
+    base_params = resolved["params"]
+    profile_meta = resolved["profile"]
+except (KeyError, ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as e:
+    print(f"ERROR: Failed to resolve operational profile: {e}")
+    sys.exit(1)
+
+# Display profile information
+print(f"\nBase Profile: {profile_meta.get('name', 'unknown')}")
+print(f"  Category: {profile_meta.get('category', 'unspecified')}")
+if profile_meta.get("material_profile"):
+    print(f"  Material: {profile_meta['material_profile'].get('name', 'unknown')}")
+if profile_meta.get("geometry_profile"):
+    print(f"  Geometry: {profile_meta['geometry_profile'].get('name', 'unknown')}")
+if profile_meta.get("environment_profile"):
+    print(f"  Environment: {profile_meta['environment_profile'].get('name', 'unknown')}")
+print()
 
 # Table header
 print(f"\n{'Config':<25} {'u (m/s)':>10} {'mp (kg)':>10} {'k_eff (N/m)':>15} {'Force (N)':>15} {'Period (s)':>12}")

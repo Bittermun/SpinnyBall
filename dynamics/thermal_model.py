@@ -31,12 +31,14 @@ def update_temperature_euler(
     dt: float,
     ambient_temp: float = 4.0,  # K - deep space temperature
     stefan_boltzmann: float = 5.67e-8,  # W/m²/K⁴
+    solar_flux: float = 0.0,  # W/m² - solar heating flux
+    eddy_heating_power: float = 0.0,  # W - eddy-current heating from drag
 ) -> float:
     """
     Update packet temperature using Euler integration with radiative cooling.
     
     Models radiative heat transfer: P = εσA(T⁴ - T_ambient⁴)
-    Temperature change: dT/dt = -P/(mc)
+    Temperature change: dT/dt = (P_solar - P_rad)/(mc)
     
     Args:
         temperature: Current temperature (K)
@@ -47,6 +49,8 @@ def update_temperature_euler(
         dt: Time step (s)
         ambient_temp: Ambient temperature (K), default 4K for deep space
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K⁴)
+        solar_flux: Solar heating flux (W/m²), default 0
+        eddy_heating_power: Eddy-current heating power from drag (W), default 0
     
     Returns:
         Updated temperature (K)
@@ -54,11 +58,24 @@ def update_temperature_euler(
     # Surface area (assuming spherical packet)
     surface_area = 4 * np.pi * radius**2
     
+    # Validate eddy_heating_power
+    if eddy_heating_power < 0:
+        raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
+    
     # Radiative cooling power (W)
     power_out = emissivity * stefan_boltzmann * surface_area * (temperature**4 - ambient_temp**4)
     
-    # Temperature change (cooling)
-    temp_change = -power_out * dt / (mass * specific_heat)
+    # Solar heating power (W)
+    power_in = solar_flux * surface_area
+    
+    # Add eddy-current heating
+    power_in += eddy_heating_power
+    
+    # Net power (heating - cooling)
+    power_net = power_in - power_out
+    
+    # Temperature change
+    temp_change = power_net * dt / (mass * specific_heat)
     
     # Update temperature
     new_temp = temperature + temp_change
@@ -90,6 +107,30 @@ def check_thermal_limits(
         return False, f"below min_temp ({limits.min_temp} K)"
     else:
         return True, None
+
+
+def eddy_heating_power(
+    velocity: float,
+    k_drag: float,
+    radius: float,
+) -> float:
+    """
+    Compute eddy-current heating power from velocity-dependent drag.
+    
+    Eddy-current drag force: F_drag = k_drag * v
+    Heating power: P_eddy = F_drag * v = k_drag * v^2
+    
+    Args:
+        velocity: Packet velocity (m/s)
+        k_drag: Drag coefficient (N·s/m)
+        radius: Packet radius (m) - for skin depth correction
+    
+    Returns:
+        Eddy-current heating power (W)
+    """
+    # Quadratic drag: P = k_drag * v^2
+    power = k_drag * velocity**2
+    return power
 
 
 def steady_state_temperature(

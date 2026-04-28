@@ -192,7 +192,7 @@ class TrainingDataGenerator:
             body = RigidBody(self.config.packet_mass, I, position=position, velocity=velocity)
             packets.append(Packet(id=i, body=body))
 
-        nodes = [SNode(np.array([i * 20.0, 0.0, 0.0])) for i in range(3)]
+        nodes = [SNode(id=i, position=np.array([i * 20.0, 0.0, 0.0])) for i in range(3)]
 
         return MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=self.config.stream_velocity)
 

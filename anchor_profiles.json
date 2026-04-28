@@ -3,6 +3,9 @@
     {
       "name": "paper-baseline",
       "category": "paper",
+      "material_profile": "baseline_gdbco",
+      "geometry_profile": "test_sphere_medium",
+      "environment_profile": "liquid_nitrogen",
       "params": {
         "u": 10.0,
         "lam": 0.5,
@@ -13,22 +16,34 @@
         "theta_bias": 0.087,
         "t_max": 240.0,
         "x0": 0.1,
-        "v0": 0.0
+        "v0": 0.0,
+        "k_drag": 0.01,
+        "cryocooler_power": 5.0,
+        "temperature": 77.0,
+        "B_field": 1.0
       },
       "provenance": {
         "u": "master memo baseline",
         "lam": "reduced-order anchor assumption",
         "g_gain": "paper control assumption",
-        "ms": "suspended node baseline"
+        "ms": "suspended node baseline",
+        "k_drag": "eddy-current drag coefficient",
+        "cryocooler_power": "Thales LPT9310 baseline",
+        "temperature": "GdBCO operating temperature",
+        "B_field": "nominal magnetic field"
       },
       "notes": [
         "Use for paper-facing reduced-order figures and tables.",
-        "Prioritizes traceable assumptions over aggressive performance."
+        "Prioritizes traceable assumptions over aggressive performance.",
+        "Updated with thermal closure and eddy-current drag parameters."
       ]
     },
     {
       "name": "operational",
       "category": "operational",
+      "material_profile": "apc_doped_bzo",
+      "geometry_profile": "paper_operational",
+      "environment_profile": "liquid_nitrogen",
       "params": {
         "u": 1600.0,
         "lam": 16.6667,
@@ -41,7 +56,11 @@
         "k_fp": 6000.0,
         "t_max": 240.0,
         "x0": 0.1,
-        "v0": 0.0
+        "v0": 0.0,
+        "k_drag": 0.01,
+        "cryocooler_power": 8.0,
+        "temperature": 77.0,
+        "B_field": 1.0
       },
       "provenance": {
         "u": "paper operational target (1600 m/s)",
@@ -49,18 +68,25 @@
         "mp": "paper operational target (8.0 kg BFRP sleeve)",
         "g_gain": "tuned for k_eff ≈ 6000 N/m at u=1600 m/s",
         "k_fp": "paper claim minimum (6000 N/m effective stiffness)",
-        "c_damp": "baseline damping"
+        "c_damp": "baseline damping",
+        "k_drag": "eddy-current drag coefficient",
+        "cryocooler_power": "higher cooling for operational scale",
+        "temperature": "GdBCO operating temperature",
+        "B_field": "nominal magnetic field"
       },
       "notes": [
         "Operational-scale profile matching paper targets.",
         "Mass: 8.0 kg, Velocity: 1600 m/s, Stiffness: 6000 N/m.",
         "g_gain tuned to 0.00014 for k_eff ≈ 6000 N/m (k_eff = λ*u²*g_gain + k_fp).",
-        "Use for optimum testing and paper validation."
+        "Use for optimum testing and paper validation.",
+        "Updated with thermal closure and eddy-current drag parameters."
       ]
     },
     {
       "name": "engineering-screen",
       "category": "engineering",
+      "material_profile": "baseline_gdbco",
+      "geometry_profile": "engineering",
       "params": {
         "u": 20.0,
         "lam": 0.75,
@@ -87,6 +113,9 @@
     {
       "name": "resilience",
       "category": "high-fidelity",
+      "material_profile": "nanostructured_y211",
+      "geometry_profile": "validation",
+      "environment_profile": "liquid_nitrogen",
       "params": {
         "u": 10.0,
         "lam": 16.6667,

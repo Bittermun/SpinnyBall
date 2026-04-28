@@ -6,6 +6,12 @@ Implements Payload Catch/Launch physics for the mass-packet stream.
 import numpy as np
 from sgms_anchor_v1 import _stream_forces, analytical_metrics
 
+try:
+    from dynamics.coil_switching import CoilSwitchingModel, CoilSpecs, create_pulsed_switching_event
+    COIL_SWITCHING_AVAILABLE = True
+except ImportError:
+    COIL_SWITCHING_AVAILABLE = False
+
 def calculate_momentum_delta(m_payload, v_in, v_out):
     """
     Calculates the total momentum impulse (Ns) required for a catch/launch transition.
@@ -30,10 +36,11 @@ def get_catch_force_profile(t, t_start, duration, payload_mass, v_delta):
     
     return f_brake * envelope
 
-def simulate_metabolic_event(params, payload_mass=10.0, v_relative=5.0, duration=2.0):
+def simulate_metabolic_event(params, payload_mass=10.0, v_relative=5.0, duration=2.0, 
+                             include_switching_losses=False, coil_current=1000.0):
     """
     Simulates a payload catch event and the node's stability response.
-    Returns: time, node_pos, force_brake, stream_response
+    Returns: time, node_pos, force_brake, stream_response, switching_loss_dict
     """
     m = analytical_metrics(params)
     dt = 0.001
@@ -51,6 +58,28 @@ def simulate_metabolic_event(params, payload_mass=10.0, v_relative=5.0, duration
     # Initial state
     x[0] = params["x0"]
     v_node[0] = params["v0"]
+    
+    # Switching loss tracking
+    switching_loss_dict = None
+    if include_switching_losses and COIL_SWITCHING_AVAILABLE:
+        from dynamics.coil_switching import DEFAULT_COIL_SPECS
+        coil_model = CoilSwitchingModel(DEFAULT_COIL_SPECS)
+        
+        # Create switching event for catch operation
+        switching_event = create_pulsed_switching_event(
+            peak_current=coil_current,
+            pulse_width=duration,
+            rise_time=0.01,
+            fall_time=0.01,
+        )
+        
+        # Calculate switching loss
+        total_loss, breakdown = coil_model.switching_loss(switching_event)
+        switching_loss_dict = {
+            'total_loss_J': total_loss,
+            'breakdown': breakdown,
+            'avg_power_W': total_loss / duration if duration > 0 else 0,
+        }
     
     for i in range(len(t) - 1):
         # 1. Calculate Braking Force (from Metabolism)
@@ -71,7 +100,7 @@ def simulate_metabolic_event(params, payload_mass=10.0, v_relative=5.0, duration
         v_node[i+1] = v_node[i] + a_node * dt
         x[i+1] = x[i] + v_node[i] * dt
         
-    return t, x, f_brake_hist
+    return t, x, f_brake_hist, switching_loss_dict
 
 if __name__ == "__main__":
     # Test execution

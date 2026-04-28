@@ -8,6 +8,16 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Added
 
+- 3-profile system for interchangeable parameter sweeps (material, geometry, environment profiles)
+- Material profile catalog (paper_model/gdbco_apc_catalog.json) with flux-pinning stiffness ranges
+- Geometry profile catalog (geometry_profiles.json) with shape, mass, radius parameters
+- Environment profile catalog (environment_profiles.json) with temperature, B_field, radiation, gravity
+- Profile validation functions with type and range checking
+- Skipped experiments tracking in pipeline manifest
+- File existence checks in validation scripts
+- Simulation error handling in validate_profile.py
+- Type and range validation tests for all profile types
+- Documentation for profile system in README
 - Operational profile with paper targets (8.0 kg mass, 1600 m/s velocity, 6000 N/m flux-pinning stiffness)
 - Mass sweep capability in sensitivity analysis (mp parameter added to Sobol analysis)
 - Extended parameter bounds for operational scale (velocity: 5-1600 m/s, linear density: 0.1-20.0 kg/m)
@@ -33,6 +43,10 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ### Fixed
 
+- Fixed environment profile override order to allow experiment params to override environment values
+- Added warning when both legacy k_fp and new material_profile are present
+- Added broader exception handling in pipeline (FileNotFoundError, OSError, json.JSONDecodeError)
+- Fixed profile validation to check experiment overrides before applying environment values
 - Fixed PIDParameters dataclass field order (added default values to kp, ki, kd for backward compatibility)
 - Fixed numpy bool to Python bool casting in ML integration (API contract compliance)
 - Fixed division by zero edge case in FMECA export (abs(omega_initial) > 1e-10 check)

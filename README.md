@@ -4,7 +4,7 @@
 [![Python 3.11+](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
 [![Build Status](https://github.com/bittermun/SpinnyBall/workflows/CI/badge.svg)](https://github.com/bittermun/SpinnyBall/actions)
 
-**Status**: Gyroscopic Mass-Stream Digital Twin (Phase 1 Complete)
+**Status**: Physics Simulation Framework
 **Target**: First-Principles Closed-Loop Shepherded Gyroscopic Mass-Stream Simulation
 ---
 
@@ -22,6 +22,28 @@ The system leverages **six integrated physics domains**:
 4. **Passive Superconducting Flux-Pinning** - GdBCO zero-power stabilization layer
 5. **Coupled Energy & Thermal Equilibrium** - Metabolic harvesting vs cryogenic cooling balance
 6. **Advanced Predictive Diagnostics** - ML-based failure prediction (future phase)
+
+### Physics Modeling
+
+The system models the following physics domains:
+
+**Orbital Dynamics**:
+- J2 perturbation (Earth oblateness)
+- Solar Radiation Pressure (SRP)
+- Atmospheric drag
+- Eclipse detection
+
+**Thermal & Power Systems**:
+- Coil switching loss models
+- Cryocooler power integration
+- Thermal feedback loops
+- Eclipse-aware solar flux
+
+**Electromagnetic Modeling**:
+- Mutual inductance calculations
+- Fringe field corrections
+- Field gradient limits
+- HTS current density modeling
 ---
 
 ## Momentum-Flux Anchoring
@@ -31,12 +53,6 @@ The system leverages **six integrated physics domains**:
 - Where λ = mass flow rate (kg/m), u = relative velocity (m/s), θ = deflection angle (rad)
 
 **Mechanism**: Lateral deflection of high-velocity mass stream transfers momentum to stations without dissipative losses.
-
-**Station-Keeping Performance**:
-- Stiffness: 40,000 N/m (active + passive)
-- Precision: 0.2435 mm RMS displacement
-- Force Capacity: 1000N continuous, 10kN peak
-- Power Required: ~10 W per 1000N
 
 ## Installation
 
@@ -83,8 +99,6 @@ Available extras:
 |----------|-------|-------|
 | Station Mass | 1,000 kg (baseline) | Scales with payload |
 | Flux-Pinning Stiffness | 4,500 N/m (GdBCO @ 77K) | Passive layer |
-| Active Control Stiffness | 40,000 N/m (optimized PID) | Active layer |
-| Displacement Under Load | <3 mm @ 100N | Station-keeping precision |
 | Operating Temperature | 70-90 K | GdBCO superconducting range |
 
 ### Network Architecture
@@ -93,7 +107,6 @@ Available extras:
 | Node Count | 40 (global lattice) | Redundant mesh topology |
 | Inter-Node Spacing | Variable (VPD controlled) | Wave scattering optimization |
 | Tension Coupling | Global load distribution | Prevents cascade failures |
-| Blackout Survivability | Single-node quench → stable | Graceful degradation |
 
 ---
 
@@ -116,15 +129,14 @@ Available extras:
    - Shockwave dissipation via density gradients
    - Local failure isolation
 
-### Validated Failure Modes
+### Failure Mode Modeling
 
-| Scenario | Response | Outcome |
-|----------|----------|---------|
-| Single Node Quench | Neighbor load sharing | ✅ Stable, <10m drift |
-| Mass Imbalance (>1%) | Nutation damping | ✅ Corrected in <5 cycles |
-| Shockwave Injection | VPD gradient scattering | ✅ Dissipated before Node 2 |
-| Thermal Runaway | Quench detection + shutdown | ✅ Safe failure mode |
-| Control Instability | Derivative term + filtering | ✅ Overshoot <5% |
+The system models various failure scenarios including:
+- Single node quench events
+- Mass imbalance effects
+- Shockwave propagation
+- Thermal runaway conditions
+- Control instability modes
 
 ---
 
@@ -137,14 +149,6 @@ Available extras:
 | Cryocooler (70-90K) | 5-8 W | Maintains GdBCO superconductivity |
 | SiC Power Electronics | 1-2 W | Magnet drive circuits |
 | Sensors & Comms | 0.5-1 W | Housekeeping |
-| **Total Parasitic Load** | **~10 W** | Station-keeping power |
-
-### Metabolic Harvesting
-
-| Source | Yield | Conditions |
-|--------|-------|------------|
-| Regenerative Braking | 50-200 W | Payload deceleration |
-| **Net Energy Balance** | **+50 to +200 W** | Energy-positive operation |
 
 ### Thermal Limits
 
@@ -154,60 +158,27 @@ Available extras:
 | Rotor Shaft | 150 K | Bearing degradation |
 | Power Electronics | 400 K | SiC thermal runaway |
 
-**Safety Margin**: Operate at 77K (liquid nitrogen range) for 13K margin.
-
 ---
 
 ##  Performance Metrics
 
-### Station Keeping (Proven)
-- **Stiffness**: 40,000 N/m (active + passive)
-- **Precision**: 0.2435 mm RMS displacement
-- **Force Capacity**: 1000N continuous, 10kN peak
-- **Energy Efficiency**: 10 W per 1000N (vs 10 MW drag braking)
-
-### Payload Transport (Validated)
-- **Capacity**: 10,000 kg per packet cluster
-- **Acceleration**: Up to 5g (controlled)
-- **Impulse Rejection**: 99.7% (lead-lag controller)
-- **Catch Precision**: <1 mm at 10 m/s relative velocity
-
-### Network Resilience (Tested)
-- **Single Node Failure**: No cascade
-- **Shockwave Attenuation**: -40 dB within 2 nodes
-- **Blackout Recovery**: Autonomous re-synchronization
-- **Lattice Tension**: Uniform load distribution
+The simulation models:
+- Station-keeping stiffness and precision
+- Payload transport capacity and acceleration
+- Network resilience and failure propagation
+- Energy efficiency characteristics
 
 ---
 
 ##  Development Status
 
-**Deliverable**: ML-enhanced digital twin with wobble detection and thermal prediction
+The project includes:
+- ML-enhanced digital twin with wobble detection and thermal prediction
+- VMD-IRCNN infrastructure with graceful fallback
+- GPU training support on Python 3.11 with CUDA 12.1
+- Anomaly detection and synthetic failure data generation
+- Test suite with coverage requirements
 
-**Test Results**:
-- VMD unit tests: 13/17 passed (76.5% - 23.5% failure < 30% threshold)
-- IRCNN unit tests: 21/21 passed (100%)
-- Training data tests: 23/23 passed (100%)
-- State converter tests: 14/14 passed (100%)
-- Integration tests: 14/14 passed (100%)
-
-**Deliverable**: Production-ready VMD-IRCNN infrastructure with graceful fallback
-
-**Training Status**:
-- GPU training operational on Python 3.11 with CUDA 12.1
-- CPU training completed (wobble detector: val loss 0.000014, predictor: val loss 0.000000)
-- Models saved to `data/models/wobble_detector/v1.0.0/` and `data/models/thermal_predictor/v1.0.0/`
-
-**Test Results**:
-- Latency injection tests: 13/13 passed (100%)
-- Anomaly detection tests: 13/13 passed (100%)
-- Overall test coverage: >85%
-
-**Deliverable**: AI-enhanced operations system with anomaly detection and synthetic failure data
-
-### EDT (Electrodynamic Tethers) - ARCHIVED
-
-The EDT module has been archived to `archived_edt/` directory. See archived files for EDT physics implementation.
 
 ---
 
@@ -290,7 +261,34 @@ SpinnyBall/
 
 ---
 
-##  Configuration Modes
+##  Profile System
+
+The codebase now supports a **3-profile system** for interchangeable parameter sweeps:
+
+### Material Profiles
+- Located in `paper_model/gdbco_apc_catalog.json`
+- Define flux-pinning stiffness ranges, damping ratios, and material properties
+- Used by the Bean-London model for temperature/field-dependent stiffness
+
+### Geometry Profiles
+- Located in `geometry_profiles.json`
+- Define shape, mass, radius, and inertia tensor parameters
+- Support sphere and prolate_spheroid shapes
+- Used for rigid-body dynamics calculations
+
+### Environment Profiles
+- Located in `environment_profiles.json`
+- Define temperature, magnetic field, radiation flux, and gravity
+- Support cryogenic (LN2, LHe), orbital, and surface environments
+- Used for thermal and electromagnetic modeling
+
+### Profile Resolution
+Profiles are resolved in `sgms_anchor_profiles.py` with:
+- Validation of required fields and type/range checks
+- Override precedence: experiment params > profile params > environment profile
+- Graceful error handling with descriptive messages
+
+### Configuration Modes
 
 The codebase now supports three configuration modes to align with different use cases:
 
@@ -528,48 +526,23 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 - **control/**: Model-predictive control (MPC) and reduced-order model (ROM) predictors
 - **monte_carlo/**: Cascade risk assessment and pass/fail gates
 
-### Independent References
-- MATLAB RK4 reference implementation (validated)
-- MuJoCo 6-DOF cross-check (validated)
-- Analytical solutions for limiting cases (validated)
-
-### Experimental Correlates
-- GdBCO flux-pinning stiffness: Literature values (4500 N/m @ 77K)
-- Eddy current heating: Classical EM theory
-- Gyroscopic stability: Euler equations (standard rigid-body dynamics)
-
-### Uncertainty Quantification
-- Sobol sensitivity analysis completed
-- Parameter sweep ranges documented
-- Conservative margins applied (2-3× safety factors)
+### Validation References
+- MATLAB RK4 reference implementation
+- MuJoCo 6-DOF cross-check
+- Analytical solutions for limiting cases
+- Literature values for material properties
+- Classical EM theory for eddy current heating
+- Euler equations for gyroscopic stability
+- Sobol sensitivity analysis
 
 ---
 
 ##  Documentation
 
-| Document | Purpose | Location |
-|----------|---------|----------|
-| Physics Simulator Audit | Complete implementation status | `background/physics_simulator_audit.md` |
-| External Data Requirements | Material properties needed | `background/external_data_requirements.md` |
-| Production Gap Analysis | Current → target comparison | `background/production_gap_analysis.md` |
-| Priority Analysis | Feature ranking by impact | `background/priority_analysis.md` |
-| Special Maneuver Analysis | Gyroscopic precession details | `background/special_maneuver_analysis.md` |
-| Station Keeping Analysis | Proof of superiority over drag braking | `background/station_keeping_analysis.md` |
-| Ideal Blueprint Alignment | Blueprint alignment plan for MRT v0.1 | `background/ideal_blueprint_alignment.md` |
-| Post-Mortem Analysis | Post-mortem analysis of issues | `background/post_mortem_analysis.md` |
-| Background Requirements | Original physics specification | `background/backgroundinfo.txt` |
-| Anchor Validation Decision | Anchor validation decision record | `docs/anchor-validation-decision.md` |
+See CONTRIBUTING.md for development guidelines and project structure.
 
 ---
 
-##  Collaboration & Next Steps
-
-### Immediate Actions Required
-
-1. **External Data Acquisition**
-   - GdBCO J_c(B,T) curves from SuperPower Inc. or NASA Glenn
-   - Cryocooler performance curves @ 70-90K (Thales, Sunpower)
-   - Eddy current loss coefficients for specific materials
 
 
 ##  License & Citations
@@ -587,7 +560,5 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 
 ---
 
-**Last Updated**: 2026-04-19
+**Last Updated**: 2026-04-27
 **Development Lead**: Bittermun
-**Physics Validation**: MATLAB + MuJoCo Cross-Check
-**Status**: Phase 1 Initiated - Gyroscopic Mass-Stream Digital Twin

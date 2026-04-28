@@ -9,6 +9,7 @@ from dynamics.lumped_thermal import (
     LumpedThermalModel,
     LumpedThermalParams,
 )
+from dynamics.cryocooler_model import CryocoolerModel, DEFAULT_CRYOCOOLER_SPECS
 
 
 def test_lumped_thermal_params():
@@ -178,3 +179,58 @@ def test_different_time_steps():
     # Both should work (though results differ due to integration error)
     assert model_small.T_stator != params.initial_temp
     assert model_large.T_stator != params.initial_temp
+
+
+def test_cryocooler_validation():
+    """Test validation for cryocooler_cooling_power >= 0."""
+    params = LumpedThermalParams(cryocooler_cooling_power=-1.0)
+    with pytest.raises(ValueError, match="cryocooler_cooling_power must be >= 0"):
+        LumpedThermalModel(params, dt=0.01)
+
+
+def test_cryocooler_constant_power():
+    """Test cryocooler with constant cooling power (fallback mode)."""
+    params = LumpedThermalParams(
+        enable_cryocooler=True,
+        cryocooler_cooling_power=5.0,
+        cryocooler_model=None,  # Use constant power fallback
+    )
+    model = LumpedThermalModel(params, dt=0.01)
+    model.T_stator = 100.0
+    
+    result = model.step({'stator': 0.0, 'rotor': 0.0})
+    
+    # Temperature should decrease more with cryocooler
+    assert result['T_stator'] < 100.0
+
+
+def test_cryocooler_temperature_dependent():
+    """Test cryocooler with temperature-dependent cooling from CryocoolerModel."""
+    cryo_model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
+    params = LumpedThermalParams(
+        enable_cryocooler=True,
+        cryocooler_cooling_power=5.0,  # Fallback, should not be used
+        cryocooler_model=cryo_model,
+    )
+    model = LumpedThermalModel(params, dt=0.01)
+    model.T_stator = 100.0
+    
+    result = model.step({'stator': 0.0, 'rotor': 0.0})
+    
+    # Temperature should decrease with cryocooler
+    assert result['T_stator'] < 100.0
+
+
+def test_cryocooler_disabled():
+    """Test that cryocooler is disabled when enable_cryocooler=False."""
+    params = LumpedThermalParams(
+        enable_cryocooler=False,
+        cryocooler_cooling_power=5.0,
+    )
+    model = LumpedThermalModel(params, dt=0.01)
+    model.T_stator = 100.0
+    
+    result = model.step({'stator': 0.0, 'rotor': 0.0})
+    
+    # Temperature should decrease due to radiative cooling only
+    assert result['T_stator'] < 100.0

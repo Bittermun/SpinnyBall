@@ -281,6 +281,52 @@ class StreamBalanceGate(PassFailGate):
         )
 
 
+class DelayMarginGate(PassFailGate):
+    """
+    Gate for delay margin (control stability).
+
+    Requirement: Delay margin ≥ 35 ms
+    """
+
+    def __init__(
+        self,
+        min_delay_margin_ms: float = 35.0,
+        warning_threshold: Optional[float] = None,
+    ):
+        if warning_threshold is None:
+            warning_threshold = min_delay_margin_ms * 1.2  # 120% of minimum
+
+        super().__init__(
+            name="delay_margin_ms",
+            threshold=min_delay_margin_ms,
+            comparison=">=",
+            warning_threshold=warning_threshold,
+        )
+
+
+class ContainmentGate(PassFailGate):
+    """
+    Gate for cascade containment (nodes affected).
+
+    Requirement: Nodes affected ≤ 2
+    """
+
+    def __init__(
+        self,
+        max_nodes_affected: int = 2,
+        warning_threshold: Optional[float] = None,
+    ):
+        if warning_threshold is None:
+            warning_threshold = max_nodes_affected - 0.5  # Warn at 0.5 below limit
+
+        super().__init__(
+            name="nodes_affected",
+            threshold=float(max_nodes_affected),
+            comparison="<=",
+            warning_threshold=float(warning_threshold),
+        )
+
+
 # EDT gates archived - see archived_edt/ directory
 
 
@@ -308,6 +354,8 @@ class GateSet:
                 TemperatureGate(gate_type="packet"),
                 LatencyGate(),
                 StreamBalanceGate(),
+                DelayMarginGate(),
+                ContainmentGate(),
             ]
         else:
             self.gates = gates
@@ -414,5 +462,11 @@ def evaluate_monte_carlo_gates(
         "cascade_probability": monte_carlo_results.get("cascade_probability", 0.0),
         "max_latency_ms": monte_carlo_results.get("max_latency_ms", 0.0),
     }
+
+    # Only add optional metrics if they exist and are not None
+    if monte_carlo_results.get("delay_margin_ms") is not None:
+        metrics["delay_margin_ms"] = monte_carlo_results["delay_margin_ms"]
+    if monte_carlo_results.get("nodes_affected_mean") is not None:
+        metrics["nodes_affected"] = monte_carlo_results["nodes_affected_mean"]
 
     return gate_set.evaluate_and_summarize(metrics)

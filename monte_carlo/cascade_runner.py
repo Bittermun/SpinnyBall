@@ -43,6 +43,7 @@ class PerturbationType(Enum):
     MAGNETIC_NOISE = "magnetic_noise"
     VELOCITY_PERTURBATION = "velocity_perturbation"
     LATENCY_INJECTION = "latency_injection"
+    NODE_FAILURE = "node_failure"
 
 
 @dataclass
@@ -70,6 +71,8 @@ class RealizationResult:
     latency_events: int = 0
     max_latency_ms: float = 0.0
     per_packet_latency: Optional[List[Tuple[int, float]]] = None  # [(packet_id, latency_ms), ...]
+    nodes_affected: int = 0  # Number of nodes that experienced failure
+    containment_successful: bool = True  # True if nodes_affected <= 2
 
 
 @dataclass
@@ -84,6 +87,11 @@ class MonteCarloConfig:
     latency_ms: float = 0.0  # Latency to inject (ms)
     latency_std_ms: float = 5.0  # Latency standard deviation (ms)
     track_per_packet_latency: bool = True  # Track per-packet latency details
+
+    # Fault injection parameters for T3 sweep
+    fault_rate: float = 1e-4  # Failure rate per hour (units: /hr)
+    cascade_threshold: float = 1.05  # Stiffness reduction factor for cascade
+    containment_threshold: int = 2  # Max nodes allowed for containment success
 
     # Acceleration options
     use_gpu: bool = False  # Use GPU acceleration (requires JAX)
@@ -212,6 +220,12 @@ class CascadeRunner:
             release_time = current_time + perturbation.magnitude
             packet.latency_buffer.append((release_time, packet.body.state_copy()))
             logger.debug(f"Latency injection: {perturbation.magnitude*1000:.1f} ms for packet {packet.id}, release at t={release_time:.3f} s")
+
+        elif perturbation.type == PerturbationType.NODE_FAILURE:
+            # Node failure: reduce stiffness to simulate quench/degradation
+            # Magnitude is the node_id to fail (or -1 for random)
+            # This is applied to nodes, not packets - handled in run_realization
+            logger.debug(f"Node failure perturbation requested for node {perturbation.magnitude}")
     
     def run_realization(
         self,
@@ -236,6 +250,7 @@ class CascadeRunner:
         k_eff_within_limit = True
         cascade_occurred = False
         failure_mode = None
+        nodes_affected = set()  # Track which nodes experienced failure
         
         # Apply perturbations probabilistically
         for perturbation in self.config.perturbations:
@@ -273,7 +288,21 @@ class CascadeRunner:
                 if self.config.track_per_packet_latency:
                     per_packet_latency.append((packet.id, latency * 1000.0))
 
+        # Apply fault injection based on fault_rate
+        # fault_rate is per hour, convert to per-step probability
+        fault_prob_per_step = self.config.fault_rate * self.config.dt / 3600.0
+        if fault_prob_per_step > 0 and stream.nodes:
+            for node in stream.nodes:
+                if np.random.random() < fault_prob_per_step:
+                    # Node failure: reduce stiffness by cascade_threshold
+                    if hasattr(node, 'k_fp'):
+                        original_k = node.k_fp
+                        node.k_fp /= self.config.cascade_threshold
+                        nodes_affected.add(node.id)
+                        logger.debug(f"Node {node.id} failed: k_fp reduced from {original_k:.1f} to {node.k_fp:.1f}")
+
         logger.info(f"Latency injection: {latency_events} events, max_latency={max_latency_ms:.1f} ms")
+        logger.info(f"Fault injection: {len(nodes_affected)} nodes affected")
 
         for step in range(n_steps):
             # Check for delayed state applications
@@ -339,7 +368,10 @@ class CascadeRunner:
             final_states.append(state)
         
         final_state = np.concatenate(final_states)
-        
+
+        # Determine containment success
+        containment_successful = len(nodes_affected) <= self.config.containment_threshold
+
         return RealizationResult(
             realization_id=realization_id,
             success=success,
@@ -354,6 +386,8 @@ class CascadeRunner:
             latency_events=latency_events,
             max_latency_ms=max_latency_ms,
             per_packet_latency=per_packet_latency if self.config.track_per_packet_latency else None,
+            nodes_affected=len(nodes_affected),
+            containment_successful=containment_successful,
         )
     
     def _run_realization_worker(self, args: Tuple) -> RealizationResult:
@@ -439,6 +473,8 @@ class CascadeRunner:
         stress_values = [r.stress_max for r in results]
         latency_events = [r.latency_events for r in results]
         max_latency_values = [r.max_latency_ms for r in results]
+        nodes_affected_values = [r.nodes_affected for r in results]
+        containment_successful_values = [r.containment_successful for r in results]
 
         failure_modes = {}
         for r in results:
@@ -446,6 +482,7 @@ class CascadeRunner:
                 failure_modes[r.failure_mode] = failure_modes.get(r.failure_mode, 0) + 1
 
         cascade_probability = failure_count / len(results)
+        containment_rate = sum(containment_successful_values) / len(results) if results else 1.0
 
         return {
             "n_realizations": self.config.n_realizations,
@@ -465,6 +502,11 @@ class CascadeRunner:
             "k_eff_min": 6000.0,  # Placeholder for stiffness metric
             "meets_cascade_target": cascade_probability < 1e-6,  # Target: <10⁻⁶
             "acceleration_mode": self.acceleration_mode,
+            "nodes_affected_mean": np.mean(nodes_affected_values) if nodes_affected_values else 0.0,
+            "nodes_affected_std": np.std(nodes_affected_values) if nodes_affected_values else 0.0,
+            "nodes_affected_max": max(nodes_affected_values) if nodes_affected_values else 0,
+            "containment_rate": containment_rate,
+            "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
         }
 
 

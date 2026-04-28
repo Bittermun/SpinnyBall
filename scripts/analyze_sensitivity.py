@@ -14,6 +14,7 @@ Output:
 """
 
 import sys
+import json
 from pathlib import Path
 
 # Add parent directory to path for imports
@@ -31,8 +32,26 @@ print("SENSITIVITY ANALYSIS FOR OPTIMAL PARAMETERS")
 print("=" * 70)
 
 # Load operational profile as baseline
-data = load_anchor_profiles("anchor_profiles.json")
-baseline_params = resolve_profile_params(data, "operational")["params"]
+try:
+    if not Path("anchor_profiles.json").exists():
+        print(f"ERROR: anchor_profiles.json not found")
+        sys.exit(1)
+    data = load_anchor_profiles("anchor_profiles.json")
+    resolved = resolve_profile_params(data, "operational")
+    baseline_params = resolved["params"]
+    profile_meta = resolved["profile"]
+except (KeyError, ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as e:
+    print(f"ERROR: Failed to resolve operational profile: {e}")
+    sys.exit(1)
+
+print(f"\nBase Profile: {profile_meta.get('name', 'unknown')}")
+print(f"  Category: {profile_meta.get('category', 'unspecified')}")
+if profile_meta.get("material_profile"):
+    print(f"  Material: {profile_meta['material_profile'].get('name', 'unknown')}")
+if profile_meta.get("geometry_profile"):
+    print(f"  Geometry: {profile_meta['geometry_profile'].get('name', 'unknown')}")
+if profile_meta.get("environment_profile"):
+    print(f"  Environment: {profile_meta['environment_profile'].get('name', 'unknown')}")
 
 print(f"\nBaseline Parameters:")
 print(f"  Mass (mp): {baseline_params['mp']:.2f} kg")

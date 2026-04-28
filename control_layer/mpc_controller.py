@@ -98,6 +98,10 @@ class MPCController:
         delay_steps: int = 5,  # Number of control cycles to compensate for latency
         dt_delay: float = 0.01,  # Time step for delay prediction (s)
         enable_delay_compensation: bool = True,  # Enable/disable Smith predictor
+        sampling_period: float = 0.01,  # Discrete-time sampling period (s)
+        communication_delay: float = 0.005,  # Communication delay between sensor and actuator (s)
+        enable_discrete_time: bool = True,  # Enable discrete-time sampling model
+        delay_compensation_mode: str = 'discrete_time',  # 'discrete_time', 'smith', or 'both'
     ):
         """
         Initialize MPC controller.
@@ -117,6 +121,10 @@ class MPCController:
             delay_steps: Number of control cycles to compensate for latency (default: 5)
             dt_delay: Time step for delay prediction in seconds (default: 0.01)
             enable_delay_compensation: Enable/disable Smith predictor (default: True)
+            sampling_period: Discrete-time sampling period (s)
+            communication_delay: Communication delay between sensor and actuator (s)
+            enable_discrete_time: Enable discrete-time sampling model (default: True)
+            delay_compensation_mode: Delay compensation mode - 'discrete_time', 'smith', or 'both' (default: 'discrete_time')
         """
         if not CASADI_AVAILABLE:
             raise ImportError(
@@ -133,6 +141,10 @@ class MPCController:
         self.delay_steps = delay_steps
         self.dt_delay = dt_delay
         self.enable_delay_compensation = enable_delay_compensation
+        self.sampling_period = sampling_period
+        self.communication_delay = communication_delay
+        self.enable_discrete_time = enable_discrete_time
+        self.delay_compensation_mode = delay_compensation_mode
 
         # Load parameters from configuration mode if not explicitly provided
         config_params = CONFIGURATION_PARAMETERS[configuration_mode]
@@ -275,11 +287,27 @@ class MPCController:
         self.opti.set_value(self.x0, x0)
         self.opti.set_value(self.x_target, x_target)
 
-        # Apply Smith predictor for delay compensation
-        if self.enable_delay_compensation and self.delay_steps > 0:
-            x0_delayed = self.smith_predictor(x0)
-            self.opti.set_value(self.x0, x0_delayed)
-            logger.debug(f"Smith predictor applied: delay_steps={self.delay_steps}")
+        # Apply delay compensation based on mode
+        if self.delay_compensation_mode == 'discrete_time':
+            if self.enable_discrete_time:
+                x0_delayed = self.apply_discrete_time_delay(x0)
+                self.opti.set_value(self.x0, x0_delayed)
+        elif self.delay_compensation_mode == 'smith':
+            if self.enable_delay_compensation and self.delay_steps > 0:
+                x0_smith = self.smith_predictor(x0)
+                self.opti.set_value(self.x0, x0_smith)
+                logger.debug(f"Smith predictor applied: delay_steps={self.delay_steps}")
+        elif self.delay_compensation_mode == 'both':
+            # Apply both in sequence (additive compensation)
+            x0_compensated = x0.copy()
+            if self.enable_discrete_time:
+                x0_compensated = self.apply_discrete_time_delay(x0_compensated)
+            if self.enable_delay_compensation and self.delay_steps > 0:
+                x0_compensated = self.smith_predictor(x0_compensated)
+                logger.debug(f"Smith predictor applied: delay_steps={self.delay_steps}")
+            self.opti.set_value(self.x0, x0_compensated)
+        else:
+            logger.warning(f"Unknown delay_compensation_mode: {self.delay_compensation_mode}")
 
         # Solve
         sol = self.opti.solve()
@@ -366,6 +394,213 @@ class MPCController:
             x_pred[4:7] = x_pred[4:7] + self.dt_delay * alpha
 
         return x_pred
+
+    def apply_discrete_time_delay(
+        self,
+        x0: np.ndarray,
+    ) -> np.ndarray:
+        """
+        Apply discrete-time sampling and communication delay.
+        
+        Models the effect of:
+        1. Zero-order hold (ZOH) from sampling period
+        2. Communication delay between sensor measurement and actuator command
+        
+        Args:
+            x0: Current state [qx, qy, qz, qw, ωx, ωy, ωz]
+        
+        Returns:
+            State after discrete-time delay [7]
+        """
+        if not self.enable_discrete_time:
+            return x0
+        
+        # Total delay = sampling period + communication delay
+        total_delay = self.sampling_period + self.communication_delay
+        delay_steps = int(total_delay / self.dt_delay)
+        
+        if delay_steps <= 0:
+            return x0
+        
+        # Integrate forward with zero control (ZOH assumption)
+        x_delayed = x0.copy()
+        
+        for _ in range(delay_steps):
+            # Extract quaternion (scalar-last)
+            q = x_delayed[:4]
+            omega = x_delayed[4:7]
+
+            # Convert to scalar-first for quaternion derivative
+            qw = q[3]
+            qx = q[0]
+            qy = q[1]
+            qz = q[2]
+            q_scalar_first = np.array([qw, qx, qy, qz])
+
+            # Quaternion derivative: q̇ = 0.5 * q * ω
+            omega_quat = np.array([0, omega[0], omega[1], omega[2]])
+            dq_scalar_first = 0.5 * np.array([
+                q_scalar_first[0]*omega_quat[0] - q_scalar_first[1]*omega_quat[1] - q_scalar_first[2]*omega_quat[2] - q_scalar_first[3]*omega_quat[3],
+                q_scalar_first[0]*omega_quat[1] + q_scalar_first[1]*omega_quat[0] + q_scalar_first[2]*omega_quat[3] - q_scalar_first[3]*omega_quat[2],
+                q_scalar_first[0]*omega_quat[2] - q_scalar_first[1]*omega_quat[3] + q_scalar_first[2]*omega_quat[0] + q_scalar_first[3]*omega_quat[1],
+                q_scalar_first[0]*omega_quat[3] + q_scalar_first[1]*omega_quat[2] - q_scalar_first[2]*omega_quat[1] + q_scalar_first[3]*omega_quat[0],
+            ])
+
+            # Convert back to scalar-last
+            dq = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+
+            # Gyroscopic coupling: ω × (I * ω)
+            I_omega = self.I @ omega
+            omega_skew = np.array([
+                [0, -omega[2], omega[1]],
+                [omega[2], 0, -omega[0]],
+                [-omega[1], omega[0], 0]
+            ])
+            gyro_coupling = omega_skew @ I_omega
+
+            # Angular acceleration (zero control during delay)
+            alpha = self.I_inv @ (-gyro_coupling)
+
+            # Euler integration
+            x_delayed[:4] = x_delayed[:4] + self.dt_delay * dq
+            x_delayed[4:7] = x_delayed[4:7] + self.dt_delay * alpha
+
+        logger.debug(f"Discrete-time delay applied: {total_delay*1000:.1f} ms ({delay_steps} steps)")
+        return x_delayed
+
+    def calculate_delay_margin(self, x0: np.ndarray = None) -> dict:
+        """
+        Calculate delay margin from linearized system dynamics.
+
+        Uses frequency response analysis to compute the phase margin
+        and converts to delay margin (maximum allowable delay before instability).
+
+        Args:
+            x0: Operating point state [qx, qy, qz, qw, ωx, ωy, ωz]. If None, uses zero.
+
+        Returns:
+            Dictionary with delay_margin_ms, phase_margin_deg, crossover_freq_hz
+        """
+        try:
+            from scipy import signal
+        except ImportError:
+            logger.warning("scipy not available for delay margin calculation")
+            return {
+                'delay_margin_ms': float('inf'),
+                'phase_margin_deg': 180.0,
+                'crossover_freq_hz': 0.0,
+                'calculation_failed': True,
+            }
+
+        if x0 is None:
+            x0 = np.zeros(7)
+            x0[3] = 1.0  # Unit quaternion
+
+        # Linearize dynamics around operating point
+        # State: [q, omega], Control: [Fx, Fy, Fz]
+        # Simplified: linearize attitude dynamics (omega) only
+        # d(omega)/dt = I_inv * (u - omega x (I * omega))
+
+        omega0 = x0[4:7]
+        I_omega0 = self.I @ omega0
+        omega_skew0 = np.array([
+            [0, -omega0[2], omega0[1]],
+            [omega0[2], 0, -omega0[0]],
+            [-omega0[1], omega0[0], 0]
+        ])
+
+        # Linearized A matrix: d(omega)/dt = -I_inv @ skew(omega) @ I @ omega + I_inv @ u
+        # For small perturbations: A = -I_inv @ skew(omega0) @ I
+        A_lin = -self.I_inv @ omega_skew0 @ self.I
+
+        # B matrix: d(omega)/dt = I_inv @ u
+        B_lin = self.I_inv
+
+        # Use only omega dynamics (3x3 A, 3x3 B) for simplicity
+        # Full system is 7-state but quaternion coupling makes linearization complex
+        A_omega = A_lin
+        B_omega = B_lin
+
+        # Design a simple LQR-like feedback for analysis
+        # K = -R_inv @ B.T @ P (simplified: use diagonal gain)
+        K = np.diag([10.0, 10.0, 10.0])
+
+        # Closed-loop A matrix: A_cl = A - B @ K
+        A_cl = A_omega - B_omega @ K
+
+        # Compute frequency response
+        # Use first input-output pair for simplicity
+        try:
+            freqs = np.logspace(-2, 3, 1000)  # 0.01 to 1000 rad/s
+            mag, phase = signal.freqresp(A_cl, B_omega[:, 0:1], np.eye(3)[0:1, :], freqs)
+
+            # Find gain crossover frequency (where |G(jw)| = 1)
+            gain = np.abs(mag)
+
+            # Check if gain actually crosses 1 (sign of gain - 1 changes)
+            gain_minus_one = gain - 1.0
+            sign_changes = np.where(np.diff(np.sign(gain_minus_one)) != 0)[0]
+
+            if len(sign_changes) > 0:
+                # Found crossover - use first crossing
+                crossover_idx = sign_changes[0]
+                # Linear interpolation for better accuracy
+                idx_before = crossover_idx
+                idx_after = crossover_idx + 1
+                frac = (1.0 - gain[idx_before]) / (gain[idx_after] - gain[idx_before])
+                crossover_freq = freqs[idx_before] + frac * (freqs[idx_after] - freqs[idx_before])
+                phase_at_crossover = np.angle(mag[idx_before]) * 180 / np.pi + frac * (np.angle(mag[idx_after]) * 180 / np.pi - np.angle(mag[idx_before]) * 180 / np.pi)
+
+                # Phase margin = 180 + phase_at_crossover
+                phase_margin = 180 + phase_at_crossover
+
+                # Delay margin = phase_margin / (crossover_freq * 180/pi)
+                if crossover_freq > 0:
+                    delay_margin_rad = phase_margin * np.pi / 180
+                    delay_margin_s = delay_margin_rad / crossover_freq
+                    delay_margin_ms = delay_margin_s * 1000
+                else:
+                    delay_margin_ms = float('inf')
+            else:
+                # No crossover found - check if gain is always <1 (very stable) or >1 (unstable)
+                if np.all(gain < 1.0):
+                    # System is very stable, delay margin is infinite
+                    phase_margin = 180.0
+                    delay_margin_ms = float('inf')
+                    crossover_freq = 0.0
+                elif np.all(gain > 1.0):
+                    # System is unstable at all frequencies
+                    phase_margin = 0.0
+                    delay_margin_ms = 0.0
+                    crossover_freq = freqs[0]  # Use lowest frequency
+                else:
+                    # Edge case - use closest value
+                    crossover_idx = np.argmin(np.abs(gain - 1.0))
+                    crossover_freq = freqs[crossover_idx]
+                    phase_at_crossover = np.angle(mag[crossover_idx]) * 180 / np.pi
+                    phase_margin = 180 + phase_at_crossover
+                    if crossover_freq > 0:
+                        delay_margin_rad = phase_margin * np.pi / 180
+                        delay_margin_s = delay_margin_rad / crossover_freq
+                        delay_margin_ms = delay_margin_s * 1000
+                    else:
+                        delay_margin_ms = float('inf')
+
+        except Exception as e:
+            logger.warning(f"Frequency response calculation failed: {e}")
+            return {
+                'delay_margin_ms': float('inf'),
+                'phase_margin_deg': 180.0,
+                'crossover_freq_hz': 0.0,
+                'calculation_failed': True,
+            }
+
+        return {
+            'delay_margin_ms': delay_margin_ms,
+            'phase_margin_deg': phase_margin,
+            'crossover_freq_hz': crossover_freq / (2 * np.pi),
+            'calculation_failed': False,
+        }
 
 
 class StubMPCController:

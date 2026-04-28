@@ -1,7 +1,7 @@
 # ============================================================
 # SGMS V1 — Lateral Deflection Simulation
 # Python/NumPy RK45 via scipy.integrate.solve_ivp
-# Validated against independent MATLAB RK4 spec (physics identical)
+# Prolate spheroid geometry (paper-accurate physics)
 # Run in Google Colab: colab.research.google.com → New notebook → paste cells
 # ============================================================
 
@@ -24,8 +24,13 @@ plt.rcParams['grid.alpha'] = 0.3
 # ---- CELL 2: Parameters ----
 P = {
     'mass':           2.0,
-    'radius':         0.046,
-    'I_moment':       1.69e-3,
+    'geometry':       'prolate',   # 'prolate' for paper-accurate physics, 'sphere' for legacy compatibility
+    # Prolate spheroid dimensions (paper specification)
+    'a_axis':         0.040,       # transverse semi-axis (m)
+    'c_axis':         0.060,       # axial semi-axis (m)
+    # Sphere proxy dimensions (legacy, for backward compatibility)
+    'radius':         0.046,       # volume-equivalent sphere radius (m)
+    'I_moment':       1.69e-3,     # sphere moment of inertia (kg·m²) - legacy
     'spin_hz':        833.33,
     'omega':          2 * np.pi * 833.33,
     'mu':             60.0,       # A·m²  PLACEHOLDER — treat as sweep variable (10–200 A·m²); see sweep_mu()
@@ -33,20 +38,38 @@ P = {
     'skin_depth':     1.7e-4,
     'v_z0':           15000.0,
     'array_length':   8.0,
-    'n_segments':     6,           # updated from 4 (MATLAB-validated)
+    'n_segments':     6,
     'segment_sigma':  1.0,
     'gradient':       50.0,
     'pulse_sigma':    5e-5,
-    'delta':  np.array([0, 2, -1, 1, -2, 0]) * 1e-6,    # 6-segment asymmetry (MATLAB-validated)
-    'amp':    np.array([1.0, 1.1, 1.2, 1.0, 0.9, 0.8]), # 6-segment amplitudes (MATLAB-validated)
-    'k_drag': 0.0,
+    'delta':  np.array([0, 2, -1, 1, -2, 0]) * 1e-6,    # 6-segment asymmetry
+    'amp':    np.array([1.0, 1.1, 1.2, 1.0, 0.9, 0.8]), # 6-segment amplitudes
+    'k_drag': 0.01,  # Eddy-current drag coefficient (N·s/m) - velocity-dependent
     'k_quad': 0.0,
-    'dt':     0.25e-6,             # updated from 1e-6 (MATLAB-validated, more accurate)
+    'dt':     0.25e-6,             # timestep for convergence
     'rtol':   1e-8,
     'atol':   1e-10,
+    # Mutual inductance parameters
+    'enable_mutual_inductance': False,  # Enable mutual inductance coupling
+    'mutual_coupling_coeff': 0.1,  # Average coupling coefficient between segments
+    'segment_inductance': 1e-3,  # Self-inductance per segment (H)
 }
 
-P['L_spin']    = P['I_moment'] * P['omega']
+# Calculate inertia tensor based on geometry
+if P['geometry'] == 'prolate':
+    # Prolate spheroid: I_ax = 2/5 * m * a², I_tr = 1/5 * m * (a² + c²)
+    P['I_ax'] = (2.0/5.0) * P['mass'] * P['a_axis']**2
+    P['I_tr'] = (1.0/5.0) * P['mass'] * (P['a_axis']**2 + P['c_axis']**2)
+    P['I_moment'] = P['I_ax']  # Use axial moment for spin-axis calculation
+    P['radius'] = P['a_axis']  # Use transverse radius for rim speed
+    P['stability_ratio'] = P['I_tr'] / P['I_ax']
+else:
+    # Sphere proxy (legacy)
+    P['I_ax'] = P['I_moment']
+    P['I_tr'] = P['I_moment']
+    P['stability_ratio'] = 1.0
+
+P['L_spin']    = P['I_ax'] * P['omega']
 P['t_transit'] = P['array_length'] / P['v_z0']
 P['rim_speed'] = P['omega'] * P['radius']
 # Coordinate convention: centered on z=0. MATLAB ref uses z=0..9 (shifted by +4m) — physically equivalent
@@ -58,10 +81,18 @@ P['seg_z'] = np.linspace(
 # For 6 segments, 8m array: z ≈ [-3.333, -2.0, -0.667, +0.667, +2.0, +3.333] m
 
 print("=== SGMS V1 Parameters ===")
-print(f"Transit time:      {P['t_transit']*1e3:.3f} ms")
+print(f"Geometry:          {P['geometry']}")
+if P['geometry'] == 'prolate':
+    print(f"  Prolate spheroid: a={P['a_axis']*1000:.1f} mm, c={P['c_axis']*1000:.1f} mm")
+    print(f"  I_ax = {P['I_ax']*1e3:.3f}e-3 kg·m², I_tr = {P['I_tr']*1e3:.3f}e-3 kg·m²")
+    print(f"  Stability ratio I_tr/I_ax = {P['stability_ratio']:.3f}")
+else:
+    print(f"  Sphere proxy: r={P['radius']*1000:.1f} mm")
+    print(f"  I = {P['I_moment']*1e3:.3f}e-3 kg·m²")
 print(f"Angular momentum:  {P['L_spin']:.3f} kg·m²/s")
 print(f"Rim speed:         {P['rim_speed']:.1f} m/s  "
       f"({'SAFE' if P['rim_speed'] < 600 else 'CAUTION' if P['rim_speed'] < 900 else 'DANGER'})")
+print(f"Transit time:      {P['t_transit']*1e3:.3f} ms")
 print(f"Segment centers:   {np.round(P['seg_z'], 3)} m")
 
 # ---- CELL 3: Field model ----
@@ -71,6 +102,9 @@ def segment_arrival_time(seg_z, v_z0):
 def Bx_field(z, t, P):
     Bx = 0.0
     dBx_dz = 0.0
+    
+    # Base field from each segment
+    segment_fields = []
     for i in range(P['n_segments']):
         zi    = P['seg_z'][i]
         ai    = P['amp'][i]
@@ -80,8 +114,64 @@ def Bx_field(z, t, P):
         dq = q * (-(z - zi) / P['segment_sigma']**2)
         p  = np.exp(-((t - t_arr - di)**2) / (2 * P['pulse_sigma']**2))
         B_amp = ai * P['gradient'] * P['segment_sigma']
-        Bx    += B_amp * p * q
+        B_seg = B_amp * p * q
+        segment_fields.append(B_seg)
+        Bx    += B_seg
         dBx_dz += B_amp * p * dq
+    
+    # Apply mutual inductance coupling if enabled
+    if P.get('enable_mutual_inductance', False):
+        k = P.get('mutual_coupling_coeff', 0.1)
+        L = P.get('segment_inductance', 1e-3)
+        
+        # Simple coupling model: each segment's field is modified by neighbors
+        # This is a first-order approximation of mutual inductance effects
+        coupled_fields = segment_fields.copy()
+        for i in range(P['n_segments']):
+            # Coupling from adjacent segments
+            for j in range(P['n_segments']):
+                if i != j:
+                    # Distance-based coupling (closer segments couple more)
+                    dist = abs(P['seg_z'][i] - P['seg_z'][j])
+                    coupling = k * np.exp(-dist / P['segment_sigma'])
+                    coupled_fields[i] += coupling * segment_fields[j]
+        
+        # Recompute total field with coupling
+        Bx = sum(coupled_fields)
+        # Gradient approximation (finite difference)
+        dz = P['segment_sigma'] * 0.01
+        Bx_plus = 0.0
+        for i in range(P['n_segments']):
+            zi    = P['seg_z'][i]
+            ai    = P['amp'][i]
+            di    = P['delta'][i]
+            t_arr = segment_arrival_time(zi, P['v_z0'])
+            q  = np.exp(-((z + dz - zi)**2) / (2 * P['segment_sigma']**2))
+            p  = np.exp(-((t - t_arr - di)**2) / (2 * P['pulse_sigma']**2))
+            B_amp = ai * P['gradient'] * P['segment_sigma']
+            Bx_plus += B_amp * p * q
+        
+        if P.get('enable_mutual_inductance', False):
+            coupled_plus = []
+            for i in range(P['n_segments']):
+                B_seg_plus = 0.0
+                for j in range(P['n_segments']):
+                    dist = abs(P['seg_z'][i] - P['seg_z'][j])
+                    coupling = k * np.exp(-dist / P['segment_sigma'])
+                    if i == j:
+                        B_seg_plus += B_amp * p * q
+                    else:
+                        zi_j = P['seg_z'][j]
+                        di_j = P['delta'][j]
+                        t_arr_j = segment_arrival_time(zi_j, P['v_z0'])
+                        q_j = np.exp(-((z + dz - zi_j)**2) / (2 * P['segment_sigma']**2))
+                        p_j = np.exp(-((t - t_arr_j - di_j)**2) / (2 * P['pulse_sigma']**2))
+                        B_seg_plus += coupling * B_amp * p_j * q_j
+                coupled_plus.append(B_seg_plus)
+            Bx_plus = sum(coupled_plus)
+        
+        dBx_dz = (Bx_plus - Bx) / dz
+    
     return Bx, dBx_dz
 
 def drag_envelope(z, t, P):
@@ -195,6 +285,146 @@ def extract_results(sol, P):
         },
     }
 
+def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True):
+    """
+    Simulate multi-pass Δvx accumulation to analyze error propagation.
+    
+    Tracks cumulative Δvx over many transits to determine if errors
+    compound (random walk) or cancel (mean-reverting).
+    
+    Args:
+        n_passes: Number of transits to simulate (default: 10^6)
+        params: System parameters (uses P if None)
+        verbose: Print progress warnings (default: True)
+    
+    Returns:
+        Dictionary with accumulation statistics:
+        - delta_vx_history: Array of Δvx per pass
+        - cumulative_delta_vx: Cumulative sum of Δvx
+        - mean_delta_vx: Mean Δvx per pass
+        - std_delta_vx: Standard deviation of Δvx
+        - final_cumulative: Final cumulative Δvx after n_passes
+        - drift_rate: Average drift per pass (m/s/pass)
+        - error_type: 'random_walk' or 'mean_reverting'
+        - failed_passes: Number of failed integration attempts
+    """
+    global P
+    if params is None:
+        params = P
+    
+    # Warning for large n_passes
+    if verbose and n_passes > 10000:
+        print(f"WARNING: n_passes={n_passes} will take significant time to execute.")
+        print(f"Consider using n_passes=1000-10000 for initial testing.")
+    
+    # Validate required parameters
+    required_params = ['array_length', 'v_z0', 'rtol', 'atol', 'max_step']
+    for param in required_params:
+        if param not in params:
+            raise ValueError(f"Missing required parameter: {param}")
+    
+    # Validate parameter values
+    if params['array_length'] <= 0:
+        raise ValueError(f"array_length must be > 0, got {params['array_length']}")
+    if params['v_z0'] <= 0:
+        raise ValueError(f"v_z0 must be > 0, got {params['v_z0']}")
+    if params['rtol'] <= 0:
+        raise ValueError(f"rtol must be > 0, got {params['rtol']}")
+    if params['atol'] <= 0:
+        raise ValueError(f"atol must be > 0, got {params['atol']}")
+    if params['max_step'] <= 0:
+        raise ValueError(f"max_step must be > 0, got {params['max_step']}")
+    
+    delta_vx_history = np.zeros(n_passes)
+    failed_passes = 0
+    
+    # Simulate each pass
+    for i in range(n_passes):
+        try:
+            # Reset initial conditions for each pass
+            y0 = [0.0, 0.0, -params['array_length']/2, 0.0, 0.0, params['v_z0']]
+            t_span = (0.0, params['array_length'] / params['v_z0'] * 1.5)
+            t_eval = np.linspace(t_span[0], t_span[1], 1000)
+            
+            # Solve single pass
+            sol = solve_ivp(rhs, t_span, y0, t_eval=t_eval, 
+                           rtol=params['rtol'], atol=params['atol'],
+                           max_step=params['max_step'])
+            
+            if not sol.success:
+                failed_passes += 1
+                delta_vx_history[i] = 0.0
+                if verbose and failed_passes <= 5:
+                    print(f"Pass {i}: Integration failed - {sol.message}")
+                continue
+            
+            # Extract Δvx
+            z = sol.y[2]
+            vx = sol.y[3]
+            exit_idx = np.argmin(np.abs(z - params['array_length']/2))
+            
+            # Validate exit point was reached
+            if np.abs(z[exit_idx] - params['array_length']/2) > params['array_length'] * 0.1:
+                failed_passes += 1
+                delta_vx_history[i] = 0.0
+                if verbose and failed_passes <= 5:
+                    print(f"Pass {i}: Exit point not reached")
+                continue
+            
+            delta_vx = vx[exit_idx] - vx[0]
+            delta_vx_history[i] = delta_vx
+            
+            # Progress logging
+            if verbose and (i+1) % 1000 == 0:
+                print(f"Progress: {i+1}/{n_passes} passes completed")
+                
+        except Exception as e:
+            failed_passes += 1
+            delta_vx_history[i] = 0.0
+            if verbose and failed_passes <= 5:
+                print(f"Pass {i}: Exception - {str(e)}")
+    
+    if verbose and failed_passes > 0:
+        print(f"WARNING: {failed_passes}/{n_passes} passes failed")
+    
+    # Analyze accumulation
+    cumulative_delta_vx = np.cumsum(delta_vx_history)
+    mean_delta_vx = np.mean(delta_vx_history)
+    std_delta_vx = np.std(delta_vx_history)
+    final_cumulative = cumulative_delta_vx[-1]
+    drift_rate = final_cumulative / n_passes
+    
+    # Determine error type using statistical test
+    # Random walk: cumulative std grows as sqrt(n) * sigma_single
+    # Mean-reverting: cumulative std remains bounded (independent of n)
+    # Use ratio of actual to expected random walk std
+    expected_random_walk_std = std_delta_vx * np.sqrt(n_passes)
+    actual_cumulative_std = np.std(cumulative_delta_vx)
+    
+    # Avoid division by zero
+    if expected_random_walk_std < 1e-12:
+        error_type = 'insufficient_variance'
+    else:
+        walk_ratio = actual_cumulative_std / expected_random_walk_std
+        # Threshold: ratio > 0.3 suggests random walk behavior
+        # (conservative threshold to avoid false positives)
+        if walk_ratio > 0.3:
+            error_type = 'random_walk'
+        else:
+            error_type = 'mean_reverting'
+    
+    return {
+        'delta_vx_history': delta_vx_history,
+        'cumulative_delta_vx': cumulative_delta_vx,
+        'mean_delta_vx': mean_delta_vx,
+        'std_delta_vx': std_delta_vx,
+        'final_cumulative': final_cumulative,
+        'drift_rate': drift_rate,
+        'error_type': error_type,
+        'n_passes': n_passes,
+        'failed_passes': failed_passes,
+    }
+
 # ---- CELL 6: Plotting ----
 def plot_summary(sol, results, P, title="SGMS V1 — Single Pass"):
     t = sol.t
@@ -254,6 +484,7 @@ def plot_summary(sol, results, P, title="SGMS V1 — Single Pass"):
         f"Energy loss:     {results['E_loss']:.2f} J\n"
         f"Max torque:      {results['tau_max']:.2e} N·m\n"
         f"{'─'*28}\n"
+        f"Geometry: {P['geometry']}\n"
         f"mu = {P['mu']} A·m2\n"
         f"G = {P['gradient']} T/m\n"
         f"k_drag = {P['k_drag']}\n"
@@ -315,28 +546,34 @@ def plot_trajectory_log(results, P, title="SGMS V1 — Trajectory Diagnostics"):
 # These are the known sources of injected asymmetry in the model.
 # Review before trusting any absolute numbers.
 #
-# ASSUMPTION 1 — Integration window clips first pulse tail
+# ASSUMPTION 1 — Geometry choice (prolate vs sphere)
+#   Default uses prolate spheroid (a=40mm, c=60mm) matching paper specification.
+#   Sphere proxy (r=46mm) available via geometry='sphere' for legacy compatibility.
+#   Prolate has anisotropic inertia (I_ax=1.28e-3, I_tr=2.08e-3 kg·m²) affecting gyroscopic dynamics.
+#   Sphere has isotropic inertia (I=1.69e-3 kg·m²). Results may differ slightly.
+#
+# ASSUMPTION 2 — Integration window clips first pulse tail
 #   First segment fires at t≈44 µs; pulse_sigma=50 µs → left tail extends to t≈-106 µs.
 #   Integration starts at t=0 (ball at z=-4 m, 0.67 m from first segment).
 #   Effect: ~4.6e-5 m/s spurious lateral kick in symmetric case (~1% of signal).
 #   Fix if needed: set t_start = -4*pulse_sigma, shift state0 z accordingly.
 #
-# ASSUMPTION 2 — amp array is NOT neutral
+# ASSUMPTION 3 — amp array is NOT neutral
 #   Default amp=[1.0, 1.1, 1.2, 1.0, 0.9, 0.8] has a net amplitude tilt across the array.
 #   This contributes a persistent lateral bias independent of delta.
 #   The two steering mechanisms (delta-timing and amp-tilt) are additive, not separable by
 #   flipping delta alone. To isolate timing effect: set amp=ones and vary delta only.
 #
-# ASSUMPTION 3 — spin axis frozen at sz=1 (no precession by default)
+# ASSUMPTION 4 — spin axis frozen at sz=1 (no precession by default)
 #   Fx = mu_z * dBxdz = mu * sz * dBxdz. With sz=1 always, force is maximum and constant.
 #   With precession enabled, sz drifts slightly → small Fx reduction. Run both and compare.
 #
-# ASSUMPTION 4 — mu=60 A·m² is a placeholder
+# ASSUMPTION 5 — mu=60 A·m² is a placeholder
 #   True dipole moment depends on magnet volume, remanence, and spin-alignment efficiency.
 #   Treat all absolute force/impulse numbers as order-of-magnitude until mu is constrained
 #   by hardware design. Use sweep_mu() to map the full sensitivity curve.
 #
-# ASSUMPTION 5 — drag term is provisional (k_drag=0)
+# ASSUMPTION 6 — drag term is provisional (k_drag=0)
 #   Eddy-current drag requires FEM or at minimum a Biot-Savart skin-depth model.
 #   The g(z,t) envelope is a geometric proxy. Do not trust E_loss numbers until
 #   k_drag is calibrated against an independent model or measurement.

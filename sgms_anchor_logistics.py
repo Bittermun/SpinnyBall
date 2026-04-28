@@ -5,26 +5,45 @@ Integrates Kinetic Metabolism, VPD-FeedForward Control, and Thermal flow.
 
 import numpy as np
 from sgms_anchor_v1 import _stream_forces, analytical_metrics
+from dynamics.thermal_model import eddy_heating_power
 
 # Constants
 SIGMA_BOLTZMANN = 5.670374419e-8 # W/(m^2*K^4)
 T_SPACE = 40.0 # K (Lunar Shadow Base)
 
-def calculate_thermal_balance(t_current, q_in, params):
+def calculate_thermal_balance(t_current, q_in, params, velocity=0.0, k_drag=0.0, cryocooler_power=0.0):
     """
-    Calculates the delta T for the node based on heat in and radiative loss.
+    Calculates the delta T for the node based on heat in, radiative loss, eddy heating, and cryocooler.
     """
     eps = params["epsilon"]
     area = params["area_rad"]
     c_therm = params["c_thermal"]
     ms = params["ms"]
     
+    # Validate parameters
+    if ms <= 0:
+        raise ValueError(f"ms (mass) must be > 0, got {ms}")
+    if c_therm <= 0:
+        raise ValueError(f"c_thermal (specific heat) must be > 0, got {c_therm}")
+    if area <= 0:
+        raise ValueError(f"area_rad (radiative area) must be > 0, got {area}")
+    
     # Q_out = sigma * epsilon * Area * (T^4 - T_space^4)
     # Stefan-Boltzmann cooling
     q_out = SIGMA_BOLTZMANN * eps * area * (max(t_current, 0)**4 - T_SPACE**4)
     
+    # Add eddy-current heating from drag
+    radius = params.get('radius', 0.1)
+    q_eddy = eddy_heating_power(velocity, k_drag, radius=radius)
+    
+    # Total heat in: braking + eddy heating
+    q_total = q_in + q_eddy
+    
+    # Subtract cryocooler cooling
+    q_total -= cryocooler_power
+    
     # dT/dt = (Q_in - Q_out) / (m * c)
-    dt_dt = (q_in - q_out) / (ms * c_therm)
+    dt_dt = (q_total - q_out) / (ms * c_therm)
     
     return dt_dt
 
@@ -112,8 +131,10 @@ def simulate_logistics_event(params, payload_mass=10000.0, v_relative=10.0, dura
         v_node[i+1] = v_node[i] + a_node * dt
         x[i+1] = x[i] + v_node[i+1] * dt
         
-        # Thermal
-        dt_dt = calculate_thermal_balance(temp[i], q_in, params)
+        # Thermal (with eddy heating and cryocooler)
+        k_drag = params.get("k_drag", 0.0)
+        cryocooler_power = params.get("cryocooler_power", 0.0)
+        dt_dt = calculate_thermal_balance(temp[i], q_in, params, velocity=v_node[i], k_drag=k_drag, cryocooler_power=cryocooler_power)
         temp[i+1] = temp[i] + dt_dt * dt
         
     return t, x, temp, f_brake_hist, x_target_hist
@@ -131,7 +152,9 @@ if __name__ == "__main__":
         "efficiency": 0.95, # 5% thermal leakage
         "c_damp": 10000.0, # MAX ACTIVE DAMPING
         "g_gain": 1.0,      # High-bandwidth control
-        "x0": 0.0, "v0": 0.0
+        "x0": 0.0, "v0": 0.0,
+        "k_drag": 0.01,     # Eddy-current drag coefficient
+        "cryocooler_power": 5.0,  # Cryocooler cooling power (W)
     })
     
     # 10-ton Payload @ 10 m/s catch

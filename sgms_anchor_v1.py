@@ -57,6 +57,46 @@ DEFAULT_FLUX_PINNING_GEOMETRY = {
 }
 
 
+def material_profile_to_properties(material_profile: dict | None) -> GdBCOProperties:
+    """Convert material profile dict to GdBCOProperties.
+    
+    Args:
+        material_profile: Material profile dict from catalog, or None for defaults
+        
+    Returns:
+        GdBCOProperties instance
+        
+    Note:
+        This function uses a simplified scaling model where Jc0 is scaled linearly
+        based on the midpoint of the k_fp_range. This is a first-order approximation
+        and may not accurately reflect the true relationship between flux-pinning
+        stiffness and critical current density for different GdBCO material variants.
+        For more accurate material modeling, consider adding explicit jc0 values
+        to material profiles.
+    """
+    if material_profile is None:
+        return DEFAULT_GDBCO_PROPS
+    
+    # Extract k_fp_range from material profile
+    k_fp_range = material_profile.get("k_fp_range", [80000, 120000])
+    # Use midpoint of range as baseline, scale Jc0 proportionally
+    # NOTE: This is a simplification - assumes linear relationship between
+    # flux-pinning stiffness and critical current density
+    k_fp_baseline = (k_fp_range[0] + k_fp_range[1]) / 2
+    k_fp_default = (80000 + 120000) / 2  # Default baseline
+    jc0_scaled = DEFAULT_GDBCO_PROPS.Jc0 * (k_fp_baseline / k_fp_default)
+    
+    return GdBCOProperties(
+        Tc=DEFAULT_GDBCO_PROPS.Tc,
+        Jc0=jc0_scaled,
+        n_exponent=DEFAULT_GDBCO_PROPS.n_exponent,
+        B0=DEFAULT_GDBCO_PROPS.B0,
+        alpha=DEFAULT_GDBCO_PROPS.alpha,
+        thickness=DEFAULT_GDBCO_PROPS.thickness,
+        width=DEFAULT_GDBCO_PROPS.width,
+    )
+
+
 DEFAULT_PARAMS = {
     "u": 10.0,
     "lam": 0.5,
@@ -113,12 +153,22 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
     
     if "k_fp" in params:
         # Legacy linear stiffness
+        if "material_profile" in params:
+            warnings.warn(
+                "Both 'k_fp' (legacy) and 'material_profile' (new) are present. "
+                "Using legacy 'k_fp' value and ignoring material_profile. "
+                "Remove 'k_fp' to use material-based Bean-London stiffness.",
+                UserWarning,
+                stacklevel=2
+            )
         k_fp = params["k_fp"]
     else:
         # New dynamic Bean-London stiffness
         if flux_model is None:
-            # Create default model for backward compatibility
-            material = GdBCOMaterial(DEFAULT_GDBCO_PROPS)
+            # Check for material_profile in params
+            material_profile = params.get("material_profile")
+            gdBCO_props = material_profile_to_properties(material_profile)
+            material = GdBCOMaterial(gdBCO_props)
             flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
         
         temperature = params.get("temperature", 77.0)

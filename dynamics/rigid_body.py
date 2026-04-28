@@ -39,6 +39,47 @@ except ImportError:
     BeanLondonModel = None
 
 
+def geometry_profile_to_inertia(geometry_profile: dict | None) -> np.ndarray:
+    """Convert geometry profile dict to inertia tensor.
+    
+    Args:
+        geometry_profile: Geometry profile dict from catalog, or None for defaults
+        
+    Returns:
+        3x3 inertia tensor (kg·m²)
+        
+    Note:
+        This function is defined but not yet integrated into the simulation pipeline.
+        TODO: Integrate geometry_profile_to_inertia into sgms_anchor_pipeline.py and
+        sgms_anchor_v1.py to use geometry profiles for setting inertia tensors in simulations.
+    """
+    if geometry_profile is None:
+        # Default: small sphere
+        mass = 0.05
+        radius = 0.02
+        I_sphere = (2.0/5.0) * mass * radius**2
+        return np.diag([I_sphere, I_sphere, I_sphere])
+    
+    shape = geometry_profile.get("shape", "sphere")
+    mass = geometry_profile.get("mass", 0.05)
+    radius = geometry_profile.get("radius", 0.02)
+    
+    if shape == "sphere":
+        I_sphere = (2.0/5.0) * mass * radius**2
+        return np.diag([I_sphere, I_sphere, I_sphere])
+    elif shape == "prolate_spheroid":
+        aspect_ratio = geometry_profile.get("aspect_ratio", 1.2)
+        # For prolate spheroid: I_transverse = (1/5) * m * (a² + c²), I_axial = (2/5) * m * a²
+        # where a = radius (equatorial), c = aspect_ratio * radius (polar)
+        a = radius
+        c = aspect_ratio * radius
+        I_transverse = (1.0/5.0) * mass * (a**2 + c**2)
+        I_axial = (2.0/5.0) * mass * a**2
+        return np.diag([I_axial, I_transverse, I_transverse])
+    else:
+        raise ValueError(f"Unknown shape type: {shape}")
+
+
 def validate_quaternion(q: np.ndarray) -> np.ndarray:
     """Validate quaternion shape and return as array.
 
