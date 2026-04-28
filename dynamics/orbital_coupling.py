@@ -1,8 +1,9 @@
 """
 Orbital dynamics coupling layer using poliastro.
 
-Provides orbital propagation with perturbations (J2, SRP, drag)
-and coordinate transforms for integration with MultiBodyStream.
+Provides orbital propagation with perturbations (J2, SRP, drag),
+coordinate transforms for integration with MultiBodyStream,
+and reference frame conversions for skyhook station coupling.
 """
 
 import numpy as np
@@ -38,6 +39,294 @@ class OrbitState(Enum):
     ELLIPTICAL = "elliptical"
     PARABOLIC = "parabolic"
     HYPERBOLIC = "hyperbolic"
+
+
+@dataclass
+class StationState:
+    """
+    State of a skyhook station in the mass stream.
+    
+    This defines the reference frame for station-relative velocity calculations.
+    
+    Attributes:
+        position_eci: Position vector in ECI frame (km)
+        velocity_eci: Velocity vector in ECI frame (km/s)
+        stream_velocity_mag: Magnitude of circulating stream velocity (km/s)
+        station_id: Unique identifier for the station
+    """
+    position_eci: np.ndarray
+    velocity_eci: np.ndarray
+    stream_velocity_mag: float  # Typically ~7.6 km/s at LEO
+    station_id: str = "S001"
+    
+    def __post_init__(self):
+        """Validate state vectors."""
+        self.position_eci = np.asarray(self.position_eci, dtype=float)
+        self.velocity_eci = np.asarray(self.velocity_eci, dtype=float)
+        if self.position_eci.shape != (3,):
+            raise ValueError(f"position_eci must be 3D vector, got shape {self.position_eci.shape}")
+        if self.velocity_eci.shape != (3,):
+            raise ValueError(f"velocity_eci must be 3D vector, got shape {self.velocity_eci.shape}")
+    
+    @property
+    def altitude_km(self) -> float:
+        """Altitude above Earth surface (km)."""
+        r_mag = np.linalg.norm(self.position_eci)
+        return r_mag - R_earth
+    
+    @property
+    def orbital_speed_kms(self) -> float:
+        """Orbital speed magnitude (km/s)."""
+        return np.linalg.norm(self.velocity_eci)
+
+
+@dataclass
+class CouplingResult:
+    """
+    Result of reference frame conversion for packet-stream coupling.
+    
+    Attributes:
+        v_packet_eci: Packet velocity in ECI frame (km/s)
+        v_packet_relative: Packet velocity relative to station (km/s)
+        v_stream_relative: Stream velocity relative to station (km/s)
+        relative_speed_magnitude: |v_packet_relative| (km/s)
+        coupling_feasible: Whether coupling is within lane limits
+        lane_classification: 'SLOW', 'STANDARD', 'FAST', or 'NONE'
+        kinetic_energy_eci: Kinetic energy in ECI frame (J/kg)
+        kinetic_energy_relative: Kinetic energy in relative frame (J/kg)
+    """
+    v_packet_eci: np.ndarray
+    v_packet_relative: np.ndarray
+    v_stream_relative: np.ndarray
+    relative_speed_magnitude: float
+    coupling_feasible: bool
+    lane_classification: str
+    kinetic_energy_eci: float
+    kinetic_energy_relative: float
+
+
+class StreamReferenceFrame:
+    """
+    Converter between ECI and Station/Stream Relative reference frames.
+    
+    This class handles the critical vector math for skyhook packet coupling:
+    - v_relative = v_packet_eci - v_station_eci
+    - v_eci = v_relative + v_station_eci
+    
+    The stream circulates at high velocity (~7.6 km/s at LEO) in the ECI frame,
+    but packets couple at tunable relative velocities (1-15 km/s) in the
+    station frame.
+    
+    Example Usage:
+        >>> converter = StreamReferenceFrame()
+        >>> station = StationState(
+        ...     position_eci=np.array([6871, 0, 0]),  # 500 km altitude
+        ...     velocity_eci=np.array([0, 7.6, 0]),   # Circular orbit
+        ...     stream_velocity_mag=7.6
+        ... )
+        >>> v_packet_eci = np.array([0, 12.6, 0])  # Packet arriving at 5 km/s relative
+        >>> result = converter.eci_to_station_frame(v_packet_eci, station)
+        >>> result.relative_speed_magnitude  # Should be ~5.0 km/s
+    """
+    
+    # Lane velocity boundaries (km/s relative speed)
+    SLOW_LANE_MAX = 2.0
+    STANDARD_LANE_MIN = 2.0
+    STANDARD_LANE_MAX = 5.0
+    FAST_LANE_MIN = 5.0
+    FAST_LANE_MAX = 15.0
+    
+    def __init__(self):
+        """Initialize reference frame converter."""
+        pass
+    
+    def eci_to_station_frame(
+        self, 
+        v_packet_eci: np.ndarray, 
+        station_state: StationState
+    ) -> CouplingResult:
+        """
+        Convert packet velocity from ECI to station-relative frame.
+        
+        This is the core coupling calculation: when a packet arrives from
+        lunar injection, its ECI velocity must be converted to the station
+        frame to determine coupling feasibility and lane assignment.
+        
+        Args:
+            v_packet_eci: Packet velocity vector in ECI frame (km/s)
+            station_state: Current state of the target station
+            
+        Returns:
+            CouplingResult with relative velocities and lane classification
+        """
+        v_packet_eci = np.asarray(v_packet_eci, dtype=float)
+        
+        # CRITICAL VECTOR MATH:
+        # v_relative = v_packet_eci - v_station_eci
+        # This gives the packet's velocity as seen from the station
+        v_station_eci = station_state.velocity_eci
+        v_packet_relative = v_packet_eci - v_station_eci
+        
+        # Stream velocity in station frame:
+        # The stream circulates at stream_velocity_mag in the same direction
+        # as the station's orbital motion. We must express this in the same
+        # basis as v_packet_relative (which is ECI-difference frame).
+        # 
+        # v_stream_relative = v_stream_eci - v_station_eci
+        # where v_stream_eci is the stream velocity in ECI frame.
+        # For a co-rotating stream moving with the station:
+        # v_stream_eci = (stream_velocity_mag / |v_station|) * v_station_eci
+        # 
+        # Therefore: v_stream_relative = v_stream_eci - v_station_eci
+        #          = (stream_velocity_mag / |v_station|) * v_station_eci - v_station_eci
+        #          = ((stream_velocity_mag / |v_station|) - 1) * v_station_eci
+        #
+        # However, for typical skyhook operation, the stream velocity magnitude
+        # IS the station orbital speed (they co-rotate), so:
+        # v_stream_eci ≈ v_station_eci, thus v_stream_relative ≈ 0
+        #
+        # But the "stream" concept here means packets circulating AT the station
+        # with some relative speed. So we define the stream direction as the
+        # unit vector of station velocity, scaled by stream_velocity_mag.
+        
+        v_station_mag = np.linalg.norm(v_station_eci)
+        if v_station_mag < 1e-10:
+            # Degenerate case: station not moving
+            v_stream_relative = np.array([station_state.stream_velocity_mag, 0.0, 0.0])
+        else:
+            # Stream moves in same direction as station orbital motion
+            v_station_unit = v_station_eci / v_station_mag
+            v_stream_eci = v_station_unit * station_state.stream_velocity_mag
+            # Now express in station-relative frame (same basis as v_packet_relative)
+            v_stream_relative = v_stream_eci - v_station_eci
+        
+        # Relative speed magnitude
+        relative_speed_mag = np.linalg.norm(v_packet_relative)
+        
+        # Lane classification
+        lane = self._classify_lane(relative_speed_mag)
+        
+        # Coupling feasibility: within operational lane limits
+        coupling_feasible = (
+            self.SLOW_LANE_MAX >= relative_speed_mag >= 0 or
+            self.STANDARD_LANE_MIN <= relative_speed_mag <= self.STANDARD_LANE_MAX or
+            self.FAST_LANE_MIN <= relative_speed_mag <= self.FAST_LANE_MAX
+        )
+        
+        # Kinetic energy calculations (per unit mass, J/kg = (km/s)^2 * 1e6 / 2)
+        ke_eci = 0.5 * np.linalg.norm(v_packet_eci)**2 * 1e6  # Convert to J/kg
+        ke_relative = 0.5 * relative_speed_mag**2 * 1e6
+        
+        return CouplingResult(
+            v_packet_eci=v_packet_eci,
+            v_packet_relative=v_packet_relative,
+            v_stream_relative=v_stream_relative,
+            relative_speed_magnitude=relative_speed_mag,
+            coupling_feasible=coupling_feasible,
+            lane_classification=lane,
+            kinetic_energy_eci=ke_eci,
+            kinetic_energy_relative=ke_relative
+        )
+    
+    def station_to_eci_frame(
+        self,
+        v_packet_relative: np.ndarray,
+        station_state: StationState
+    ) -> np.ndarray:
+        """
+        Convert packet velocity from station-relative to ECI frame.
+        
+        This is used when designing injection trajectories: given a desired
+        relative velocity at coupling, compute the required ECI arrival vector.
+        
+        Args:
+            v_packet_relative: Desired packet velocity in station frame (km/s)
+            station_state: Current state of the target station
+            
+        Returns:
+            v_packet_eci: Required packet velocity in ECI frame (km/s)
+        """
+        v_packet_relative = np.asarray(v_packet_relative, dtype=float)
+        
+        # INVERSE TRANSFORM:
+        # v_eci = v_relative + v_station_eci
+        v_station_eci = station_state.velocity_eci
+        v_packet_eci = v_packet_relative + v_station_eci
+        
+        return v_packet_eci
+    
+    def _classify_lane(self, relative_speed_km_s: float) -> str:
+        """
+        Classify relative speed into operational lane.
+        
+        Args:
+            relative_speed_km_s: Relative speed magnitude (km/s)
+            
+        Returns:
+            Lane classification: 'SLOW', 'STANDARD', 'FAST', or 'NONE'
+        """
+        if relative_speed_km_s < 0:
+            return "NONE"  # Unphysical
+        elif relative_speed_km_s <= self.SLOW_LANE_MAX:
+            return "SLOW"
+        elif relative_speed_km_s <= self.STANDARD_LANE_MAX:
+            return "STANDARD"
+        elif relative_speed_km_s <= self.FAST_LANE_MAX:
+            return "FAST"
+        else:
+            return "NONE"  # Exceeds operational limits
+    
+    def calculate_momentum_flux(
+        self,
+        mass_flow_rate: float,  # kg/s
+        v_relative: np.ndarray  # km/s
+    ) -> np.ndarray:
+        """
+        Calculate momentum flux for packet-stream interaction.
+        
+        Momentum flux F = dm/dt * v_relative
+        
+        This determines the force exerted on the station during coupling.
+        
+        Args:
+            mass_flow_rate: Mass flow rate (kg/s)
+            v_relative: Relative velocity vector (km/s)
+            
+        Returns:
+            Force vector (N)
+        """
+        # F = dm/dt * v (convert km/s to m/s)
+        v_ms = v_relative * 1000  # km/s -> m/s
+        force_N = mass_flow_rate * v_ms
+        return force_N
+    
+    def calculate_energy_transfer(
+        self,
+        packet_mass: float,  # kg
+        v_initial_rel: np.ndarray,  # km/s
+        v_final_rel: np.ndarray  # km/s
+    ) -> float:
+        """
+        Calculate energy transfer during coupling event.
+        
+        E = 0.5 * m * (v_final^2 - v_initial^2)
+        
+        Positive E means energy added to packet (acceleration).
+        Negative E means energy extracted from packet (deceleration/capture).
+        
+        Args:
+            packet_mass: Packet mass (kg)
+            v_initial_rel: Initial relative velocity (km/s)
+            v_final_rel: Final relative velocity (km/s)
+            
+        Returns:
+            Energy transfer (Joules)
+        """
+        v_i_mag = np.linalg.norm(v_initial_rel) * 1000  # km/s -> m/s
+        v_f_mag = np.linalg.norm(v_final_rel) * 1000  # km/s -> m/s
+        
+        delta_E = 0.5 * packet_mass * (v_f_mag**2 - v_i_mag**2)
+        return delta_E
 
 
 @dataclass
