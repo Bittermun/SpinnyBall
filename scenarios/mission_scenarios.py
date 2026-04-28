@@ -4,12 +4,17 @@ Mission scenario scripts for orbital operations.
 Provides predefined orbital scenarios for launch, transfer, station-keeping, and deorbit.
 """
 
+import sys
+from pathlib import Path
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
+
 import numpy as np
 from typing import Optional, List
 from dataclasses import dataclass
 
 from dynamics.orbital_coupling import (
-    OrbitalState, OrbitalPropagator, OrbitalElements, 
+    OrbitalState, OrbitalPropagator, OrbitalElements,
     create_circular_orbit, eci_to_lvlh, lvlh_to_eci
 )
 

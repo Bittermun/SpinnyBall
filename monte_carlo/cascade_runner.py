@@ -288,21 +288,10 @@ class CascadeRunner:
                 if self.config.track_per_packet_latency:
                     per_packet_latency.append((packet.id, latency * 1000.0))
 
-        # Apply fault injection based on fault_rate
         # fault_rate is per hour, convert to per-step probability
         fault_prob_per_step = self.config.fault_rate * self.config.dt / 3600.0
-        if fault_prob_per_step > 0 and stream.nodes:
-            for node in stream.nodes:
-                if np.random.random() < fault_prob_per_step:
-                    # Node failure: reduce stiffness by cascade_threshold
-                    if hasattr(node, 'k_fp'):
-                        original_k = node.k_fp
-                        node.k_fp /= self.config.cascade_threshold
-                        nodes_affected.add(node.id)
-                        logger.debug(f"Node {node.id} failed: k_fp reduced from {original_k:.1f} to {node.k_fp:.1f}")
 
         logger.info(f"Latency injection: {latency_events} events, max_latency={max_latency_ms:.1f} ms")
-        logger.info(f"Fault injection: {len(nodes_affected)} nodes affected")
 
         for step in range(n_steps):
             # Check for delayed state applications
@@ -321,6 +310,16 @@ class CascadeRunner:
                         else:
                             active_buffer.append((release_time, delayed_state))
                     packet.latency_buffer = active_buffer
+
+            # Apply fault injection at each step (continuous)
+            if fault_prob_per_step > 0 and stream.nodes:
+                for node in stream.nodes:
+                    if np.random.random() < fault_prob_per_step:
+                        if hasattr(node, 'k_fp'):
+                            original_k = node.k_fp
+                            node.k_fp /= self.config.cascade_threshold
+                            nodes_affected.add(node.id)
+                            logger.debug(f"Step {step}: Node {node.id} failed: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
 
             result = stream.integrate(self.config.dt, zero_torque)
             current_time += self.config.dt
@@ -351,13 +350,21 @@ class CascadeRunner:
         k_eff_min = 6000.0
         k_eff_within_limit = True
         
+        # Determine containment success and cascade from node failures
+        containment_successful = len(nodes_affected) <= self.config.containment_threshold
+
+        # Cascade also occurs if too many nodes fail (cascade propagation)
+        if len(nodes_affected) > self.config.containment_threshold and not cascade_occurred:
+            cascade_occurred = True
+            failure_mode = "cascade_propagation"
+
         # Check pass/fail gates
         eta_ind_pass = eta_ind_min >= self.config.pass_fail_gates["eta_ind"][0]
         stress_pass = stress_max <= self.config.pass_fail_gates["stress"][0]
         k_eff_pass = k_eff_min >= self.config.pass_fail_gates["k_eff"][0]
-        
+
         success = eta_ind_pass and stress_pass and k_eff_pass and not cascade_occurred
-        
+
         # Get final state
         final_states = []
         for packet in stream.packets:
@@ -366,11 +373,8 @@ class CascadeRunner:
                 packet.body.angular_velocity,
             ])
             final_states.append(state)
-        
-        final_state = np.concatenate(final_states)
 
-        # Determine containment success
-        containment_successful = len(nodes_affected) <= self.config.containment_threshold
+        final_state = np.concatenate(final_states)
 
         return RealizationResult(
             realization_id=realization_id,
@@ -483,19 +487,42 @@ class CascadeRunner:
 
         cascade_probability = failure_count / len(results)
         containment_rate = sum(containment_successful_values) / len(results) if results else 1.0
+        n = len(results)
+
+        # Wilson score interval for binomial proportions (95% CI)
+        def wilson_ci(k, n, z=1.96):
+            if n == 0:
+                return (0.0, 1.0)
+            p = k / n
+            denominator = 1 + z**2 / n
+            centre = (p + z**2 / (2*n)) / denominator
+            half_width = z * np.sqrt((p * (1-p) + z**2 / (4*n)) / n) / denominator
+            return (max(0.0, centre - half_width), min(1.0, centre + half_width))
+
+        # Normal CI for means (95%)
+        def mean_ci(values, z=1.96):
+            if len(values) == 0:
+                return (0.0, 0.0)
+            mean = np.mean(values)
+            sem = np.std(values, ddof=1) / np.sqrt(len(values)) if len(values) > 1 else 0.0
+            return (mean - z * sem, mean + z * sem)
 
         return {
-            "n_realizations": self.config.n_realizations,
+            "n_realizations": n,
             "n_success": success_count,
             "n_failure": failure_count,
-            "success_rate": success_count / len(results),
+            "success_rate": success_count / n,
+            "success_rate_ci": wilson_ci(success_count, n),
             "cascade_probability": cascade_probability,
+            "cascade_probability_ci": wilson_ci(failure_count, n),
             "eta_ind_min_mean": np.mean(eta_ind_values),
             "eta_ind_min_std": np.std(eta_ind_values),
             "eta_ind_min_min": np.min(eta_ind_values),
+            "eta_ind_min_ci": mean_ci(eta_ind_values),
             "stress_max_mean": np.mean(stress_values),
             "stress_max_std": np.std(stress_values),
             "stress_max_max": np.max(stress_values),
+            "stress_max_ci": mean_ci(stress_values),
             "failure_modes": failure_modes,
             "latency_events": sum(latency_events),
             "max_latency_ms": max(max_latency_values) if max_latency_values else 0.0,
@@ -505,7 +532,9 @@ class CascadeRunner:
             "nodes_affected_mean": np.mean(nodes_affected_values) if nodes_affected_values else 0.0,
             "nodes_affected_std": np.std(nodes_affected_values) if nodes_affected_values else 0.0,
             "nodes_affected_max": max(nodes_affected_values) if nodes_affected_values else 0,
+            "nodes_affected_ci": mean_ci(nodes_affected_values),
             "containment_rate": containment_rate,
+            "containment_rate_ci": wilson_ci(sum(containment_successful_values), n),
             "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
         }
 

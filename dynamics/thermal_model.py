@@ -33,21 +33,21 @@ class ThermalLimits:
 def update_temperature_euler(
     temperature: float,
     mass: float,
-    position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
-    enable_eclipse: bool = False,  # Enable automatic eclipse detection
     radius: float,
     emissivity: float,
     specific_heat: float,
     dt: float,
+    position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
+    enable_eclipse: bool = False,  # Enable automatic eclipse detection
     ambient_temp: float = 4.0,  # K - deep space temperature
-    stefan_boltzmann: float = 5.67e-8,  # W/m²/K⁴
+    stefan_boltzmann: float = 5.67e-8,  # W/m²/K**4
     solar_flux: float = 0.0,  # W/m² - solar heating flux
     eddy_heating_power: float = 0.0,  # W - eddy-current heating from drag
 ) -> float:
     """
     Update packet temperature using Euler integration with radiative cooling.
     
-    Models radiative heat transfer: P = εσA(T⁴ - T_ambient⁴)
+    Models radiative heat transfer: P = εσA(T**4 - T_ambient**4)
     Temperature change: dT/dt = (P_solar - P_rad)/(mc)
     
     Args:
@@ -60,21 +60,22 @@ def update_temperature_euler(
         specific_heat: Specific heat capacity (J/kg/K)
         dt: Time step (s)
         ambient_temp: Ambient temperature (K), default 4K for deep space
-        stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K⁴)
+        stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
         solar_flux: Solar heating flux (W/m²), default 0
         eddy_heating_power: Eddy-current heating power from drag (W), default 0
     
     Returns:
         Updated temperature (K)
-    " Check eclipse if enabled and"position provided
+    """
+    # Check eclipse if enabled and position provided
     effective_solar_flux = solar_flux
-    if enable_eclipse and position_eci is not None and O"BITAL_DYNAMICS_AVAILABLE:
+    if enable_eclipse and position_eci is not None and ORBITAL_DYNAMICS_AVAILABLE:
         if compute_eclipse is not None:
             in_eclipse = compute_eclipse(position_eci)
             if in_eclipse:
                 effective_solar_flux = 0.0  # No solar heating during eclipse
     
-    # R
+    # Radiative cooling
     # Surface area (assuming spherical packet)
     surface_area = 4 * np.pi * radius**2
     
@@ -164,10 +165,10 @@ def steady_state_temperature(
 ) -> float:
     """
     Calculate steady-state temperature given constant power input.
-    
-    At steady state: P_in = P_out = εσA(T⁴ - T_ambient⁴)
-    Solves for T: T = (P_in/(εσA) + T_ambient⁴)^(1/4)
-    
+
+    At steady state: P_in = P_out = εσA(T**4 - T_ambient**4)
+    Solves for T: T = (P_in/(εσA) + T_ambient**4)**(1/4)
+
     Args:
         power_in: Constant power input (W)
         mass: Packet mass (kg)
@@ -175,14 +176,14 @@ def steady_state_temperature(
         emissivity: Surface emissivity (0-1)
         specific_heat: Specific heat capacity (J/kg/K)
         ambient_temp: Ambient temperature (K)
-        stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K⁴)
+        stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
     
     Returns:
         Steady-state temperature (K)
     """
     surface_area = 4 * np.pi * radius**2
     
-    # Solve radiative balance: P_in = εσA(T⁴ - T_ambient⁴)
+    # Solve radiative balance: P_in = εσA(T**4 - T_ambient**4)
     temp_fourth = power_in / (emissivity * stefan_boltzmann * surface_area) + ambient_temp**4
     steady_temp = temp_fourth**0.25
     

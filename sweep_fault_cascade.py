@@ -236,7 +236,7 @@ if __name__ == "__main__":
     print(f"System behavior: {analysis['system_behavior']}")
     print(f"Mean cascade probability: {analysis['mean_cascade_probability']:.2e}")
     print(f"Mean containment rate: {analysis['mean_containment_rate']*100:.1f}%")
-    print(f"\nFault rate where cascade probability > 10⁻⁶: {analysis['cascade_threshold_fault_rate']:.2e} /hr")
+    print(f"\nFault rate where cascade probability > 10^-6: {analysis['cascade_threshold_fault_rate']:.2e} /hr")
     print(f"Fault rate where containment rate < 95%: {analysis['containment_threshold_fault_rate']:.2e} /hr")
 
     print("\nDetailed results:")
