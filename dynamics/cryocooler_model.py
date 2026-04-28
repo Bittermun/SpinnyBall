@@ -78,7 +78,7 @@ class CryocoolerModel:
     def input_power(self, temperature: float) -> float:
         """Compute input power at given temperature.
         
-        Interpolates between known data points.
+        Uses piecewise linear interpolation between known data points.
         
         Args:
             temperature: Current temperature (K)
@@ -91,10 +91,15 @@ class CryocoolerModel:
             return self.specs.input_power_at_70k
         elif T >= 90.0:
             return self.specs.input_power_at_90k
-        else:
-            # Linear interpolation
-            t = (T - 70.0) / (90.0 - 70.0)
+        elif T <= 80.0:
+            # Linear interpolation between 70K and 80K
+            t = (T - 70.0) / (80.0 - 70.0)
             return (1 - t) * self.specs.input_power_at_70k + \
+                   t * self.specs.input_power_at_80k
+        else:
+            # Linear interpolation between 80K and 90K
+            t = (T - 80.0) / (90.0 - 80.0)
+            return (1 - t) * self.specs.input_power_at_80k + \
                    t * self.specs.input_power_at_90k
     
     def cop(self, temperature: float) -> float:

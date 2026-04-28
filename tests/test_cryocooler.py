@@ -43,10 +43,10 @@ def test_cooling_power_interpolation():
     """Test cooling power interpolation between data points."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
     
-    # At data points
-    assert model.cooling_power(70.0) == 5.0
-    assert model.cooling_power(80.0) == 8.0
-    assert model.cooling_power(90.0) == 12.0
+    # At data points (use pytest.approx for floating-point tolerance)
+    assert model.cooling_power(70.0) == pytest.approx(5.0, rel=1e-9)
+    assert model.cooling_power(80.0) == pytest.approx(8.0, rel=1e-9)
+    assert model.cooling_power(90.0) == pytest.approx(12.0, rel=1e-9)
     
     # Between data points
     power_75 = model.cooling_power(75.0)
@@ -72,9 +72,9 @@ def test_input_power_interpolation():
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
     
     # At data points
-    assert model.input_power(70.0) == 50.0
-    assert model.input_power(80.0) == 60.0
-    assert model.input_power(90.0) == 80.0
+    assert model.input_power(70.0) == pytest.approx(50.0, rel=1e-9)
+    assert model.input_power(80.0) == pytest.approx(60.0, rel=1e-9)
+    assert model.input_power(90.0) == pytest.approx(80.0, rel=1e-9)
     
     # Between data points
     power_75 = model.input_power(75.0)
@@ -85,13 +85,13 @@ def test_cop_calculation():
     """Test coefficient of performance calculation."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
     
-    # At 70K
+    # At 70K (use pytest.approx for floating-point tolerance)
     cop_70 = model.cop(70.0)
-    assert cop_70 == 5.0 / 50.0
+    assert cop_70 == pytest.approx(5.0 / 50.0, rel=1e-9)
     
     # At 80K
     cop_80 = model.cop(80.0)
-    assert cop_80 == 8.0 / 60.0
+    assert cop_80 == pytest.approx(8.0 / 60.0, rel=1e-9)
 
 
 def test_cop_zero_input_power():
