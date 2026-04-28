@@ -131,8 +131,8 @@ def test_euler_integration():
     dt = 0.01
     model = LumpedThermalModel(params, dt=dt)
     
-    # Store initial temperature
-    T_initial = model.T_stator.copy()
+    # Store initial temperature (T_stator is a float, not an array)
+    T_initial = model.T_stator
     
     # Step with known heat
     Q = 100.0  # W

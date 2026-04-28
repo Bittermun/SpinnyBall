@@ -7,6 +7,7 @@ of GdBCO superconductors in the anchor system.
 
 from dataclasses import dataclass
 import numpy as np
+from scipy.interpolate import CubicSpline
 
 
 @dataclass
@@ -42,18 +43,20 @@ class CryocoolerModel:
             specs: CryocoolerSpecs with performance parameters
         """
         self.specs = specs
-        # Fit cooling power curve: P_cool(T) = a*T² + b*T + c
+        # Fit cooling power curve using cubic spline for smooth interpolation
         self._fit_cooling_curve()
         
     def _fit_cooling_curve(self):
-        """Fit quadratic curve to cooling power data."""
+        """Fit cubic spline curve to cooling power data for smooth interpolation."""
         T = np.array([70.0, 80.0, 90.0])
         P = np.array([
             self.specs.cooling_power_at_70k,
             self.specs.cooling_power_at_80k,
             self.specs.cooling_power_at_90k,
         ])
-        # Quadratic fit: P = a*T² + b*T + c
+        # Cubic spline fit for smooth interpolation
+        self.cooling_spline = CubicSpline(T, P, bc_type='natural')
+        # Also store quadratic coeffs for backward compatibility
         coeffs = np.polyfit(T, P, 2)
         self.cooling_coeffs = coeffs
         
@@ -71,14 +74,13 @@ class CryocoolerModel:
         elif temperature > 90.0:
             return 0.0  # No cooling above 90K (quench range)
         else:
-            T = temperature
-            a, b, c = self.cooling_coeffs
-            return a * T**2 + b * T + c
+            # Use cubic spline for smooth interpolation
+            return float(self.cooling_spline(temperature))
     
     def input_power(self, temperature: float) -> float:
         """Compute input power at given temperature.
         
-        Interpolates between known data points.
+        Uses piecewise linear interpolation between known data points.
         
         Args:
             temperature: Current temperature (K)
@@ -91,10 +93,15 @@ class CryocoolerModel:
             return self.specs.input_power_at_70k
         elif T >= 90.0:
             return self.specs.input_power_at_90k
-        else:
-            # Linear interpolation
-            t = (T - 70.0) / (90.0 - 70.0)
+        elif T <= 80.0:
+            # Linear interpolation between 70K and 80K
+            t = (T - 70.0) / (80.0 - 70.0)
             return (1 - t) * self.specs.input_power_at_70k + \
+                   t * self.specs.input_power_at_80k
+        else:
+            # Linear interpolation between 80K and 90K
+            t = (T - 80.0) / (90.0 - 80.0)
+            return (1 - t) * self.specs.input_power_at_80k + \
                    t * self.specs.input_power_at_90k
     
     def cop(self, temperature: float) -> float:

@@ -10,10 +10,19 @@ from __future__ import annotations
 
 import logging
 import numpy as np
-from typing import Callable, Dict, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple, Union
 from dataclasses import dataclass, field
 from enum import Enum
 import multiprocessing as mp
+
+# Vectorized random number generation for Monte Carlo speedup
+def _vectorized_normal(loc: float, scale: float, size: int) -> np.ndarray:
+    """Generate vectorized normal random samples."""
+    return np.random.normal(loc, scale, size)
+
+def _vectorized_uniform(size: int, low: float = 0.0, high: float = 1.0) -> np.ndarray:
+    """Generate vectorized uniform random samples."""
+    return np.random.uniform(low, high, size)
 
 logger = logging.getLogger(__name__)
 
@@ -276,12 +285,19 @@ class CascadeRunner:
             if not hasattr(packet, 'latency_buffer'):
                 packet.latency_buffer = []
 
-        # Apply initial latency perturbations
+        # Apply initial latency perturbations (vectorized for speed)
         if self.config.latency_ms > 0:
-            for packet in stream.packets:
-                # Add random latency with Gaussian distribution
-                latency = (self.config.latency_ms / 1000.0) + np.random.normal(0, self.config.latency_std_ms / 1000.0)
-                latency = max(0.0, latency)  # Ensure non-negative
+            n_packets = len(stream.packets)
+            # Generate all latencies at once using vectorized operations
+            latencies = _vectorized_normal(
+                loc=self.config.latency_ms / 1000.0,
+                scale=self.config.latency_std_ms / 1000.0,
+                size=n_packets
+            )
+            latencies = np.maximum(0.0, latencies)  # Ensure non-negative
+            
+            for idx, packet in enumerate(stream.packets):
+                latency = latencies[idx]
                 packet.latency_buffer.append((current_time + latency, packet.body.state_copy()))
                 latency_events += 1
                 max_latency_ms = max(max_latency_ms, latency * 1000.0)
