@@ -346,6 +346,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     # Initialize stream balance controller if enabled
     balance_controller = None
     dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
+    eps_log: list[tuple[float, float]] = []  # (t, epsilon) recorded during integration
     if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
         config = StreamBalanceConfig(target_epsilon=params.get("epsilon_target", 1e-4))
         balance_controller = StreamBalanceController(config)
@@ -369,9 +370,10 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             flow_perturbation = 0.01 * np.sin(2 * np.pi * 0.1 * t)  # 0.1 Hz oscillation
             flow_plus = params["lam"] * params["u"] * (1.0 + flow_perturbation)
             flow_minus = params["lam"] * params["u"] * (1.0 - flow_perturbation)
-            epsilon_measured = balance_controller.measure_imbalance(flow_plus, flow_minus)
+            balance_controller.measure_imbalance(flow_plus, flow_minus)
             dt = 0.01  # Fixed control update rate
             dynamic_epsilon, _ = balance_controller.update(dt)
+            eps_log.append((t, dynamic_epsilon))
         
         # Use dynamic epsilon in force calculation
         sim_params = params.copy()
@@ -395,16 +397,26 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     f_minus = np.empty_like(sol.t)
     f_damp = np.empty_like(sol.t)
     disturbance = np.empty_like(sol.t)
-    epsilon_history = np.empty_like(sol.t)
-    
+
+    # Build epsilon history from values recorded during integration; fall back to
+    # the constant final value when the controller was not active.
+    if eps_log:
+        log_t = np.array([e[0] for e in eps_log])
+        log_eps = np.array([e[1] for e in eps_log])
+        # Sort by time (RK45 may record intermediate stages out of order)
+        sort_idx = np.argsort(log_t, kind="stable")
+        log_t, log_eps = log_t[sort_idx], log_eps[sort_idx]
+        epsilon_history = np.interp(sol.t, log_t, log_eps)
+    else:
+        epsilon_history = np.full_like(sol.t, dynamic_epsilon)
+
     for i, t in enumerate(sol.t):
         disturbance[i] = noise_at(float(t))
         sim_params = params.copy()
-        sim_params["eps"] = dynamic_epsilon
+        sim_params["eps"] = epsilon_history[i]
         fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
         force[i] = fp + fm + fpin + fd
-        epsilon_history[i] = dynamic_epsilon
 
     metrics = analytical_metrics(params)
     metrics.update(

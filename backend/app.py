@@ -126,7 +126,7 @@ class MonteCarloResponse(BaseModel):
     latency_events: int = 0
     max_latency_ms: float = 0.0
     latency_gate_status: str = "unknown"
-    delay_margin_ms: float = float('inf')
+    delay_margin_ms: float | None = None
     nodes_affected_mean: float = 0.0
     containment_rate: float = 1.0
 
@@ -453,7 +453,7 @@ async def run_monte_carlo(request: MonteCarloRequest):
         latency_events=results.get("latency_events", 0),
         max_latency_ms=results.get("max_latency_ms", 0.0),
         latency_gate_status=latency_gate_status,
-        delay_margin_ms=results.get("delay_margin_ms", None),
+        delay_margin_ms=results.get("delay_margin_ms", 0.0),
         nodes_affected_mean=results.get("nodes_affected_mean", 0.0),
         containment_rate=results.get("containment_rate", 1.0),
     )

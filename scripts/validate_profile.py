@@ -88,7 +88,9 @@ def validate_profile(profile_name: str = "operational"):
     print(f"  Velocity (u): {params['u']:.2f} m/s")
     print(f"  Linear density (lam): {params['lam']:.2f} kg/m")
     print(f"  Control gain (g_gain): {params['g_gain']:.6f}")
-    print(f"  Flux-pinning (k_fp): {params.get('k_fp', 'dynamic'):.2f} N/m")
+    k_fp_val = params.get('k_fp', 'dynamic')
+    k_fp_str = f"{k_fp_val:.2f}" if isinstance(k_fp_val, (int, float)) else str(k_fp_val)
+    print(f"  Flux-pinning (k_fp): {k_fp_str} N/m")
     
     # Compute analytical metrics
     metrics = analytical_metrics(params)

@@ -109,5 +109,5 @@ if __name__ == "__main__":
     p["ms"] = 1000.0
     p["k_fp"] = 4500.0 # Pinning on
     
-    t, x, f = simulate_metabolic_event(p, payload_mass=100.0, v_relative=2.0)
+    t, x, f_brake_hist, switching_loss_dict = simulate_metabolic_event(p, payload_mass=100.0, v_relative=2.0)
     print(f"Peak Displacement during 100kg catch: {np.max(np.abs(x))*1000:.4f} mm")

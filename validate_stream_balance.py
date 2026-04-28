@@ -58,13 +58,13 @@ def run_single_realization(
     
     # Generate perturbations with different seeds to avoid correlation
     loss_plus, loss_minus = generate_packet_loss_perturbation(
-        n_packets, packet_loss_rate, seed=seed
+        n_packets, packet_loss_rate, random_seed=seed
     )
     jitter_plus, jitter_minus = generate_timing_jitter_perturbation(
-        n_packets, jitter_std, dt, seed=seed + 1 if seed is not None else None
+        n_packets, jitter_std, dt, random_seed=seed + 1 if seed is not None else None
     )
     mass_plus, mass_minus = generate_mass_drift_perturbation(
-        n_packets, mass_drift_rate, nominal_mass, seed=seed + 2 if seed is not None else None
+        n_packets, mass_drift_rate, nominal_mass, random_seed=seed + 2 if seed is not None else None
     )
     
     # Simulate
