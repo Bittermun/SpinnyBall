@@ -475,6 +475,38 @@ input[type=text] {
     </div>
 
     <div class="panel-section">
+      <div class="section-title">Flux-Pinning</div>
+      <div class="param-row">
+        <div class="param-label">Temperature (K) <span id="tempVal">77</span></div>
+        <input type="range" id="tempSlider" min="50" max="100" step="1" value="77" oninput="onSlider('temperature',this.value,'tempVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">B-field (T) <span id="bfieldVal">0.5</span></div>
+        <input type="range" id="bfieldSlider" min="0" max="2" step="0.1" value="0.5" oninput="onSlider('bfield',this.value,'bfieldVal',1)">
+      </div>
+      <div class="stat-row"><span class="stat-label">Pinning force</span><span class="stat-val" id="s_pin_force">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Pinning torque</span><span class="stat-val" id="s_pin_torque">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Stiffness</span><span class="stat-val" id="s_stiffness">&#8212;</span></div>
+      <div id="pinningStatus" style="font-size:10px; color:#7ee787; margin-top:4px;">Flux-pinning active</div>
+    </div>
+
+    <div class="panel-section">
+      <div class="section-title">Orbital Dynamics</div>
+      <button class="btn" id="viewToggleBtn" onclick="toggleViewMode()">Switch to Orbital View</button>
+      <div class="param-row" style="margin-top:8px;">
+        <div class="param-label">Altitude (km) <span id="altitudeVal">400</span></div>
+        <input type="range" id="altitudeSlider" min="200" max="2000" step="50" value="400" oninput="onSlider('altitude',this.value,'altitudeVal')">
+      </div>
+      <div class="param-row">
+        <div class="param-label">Inclination (°) <span id="inclinationVal">51.6</span></div>
+        <input type="range" id="inclinationSlider" min="0" max="90" step="1" value="51.6" oninput="onSlider('inclination',this.value,'inclinationVal',1)">
+      </div>
+      <div class="stat-row"><span class="stat-label">Period</span><span class="stat-val" id="s_period">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Velocity</span><span class="stat-val" id="s_velocity">&#8212;</span></div>
+      <div class="stat-row"><span class="stat-label">Eclipse</span><span class="stat-val" id="s_eclipse">&#8212;</span></div>
+    </div>
+
+    <div class="panel-section">
       <div class="section-title">Stats</div>
       <div class="stat-row"><span class="stat-label">&#916;vx (physics)</span><span class="stat-val" id="s_dvx">&#8212;</span></div>
       <div class="stat-row"><span class="stat-label">&#916;vz (drag loss)</span><span class="stat-val" id="s_dvz">&#8212;</span></div>
@@ -733,6 +765,14 @@ function simulate(P) {
   let t = 0;
 
   const T = [], X = [], Z = [], VX = [], VZ = [], BX = [], DBXDZ = [], FX = [], FZ = [], G_ARR = [];
+  const PIN_FORCE = [], PIN_TORQUE = [], STIFFNESS = [];
+
+  // Flux-pinning parameters (simplified model)
+  const Tc = 92.0; // Critical temperature (K)
+  const pinningActive = P.temperature < Tc;
+  const tempFactor = pinningActive ? Math.pow(1 - P.temperature / Tc, 1.5) : 0;
+  const fieldFactor = 1 / (1 + Math.pow(P.bfield / 0.1, 0.5));
+  const pinningStiffness = tempFactor * fieldFactor * P.bfield * 1000; // N/m (simplified)
 
   while (t <= t_end) {
     const { Bx, dBxdz } = fieldModel(t, y[2], P);
@@ -740,9 +780,16 @@ function simulate(P) {
     const Fx = P.mu * y[8] * dBxdz;
     const Fz_drag = -(P.kd * g * y[5]) - (P.kq * g * y[5] * Math.abs(y[5]));
 
+    // Flux-pinning restoring force (simplified)
+    const F_pin = pinningActive ? -pinningStiffness * y[0] : 0;
+    const totalFx = Fx + F_pin;
+
     T.push(t); X.push(y[0]); Z.push(y[2]);
     VX.push(y[3]); VZ.push(y[5]);
-    BX.push(Bx); DBXDZ.push(dBxdz); FX.push(Fx); FZ.push(Fz_drag); G_ARR.push(g);
+    BX.push(Bx); DBXDZ.push(dBxdz); FX.push(totalFx); FZ.push(Fz_drag); G_ARR.push(g);
+    PIN_FORCE.push(F_pin);
+    PIN_TORQUE.push(F_pin * 0.046); // Torque = r × F (simplified)
+    STIFFNESS.push(pinningStiffness);
 
     y = rk4Step(t, y, dt, P);
     t += dt;
@@ -765,6 +812,7 @@ function simulate(P) {
 
   return {
     T, X, Z, VX, VZ, BX, DBXDZ, FX, FZ, G_ARR,
+    PIN_FORCE, PIN_TORQUE, STIFFNESS,
     exitIdx,
     metrics: { delta_vx, delta_vz, delta_x, impulse, eta, E_loss, peakFx }
   };
@@ -784,6 +832,10 @@ const P_DEFAULTS = {
   delta: [0, 2, -1, 1, -2, 0].map(d => d * 1e-6),
   aText: '1.0,1.1,1.2,1.0,0.9,0.8',
   deltaText: '0,2,-1,1,-2,0',
+  temperature: 77.0,
+  bfield: 0.5,
+  altitude: 400.0,
+  inclination: 51.6,
 };
 
 const PRESETS = {
@@ -856,6 +908,10 @@ function readParams() {
   P.gradient = parseFloat(document.getElementById('gradSlider').value);
   P.vz0      = parseFloat(document.getElementById('vzSlider').value);
   P.sigma_us = parseFloat(document.getElementById('sigSlider').value);
+  P.temperature = parseFloat(document.getElementById('tempSlider').value);
+  P.bfield   = parseFloat(document.getElementById('bfieldSlider').value);
+  P.altitude = parseFloat(document.getElementById('altitudeSlider').value);
+  P.inclination = parseFloat(document.getElementById('inclinationSlider').value);
 
   const aText = document.getElementById('ampText').value;
   const dText = document.getElementById('deltaText').value;
@@ -1323,6 +1379,46 @@ function updateStatsPanel() {
   }
   document.getElementById('s_pkf').textContent = m.peakFx.toFixed(1) + ' N';
   document.getElementById('s_eloss').textContent = m.E_loss.toFixed(2) + ' J';
+
+  // Flux-pinning stats
+  if (transitData.PIN_FORCE && transitData.PIN_FORCE.length > 0) {
+    const maxPinForce = transitData.PIN_FORCE.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
+    const maxPinTorque = transitData.PIN_TORQUE.reduce((a, v) => Math.max(a, Math.abs(v)), 0);
+    const avgStiffness = transitData.STIFFNESS.reduce((a, v) => a + v, 0) / transitData.STIFFNESS.length;
+    document.getElementById('s_pin_force').textContent = maxPinForce.toExponential(3) + ' N';
+    document.getElementById('s_pin_torque').textContent = maxPinTorque.toExponential(3) + ' N·m';
+    document.getElementById('s_stiffness').textContent = avgStiffness.toFixed(1) + ' N/m';
+  } else {
+    document.getElementById('s_pin_force').textContent = '—';
+    document.getElementById('s_pin_torque').textContent = '—';
+    document.getElementById('s_stiffness').textContent = '—';
+  }
+
+  // Update pinning status
+  const Tc = 92.0;
+  const pinningStatus = document.getElementById('pinningStatus');
+  if (P.temperature >= Tc) {
+    pinningStatus.textContent = 'Flux-pinning FAILED (T ≥ Tc)';
+    pinningStatus.style.color = '#ff7b72';
+  } else if (P.bfield < 0.1) {
+    pinningStatus.textContent = 'Flux-pinning weak (low B-field)';
+    pinningStatus.style.color = '#f2cc60';
+  } else {
+    pinningStatus.textContent = 'Flux-pinning active';
+    pinningStatus.style.color = '#7ee787';
+  }
+
+  // Orbital telemetry
+  const R_earth = 6371.0; // km
+  const mu = 398600.4418; // km^3/s^2
+  const r = R_earth + P.altitude;
+  const period = 2 * Math.PI * Math.sqrt(r**3 / mu);
+  const velocity = Math.sqrt(mu / r);
+  
+  document.getElementById('s_period').textContent = (period / 60).toFixed(1) + ' min';
+  document.getElementById('s_velocity').textContent = velocity.toFixed(2) + ' km/s';
+  document.getElementById('s_eclipse').textContent = 'Sunlit'; // Simplified
+
   // Mirror to mobile sheet stats
   ['dvx','dvz','dx','imp','eta','pkf','eloss','rim'].forEach(key => {
     const src = document.getElementById('s_' + key);
@@ -1877,6 +1973,23 @@ function onSlider(key, val, labelId, decimals) {
   onParamChange();
 }
 
+function toggleViewMode() {
+  viewMode = viewMode === 'local' ? 'orbital' : 'local';
+  const btn = document.getElementById('viewToggleBtn');
+  btn.textContent = viewMode === 'local' ? 'Switch to Orbital View' : 'Switch to Local View';
+  
+  // Toggle visibility
+  if (viewMode === 'orbital') {
+    earthMesh.visible = true;
+    orbitLine.visible = true;
+    ballMesh.scale.set(2, 2, 2); // Make ball larger for orbital view
+  } else {
+    earthMesh.visible = false;
+    orbitLine.visible = false;
+    ballMesh.scale.set(1, 1, 1);
+  }
+}
+
 function onTextParamDebounced(key, val) {
   if (textDebounceTimer) clearTimeout(textDebounceTimer);
   textDebounceTimer = setTimeout(() => {
@@ -2127,6 +2240,33 @@ function init() {
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
     scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
   })();
+
+  // Earth sphere (for orbital view)
+  const earthRadius = 15.0;
+  const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
+  const earthMat = new THREE.MeshStandardMaterial({
+    color: 0x2244aa,
+    emissive: 0x001133,
+    emissiveIntensity: 0.2,
+    metalness: 0.1,
+    roughness: 0.8
+  });
+  earthMesh = new THREE.Mesh(earthGeo, earthMat);
+  earthMesh.position.set(0, 0, -50);
+  earthMesh.visible = false; // Hidden by default, shown in orbital view
+  scene.add(earthMesh);
+
+  // Orbital trajectory line
+  const orbitGeo = new THREE.BufferGeometry();
+  const orbitPositions = new Float32Array(1000 * 3);
+  orbitGeo.setAttribute('position', new THREE.BufferAttribute(orbitPositions, 3));
+  const orbitMat = new THREE.LineBasicMaterial({ color: 0x00ff88, transparent: true, opacity: 0.6 });
+  orbitLine = new THREE.Line(orbitGeo, orbitMat);
+  orbitLine.visible = false;
+  scene.add(orbitLine);
+
+  // View mode state
+  viewMode = 'local'; // 'local' or 'orbital'
 
   // Coil color constants
   COIL_COLOR_DEFAULT    = new THREE.Color(0x445566);

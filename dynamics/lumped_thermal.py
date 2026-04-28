@@ -7,6 +7,7 @@ Models radiative cooling and conductive heat transfer between components.
 
 from dataclasses import dataclass
 import numpy as np
+from typing import Optional
 
 
 @dataclass
@@ -30,6 +31,16 @@ class LumpedThermalParams:
     # Operating conditions
     ambient_temp: float = 4.0  # K (deep space)
     initial_temp: float = 77.0  # K (operating temperature)
+    
+    # Coil switching losses
+    enable_switching_losses: bool = False
+    switching_power_stator: float = 0.0  # W - average switching power dissipated in stator
+    switching_power_rotor: float = 0.0  # W - average switching power dissipated in rotor
+    
+    # Cryocooler
+    enable_cryocooler: bool = False
+    cryocooler_cooling_power: float = 5.0  # W - cooling power at 77K (deprecated, use cryocooler_model)
+    cryocooler_model: Optional['CryocoolerModel'] = None  # Full cryocooler model for temperature-dependent cooling
 
 
 class LumpedThermalModel:
@@ -57,6 +68,8 @@ class LumpedThermalModel:
             raise ValueError(f"rotor_mass must be > 0, got {params.rotor_mass}")
         if params.rotor_specific_heat <= 0:
             raise ValueError(f"rotor_specific_heat must be > 0, got {params.rotor_specific_heat}")
+        if params.cryocooler_cooling_power < 0:
+            raise ValueError(f"cryocooler_cooling_power must be >= 0, got {params.cryocooler_cooling_power}")
         
         self.params = params
         self.dt = dt
@@ -77,6 +90,23 @@ class LumpedThermalModel:
         # Extract heat inputs
         Q_stator = heat_sources.get('stator', 0.0)
         Q_rotor = heat_sources.get('rotor', 0.0)
+        
+        # Add switching losses if enabled
+        if self.params.enable_switching_losses:
+            Q_stator += self.params.switching_power_stator
+            Q_rotor += self.params.switching_power_rotor
+
+        # Add cryocooler cooling (applies to stator where GdBCO is located)
+        P_cryocooler = 0.0
+        if self.params.enable_cryocooler:
+            if self.params.cryocooler_model is not None:
+                # Use temperature-dependent cooling from CryocoolerModel
+                P_cryocooler = self.params.cryocooler_model.cooling_power(self.T_stator)
+                # Ensure cooling power is non-negative (cryocooler should not heat)
+                P_cryocooler = max(0.0, P_cryocooler)
+            else:
+                # Fallback to constant cooling power (deprecated)
+                P_cryocooler = self.params.cryocooler_cooling_power
 
         # Compute radiative loss (Stefan-Boltzmann)
         sigma = 5.67e-8
@@ -90,8 +120,8 @@ class LumpedThermalModel:
         # Compute conductive heat flow between stator and rotor
         P_cond = self.params.shaft_conductance * (self.T_rotor - self.T_stator)
 
-        # Net heat flow
-        Q_net_stator = Q_stator - P_rad_stator + P_cond
+        # Net heat flow (cryocooler removes heat from stator)
+        Q_net_stator = Q_stator - P_rad_stator + P_cond - P_cryocooler
         Q_net_rotor = Q_rotor - P_rad_rotor - P_cond
 
         # Temperature change (Euler integration)
@@ -118,6 +148,8 @@ class LumpedThermalModel:
             'P_cond': P_cond,
             'Q_net_stator': Q_net_stator,
             'Q_net_rotor': Q_net_rotor,
+            'Q_switching_stator': self.params.switching_power_stator if self.params.enable_switching_losses else 0.0,
+            'Q_switching_rotor': self.params.switching_power_rotor if self.params.enable_switching_losses else 0.0,
         }
 
     def get_temperatures(self) -> np.ndarray:

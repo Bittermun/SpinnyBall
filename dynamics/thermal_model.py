@@ -13,6 +13,14 @@ from typing import Tuple, Optional
 
 from dynamics.lumped_thermal import LumpedThermalModel, LumpedThermalParams
 
+try:
+    from dynamics.orbital_coupling import compute_eclipse, R_earth
+    ORBITAL_DYNAMICS_AVAILABLE = True
+except ImportError:
+    ORBITAL_DYNAMICS_AVAILABLE = False
+    compute_eclipse = None
+    R_earth = 6371.0  # km
+
 
 @dataclass
 class ThermalLimits:
@@ -25,40 +33,69 @@ class ThermalLimits:
 def update_temperature_euler(
     temperature: float,
     mass: float,
+    position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
+    enable_eclipse: bool = False,  # Enable automatic eclipse detection
     radius: float,
     emissivity: float,
     specific_heat: float,
     dt: float,
     ambient_temp: float = 4.0,  # K - deep space temperature
     stefan_boltzmann: float = 5.67e-8,  # W/m²/K⁴
+    solar_flux: float = 0.0,  # W/m² - solar heating flux
+    eddy_heating_power: float = 0.0,  # W - eddy-current heating from drag
 ) -> float:
     """
     Update packet temperature using Euler integration with radiative cooling.
     
     Models radiative heat transfer: P = εσA(T⁴ - T_ambient⁴)
-    Temperature change: dT/dt = -P/(mc)
+    Temperature change: dT/dt = (P_solar - P_rad)/(mc)
     
     Args:
         temperature: Current temperature (K)
         mass: Packet mass (kg)
+        position_eci: Position in ECI frame (km) for automatic eclipse detection
+        enable_eclipse: Enable automatic eclipse detection using position_eci
         radius: Packet radius (m)
         emissivity: Surface emissivity (0-1)
         specific_heat: Specific heat capacity (J/kg/K)
         dt: Time step (s)
         ambient_temp: Ambient temperature (K), default 4K for deep space
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K⁴)
+        solar_flux: Solar heating flux (W/m²), default 0
+        eddy_heating_power: Eddy-current heating power from drag (W), default 0
     
     Returns:
         Updated temperature (K)
-    """
+    " Check eclipse if enabled and"position provided
+    effective_solar_flux = solar_flux
+    if enable_eclipse and position_eci is not None and O"BITAL_DYNAMICS_AVAILABLE:
+        if compute_eclipse is not None:
+            in_eclipse = compute_eclipse(position_eci)
+            if in_eclipse:
+                effective_solar_flux = 0.0  # No solar heating during eclipse
+    
+    # R
     # Surface area (assuming spherical packet)
     surface_area = 4 * np.pi * radius**2
+    
+    # Validate effective_eddy_heating_power
+    if eddy_heating_power < 0:
+        raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
     
     # Radiative cooling power (W)
     power_out = emissivity * stefan_boltzmann * surface_area * (temperature**4 - ambient_temp**4)
     
-    # Temperature change (cooling)
-    temp_change = -power_out * dt / (mass * specific_heat)
+    # Solar heating power (W)
+    power_in = solar_flux * surface_area
+    
+    # Add eddy-current heating
+    power_in += eddy_heating_power
+    
+    # Net power (heating - cooling)
+    power_net = power_in - power_out
+    
+    # Temperature change
+    temp_change = power_net * dt / (mass * specific_heat)
     
     # Update temperature
     new_temp = temperature + temp_change
@@ -90,6 +127,30 @@ def check_thermal_limits(
         return False, f"below min_temp ({limits.min_temp} K)"
     else:
         return True, None
+
+
+def eddy_heating_power(
+    velocity: float,
+    k_drag: float,
+    radius: float,
+) -> float:
+    """
+    Compute eddy-current heating power from velocity-dependent drag.
+    
+    Eddy-current drag force: F_drag = k_drag * v
+    Heating power: P_eddy = F_drag * v = k_drag * v^2
+    
+    Args:
+        velocity: Packet velocity (m/s)
+        k_drag: Drag coefficient (N·s/m)
+        radius: Packet radius (m) - for skin depth correction
+    
+    Returns:
+        Eddy-current heating power (W)
+    """
+    # Quadratic drag: P = k_drag * v^2
+    power = k_drag * velocity**2
+    return power
 
 
 def steady_state_temperature(

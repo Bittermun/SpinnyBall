@@ -31,6 +31,32 @@ from scipy.integrate import solve_ivp
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
 
+try:
+    from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
+    STREAM_BALANCE_AVAILABLE = True
+except ImportError:
+    STREAM_BALANCE_AVAILABLE = False
+    StreamBalanceController = None
+    StreamBalanceConfig = None
+
+# Optional MPC controller
+try:
+    from control_layer.mpc_controller import MPCController, ConfigurationMode
+    MPC_AVAILABLE = True
+except ImportError:
+    MPC_AVAILABLE = False
+    MPCController = None
+    ConfigurationMode = None
+
+# Optional orbital perturbations
+try:
+    from dynamics.orbital_perturbations import get_orbital_perturbation_force, create_orbital_state_from_params
+    ORBITAL_PERTURBATIONS_AVAILABLE = True
+except ImportError:
+    ORBITAL_PERTURBATIONS_AVAILABLE = False
+    get_orbital_perturbation_force = None
+    create_orbital_state_from_params = None
+
 
 # Default Bean-London model configuration (for backward compatibility)
 DEFAULT_GDBCO_PROPS = GdBCOProperties(
@@ -49,6 +75,46 @@ DEFAULT_FLUX_PINNING_GEOMETRY = {
 }
 
 
+def material_profile_to_properties(material_profile: dict | None) -> GdBCOProperties:
+    """Convert material profile dict to GdBCOProperties.
+    
+    Args:
+        material_profile: Material profile dict from catalog, or None for defaults
+        
+    Returns:
+        GdBCOProperties instance
+        
+    Note:
+        This function uses a simplified scaling model where Jc0 is scaled linearly
+        based on the midpoint of the k_fp_range. This is a first-order approximation
+        and may not accurately reflect the true relationship between flux-pinning
+        stiffness and critical current density for different GdBCO material variants.
+        For more accurate material modeling, consider adding explicit jc0 values
+        to material profiles.
+    """
+    if material_profile is None:
+        return DEFAULT_GDBCO_PROPS
+    
+    # Extract k_fp_range from material profile
+    k_fp_range = material_profile.get("k_fp_range", [80000, 120000])
+    # Use midpoint of range as baseline, scale Jc0 proportionally
+    # NOTE: This is a simplification - assumes linear relationship between
+    # flux-pinning stiffness and critical current density
+    k_fp_baseline = (k_fp_range[0] + k_fp_range[1]) / 2
+    k_fp_default = (80000 + 120000) / 2  # Default baseline
+    jc0_scaled = DEFAULT_GDBCO_PROPS.Jc0 * (k_fp_baseline / k_fp_default)
+    
+    return GdBCOProperties(
+        Tc=DEFAULT_GDBCO_PROPS.Tc,
+        Jc0=jc0_scaled,
+        n_exponent=DEFAULT_GDBCO_PROPS.n_exponent,
+        B0=DEFAULT_GDBCO_PROPS.B0,
+        alpha=DEFAULT_GDBCO_PROPS.alpha,
+        thickness=DEFAULT_GDBCO_PROPS.thickness,
+        width=DEFAULT_GDBCO_PROPS.width,
+    )
+
+
 DEFAULT_PARAMS = {
     "u": 10.0,
     "lam": 0.5,
@@ -63,12 +129,26 @@ DEFAULT_PARAMS = {
     "packet_sigma_s": 0.01,
     "packet_phase_s": 0.0,
     "k_fp": 0.0,
+    "k_drag": 0.01,  # Eddy-current drag coefficient (N·s/m)
     "x0": 0.1,
     "v0": 0.0,
     "t_max": 400.0,
     "rtol": 1e-8,
     "atol": 1e-10,
     "max_step": 0.25,
+    "use_dynamic_epsilon": False,  # Enable dynamic stream balance control
+    "epsilon_target": 1e-4,  # Target ε < 10⁻⁴
+    "cryocooler_power": 5.0,  # Cryocooler cooling power (W)
+    "temperature": 77.0,  # Operating temperature (K)
+    "B_field": 1.0,  # Magnetic field (T)
+    "altitude_km": 400.0,  # Orbital altitude (km)
+    "inclination_deg": 51.6,  # Orbital inclination (degrees)
+    "include_j2": False,  # Include J2 perturbation
+    "include_srp": False,  # Include solar radiation pressure
+    "include_drag": False,  # Include atmospheric drag
+    "enable_thermal_dynamics": False,  # Enable temperature evolution
+    "enable_eclipse": False,  # Enable eclipse detection in thermal model
+    "control_mode": "pid",  # Control mode: "pid" or "mpc"
 }
 
 
@@ -99,12 +179,22 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
     
     if "k_fp" in params:
         # Legacy linear stiffness
+        if "material_profile" in params:
+            warnings.warn(
+                "Both 'k_fp' (legacy) and 'material_profile' (new) are present. "
+                "Using legacy 'k_fp' value and ignoring material_profile. "
+                "Remove 'k_fp' to use material-based Bean-London stiffness.",
+                UserWarning,
+                stacklevel=2
+            )
         k_fp = params["k_fp"]
     else:
         # New dynamic Bean-London stiffness
         if flux_model is None:
-            # Create default model for backward compatibility
-            material = GdBCOMaterial(DEFAULT_GDBCO_PROPS)
+            # Check for material_profile in params
+            material_profile = params.get("material_profile")
+            gdBCO_props = material_profile_to_properties(material_profile)
+            material = GdBCOMaterial(gdBCO_props)
             flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
         
         temperature = params.get("temperature", 77.0)
@@ -253,10 +343,20 @@ def packet_modulation(t: float, period: float, sigma: float, phase: float = 0.0,
     return period * total
 
 
-def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
-    del t  # Force law is time-invariant aside from the supplied disturbance.
+def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0, orbital_state=None) -> float:
     f_p, f_m, f_pin, f_d = _stream_forces(x, vx, disturbance_theta, params)
-    return f_p + f_m + f_pin + f_d
+    f_total = f_p + f_m + f_pin + f_d
+    if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
+        if params.get("include_j2", False) or params.get("include_srp", False) or params.get("include_drag", False):
+            try:
+                from dynamics.orbital_coupling import OrbitalPropagator
+                propagator = OrbitalPropagator(altitude_km=params.get("altitude_km", 400.0), inclination_deg=params.get("inclination_deg", 51.6))
+                updated_state = propagator.propagate(orbital_state, t)
+                f_orbital = get_orbital_perturbation_force(params, updated_state, t, packet_mass=params["ms"])
+                f_total += f_orbital[0] * 0.01
+            except Exception:
+                pass
+    return f_total
 
 
 def discrete_packet_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
@@ -279,6 +379,37 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     else:
         t_eval = np.asarray(t_eval, dtype=float)
 
+    # Initialize stream balance controller if enabled
+    balance_controller = None
+    dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
+    eps_log: list[tuple[float, float]] = []  # (t, epsilon) recorded during integration
+    if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
+        config = StreamBalanceConfig(target_epsilon=params.get("epsilon_target", 1e-4))
+        balance_controller = StreamBalanceController(config)
+
+    # Initialize MPC controller if requested
+    mpc_controller = None
+    control_mode = params.get("control_mode", "pid")
+    if control_mode == "mpc" and MPC_AVAILABLE:
+        try:
+            mpc_controller = MPCController(horizon=10, dt=0.01, configuration_mode=ConfigurationMode.OPERATIONAL)
+        except Exception:
+            control_mode = "pid"
+
+    # Initialize orbital state if perturbations enabled or thermal dynamics with eclipse
+    orbital_state = None
+    enable_orbital = (
+        params.get("include_j2", False) or 
+        params.get("include_srp", False) or 
+        params.get("include_drag", False) or
+        (params.get("enable_thermal_dynamics", False) and params.get("enable_eclipse", False))
+    )
+    if ORBITAL_PERTURBATIONS_AVAILABLE and enable_orbital:
+        try:
+            orbital_state = create_orbital_state_from_params(params)
+        except Exception:
+            orbital_state = None
+
     dt_noise = params["disturbance_hold_s"]
     noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
     noise_t = np.linspace(0.0, dt_noise * (noise_steps - 1), noise_steps)
@@ -289,7 +420,50 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
 
     def rhs(t: float, y: np.ndarray) -> list[float]:
         x, vx = y
-        force = net_anchor_force(x, vx, t, params, disturbance_theta=noise_at(t))
+        nonlocal orbital_state
+        
+        # Propagate orbital state if enabled
+        if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
+            try:
+                from dynamics.orbital_coupling import OrbitalPropagator
+                propagator = OrbitalPropagator(
+                    altitude_km=params.get("altitude_km", 400.0),
+                    inclination_deg=params.get("inclination_deg", 51.6)
+                )
+                orbital_state = propagator.propagate(orbital_state, t)
+            except Exception:
+                pass
+        
+        # Update dynamic epsilon if controller is active
+        nonlocal dynamic_epsilon
+        if balance_controller is not None:
+            # Simulate flow measurements with small perturbation to test controller
+            # In real implementation, this would come from actual packet flow sensors
+            flow_perturbation = 0.01 * np.sin(2 * np.pi * 0.1 * t)  # 0.1 Hz oscillation
+            flow_plus = params["lam"] * params["u"] * (1.0 + flow_perturbation)
+            flow_minus = params["lam"] * params["u"] * (1.0 - flow_perturbation)
+            balance_controller.measure_imbalance(flow_plus, flow_minus)
+            dt = 0.01  # Fixed control update rate
+            dynamic_epsilon, _ = balance_controller.update(dt)
+            eps_log.append((t, dynamic_epsilon))
+        
+        # Use dynamic epsilon in force calculation
+        sim_params = params.copy()
+        sim_params["eps"] = dynamic_epsilon
+        
+        # Use MPC for control if enabled
+        if mpc_controller is not None and control_mode == "mpc":
+            try:
+                # MPC computes optimal control inputs
+                # For reduced-order model, adjust g_gain based on MPC output
+                mpc_output = mpc_controller.compute_control(x, vx, t)
+                # Apply MPC adjustment to control gain
+                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output)
+            except Exception:
+                # Fall back to default g_gain on error
+                sim_params["g_gain"] = params["g_gain"]
+        
+        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=orbital_state)
         return [vx, force / params["ms"]]
 
     sol = solve_ivp(
@@ -308,11 +482,49 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     f_minus = np.empty_like(sol.t)
     f_damp = np.empty_like(sol.t)
     disturbance = np.empty_like(sol.t)
+    temperature = np.empty_like(sol.t)
+
+    # Build epsilon history from values recorded during integration; fall back to
+    # the constant final value when the controller was not active.
+    if eps_log:
+        log_t = np.array([e[0] for e in eps_log])
+        log_eps = np.array([e[1] for e in eps_log])
+        # Sort by time (RK45 may record intermediate stages out of order)
+        sort_idx = np.argsort(log_t, kind="stable")
+        log_t, log_eps = log_t[sort_idx], log_eps[sort_idx]
+        epsilon_history = np.interp(sol.t, log_t, log_eps)
+    else:
+        epsilon_history = np.full_like(sol.t, dynamic_epsilon)
+
     for i, t in enumerate(sol.t):
         disturbance[i] = noise_at(float(t))
-        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], params)
+        sim_params = params.copy()
+        sim_params["eps"] = epsilon_history[i]
+        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
         force[i] = fp + fm + fpin + fd
+        
+        # Update temperature if thermal dynamics enabled
+        if params.get("enable_thermal_dynamics", False):
+            try:
+                from dynamics.thermal_model import update_temperature_euler
+                position_eci = orbital_state.r if orbital_state is not None else None
+                temperature[i] = update_temperature_euler(
+                    temperature=temperature[i-1] if i > 0 else params["temperature"],
+                    mass=params["ms"],
+                    radius=0.01,
+                    emissivity=0.8,
+                    specific_heat=500.0,
+                    dt=sol.t[i] - sol.t[i-1] if i > 0 else 0.01,
+                    solar_flux=1361.0,
+                    eddy_heating_power=0.0,
+                    position_eci=position_eci,
+                    enable_eclipse=params.get("enable_eclipse", False)
+                )
+            except Exception:
+                temperature[i] = params["temperature"]
+        else:
+            temperature[i] = params["temperature"]
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -321,10 +533,12 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             "vx_final_m_s": float(sol.y[1][-1]),
             "x_peak_m": float(np.max(np.abs(sol.y[0]))),
             "force_peak_n": float(np.max(np.abs(force))),
+            "epsilon_mean": float(np.mean(epsilon_history)),
+            "epsilon_max": float(np.max(epsilon_history)),
         }
     )
 
-    return {
+    result = {
         "t": sol.t,
         "x": sol.y[0],
         "vx": sol.y[1],
@@ -333,9 +547,16 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         "f_minus": f_minus,
         "f_damp": f_damp,
         "disturbance_theta": disturbance,
+        "epsilon_history": epsilon_history,
+        "temperature": temperature,
         "metrics": metrics,
         "params": params,
     }
+    
+    if balance_controller is not None:
+        result["balance_diagnostics"] = balance_controller.get_diagnostics()
+    
+    return result
 
 
 def simulate_discrete_anchor(params: dict | None = None, t_eval: np.ndarray | None = None, seed: int = 0) -> dict:

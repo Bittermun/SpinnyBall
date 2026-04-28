@@ -31,6 +31,38 @@ from .stiffness_verification import (
 )
 
 try:
+    from .coil_switching import (
+        CoilSpecs,
+        SwitchingEvent,
+        CoilSwitchingModel,
+        DEFAULT_COIL_SPECS,
+        create_pulsed_switching_event,
+    )
+    _COIL_SWITCHING_AVAILABLE = True
+except ImportError:
+    _COIL_SWITCHING_AVAILABLE = False
+    CoilSpecs = None
+    SwitchingEvent = None
+    CoilSwitchingModel = None
+    DEFAULT_COIL_SPECS = None
+    create_pulsed_switching_event = None
+
+try:
+    from .mutual_inductance import (
+        CoilGeometry,
+        MutualInductanceResult,
+        MutualInductanceModel,
+        create_circular_coil,
+    )
+    _MUTUAL_INDUCTANCE_AVAILABLE = True
+except ImportError:
+    _MUTUAL_INDUCTANCE_AVAILABLE = False
+    CoilGeometry = None
+    MutualInductanceResult = None
+    MutualInductanceModel = None
+    create_circular_coil = None
+
+try:
     from .jax_thermal import JAXThermalModel
     _JAX_AVAILABLE = True
 except ImportError:
@@ -62,4 +94,13 @@ __all__ = [
     "get_stiffness_alert_level",
     "sweep_stiffness_velocity",
     "JAXThermalModel",
+    "CoilSpecs",
+    "SwitchingEvent",
+    "CoilSwitchingModel",
+    "DEFAULT_COIL_SPECS",
+    "create_pulsed_switching_event",
+    "CoilGeometry",
+    "MutualInductanceResult",
+    "MutualInductanceModel",
+    "create_circular_coil",
 ]

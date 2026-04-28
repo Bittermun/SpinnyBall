@@ -1,6 +1,9 @@
 {
   "defaults": {
     "profiles_path": "anchor_profiles.json",
+    "material_catalog_path": "paper_model/gdbco_apc_catalog.json",
+    "geometry_catalog_path": "geometry_profiles.json",
+    "environment_catalog_path": "environment_profiles.json",
     "calibration_path": "anchor_calibration.json",
     "claims_path": "anchor_claims.json",
     "params": {

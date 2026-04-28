@@ -242,7 +242,7 @@ class TestGateSet:
     def test_initialization(self):
         """Test default gate set initialization."""
         gate_set = create_default_gate_set()
-        assert len(gate_set.gates) == 6  # Default gates (eta_ind, stress, k_eff, cascade_probability, temperature, latency)
+        assert len(gate_set.gates) == 9  # Default gates (eta_ind, stress, k_eff, cascade_probability, temperature, latency, epsilon, delay_margin_ms, nodes_affected)
         gate_names = [gate.name for gate in gate_set.gates]
         assert "eta_ind" in gate_names
         assert "stress" in gate_names
@@ -250,6 +250,9 @@ class TestGateSet:
         assert "cascade_probability" in gate_names
         assert "temperature_packet" in gate_names
         assert "max_latency_ms" in gate_names
+        assert "epsilon" in gate_names
+        assert "delay_margin_ms" in gate_names
+        assert "nodes_affected" in gate_names
     
     def test_evaluate_all(self):
         """Test evaluating all gates."""
@@ -262,11 +265,14 @@ class TestGateSet:
             "cascade_probability": 1e-7,
             "temperature_packet": 300.0,
             "max_latency_ms": 10.0,
+            "epsilon": 1e-5,
+            "delay_margin_ms": 50.0,
+            "nodes_affected": 1.0,
         }
 
         results = gate_set.evaluate_all(metrics)
 
-        assert len(results) == 6
+        assert len(results) == 9
         assert all(r.status == GateStatus.PASS for r in results)
     
     def test_get_overall_status_pass(self):
@@ -304,6 +310,9 @@ class TestGateSet:
             "cascade_probability": 1e-7,
             "temperature_packet": 300.0,
             "max_latency_ms": 10.0,
+            "epsilon": 1e-5,
+            "delay_margin_ms": 50.0,
+            "nodes_affected": 1.0,
         }
 
         summary = gate_set.evaluate_and_summarize(metrics)
@@ -314,12 +323,12 @@ class TestGateSet:
         assert "warnings" in summary
         assert "results" in summary
         assert summary["overall_status"] == "pass"
-        assert summary["passed"] == 6
+        assert summary["passed"] == 9
 
 
 class TestEvaluateMonteCarloGates:
     """Test evaluate_monte_carlo_gates function."""
-    
+
     def test_evaluate_monte_carlo_gates_pass(self):
         """Test gate evaluation with passing metrics."""
         monte_carlo_results = {

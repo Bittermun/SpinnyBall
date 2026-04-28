@@ -49,6 +49,14 @@ from .state_converter import StateConverter
 
 from .ml_integration import MLIntegrationLayer, get_ml_integration
 
+from .stream_balance import (
+    StreamBalanceController,
+    StreamBalanceConfig,
+    StreamBalanceState,
+    BalanceMode,
+    create_stream_balance_controller,
+)
+
 try:
     from .training_pipeline import TrainingPipeline, TrainingConfig
     TRAINING_AVAILABLE = True
@@ -82,6 +90,12 @@ __all__ = [
     # ML integration layer
     "MLIntegrationLayer",
     "get_ml_integration",
+    # Stream balance control
+    "StreamBalanceController",
+    "StreamBalanceConfig",
+    "StreamBalanceState",
+    "BalanceMode",
+    "create_stream_balance_controller",
     # Training pipeline
     "TrainingPipeline",
     "TrainingConfig",

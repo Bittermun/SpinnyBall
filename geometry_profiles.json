@@ -1,0 +1,50 @@
+{
+  "geometry_profiles": {
+    "test_sphere_small": {
+      "name": "Small Test Sphere",
+      "shape": "sphere",
+      "mass": 0.05,
+      "radius": 0.02,
+      "inertia_type": "sphere",
+      "description": "Small sphere for unit tests (0.05 kg, 0.02 m radius)"
+    },
+    "test_sphere_medium": {
+      "name": "Medium Test Sphere",
+      "shape": "sphere",
+      "mass": 0.5,
+      "radius": 0.05,
+      "inertia_type": "sphere",
+      "description": "Medium sphere for development tests (0.5 kg, 0.05 m radius)"
+    },
+    "paper_operational": {
+      "name": "Paper Operational BFRP Sleeve",
+      "shape": "prolate_spheroid",
+      "mass": 8.0,
+      "radius": 0.1,
+      "aspect_ratio": 1.2,
+      "inertia_type": "prolate_spheroid",
+      "description": "Operational-scale BFRP sleeve from paper (8.0 kg, 0.1 m radius)"
+    },
+    "validation": {
+      "name": "MuJoCo Validation Sphere",
+      "shape": "sphere",
+      "mass": 2.0,
+      "radius": 0.1,
+      "inertia_type": "sphere",
+      "description": "Sphere for MuJoCo 6-DOF validation (2.0 kg, 0.1 m radius)"
+    },
+    "engineering": {
+      "name": "Engineering Trade Study Sphere",
+      "shape": "sphere",
+      "mass": 1.0,
+      "radius": 0.08,
+      "inertia_type": "sphere",
+      "description": "Sphere for engineering trade studies (1.0 kg, 0.08 m radius)"
+    }
+  },
+  "calibration_metadata": {
+    "units": "SI (kg, m)",
+    "timestamp": "2026-04-27",
+    "status": "Ready"
+  }
+}

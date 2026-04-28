@@ -148,3 +148,118 @@ def test_delay_compensation_info_dict():
     assert 'delay_compensation_enabled' in info
     assert info['delay_steps'] == 5
     assert info['delay_compensation_enabled'] == True
+
+
+def test_discrete_time_delay_disabled():
+    """Test that discrete-time delay can be disabled."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        enable_discrete_time=False,
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_delayed = controller.apply_discrete_time_delay(x0)
+
+    # Should return unchanged when disabled
+    assert np.allclose(x_delayed, x0)
+
+
+def test_discrete_time_delay_enabled():
+    """Test that discrete-time delay advances state."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        sampling_period=0.01,
+        communication_delay=0.005,
+        enable_discrete_time=True,
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_delayed = controller.apply_discrete_time_delay(x0)
+
+    # State should have changed due to delay
+    assert not np.allclose(x_delayed, x0)
+    # Quaternion should remain normalized
+    q_norm = np.linalg.norm(x_delayed[:4])
+    assert np.isclose(q_norm, 1.0, atol=1e-6)
+
+
+def test_delay_compensation_mode_discrete_time():
+    """Test delay_compensation_mode='discrete_time'."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        delay_compensation_mode='discrete_time',
+        enable_discrete_time=True,
+        enable_delay_compensation=False,
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_target = np.zeros(7)
+
+    u_opt, info = controller.solve(x0, x_target)
+
+    assert info['success']
+
+
+def test_delay_compensation_mode_smith():
+    """Test delay_compensation_mode='smith'."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        delay_compensation_mode='smith',
+        enable_discrete_time=False,
+        enable_delay_compensation=True,
+        delay_steps=5,
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_target = np.zeros(7)
+
+    u_opt, info = controller.solve(x0, x_target)
+
+    assert info['success']
+
+
+def test_delay_compensation_mode_both():
+    """Test delay_compensation_mode='both' (additive)."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        delay_compensation_mode='both',
+        enable_discrete_time=True,
+        enable_delay_compensation=True,
+        delay_steps=5,
+        sampling_period=0.01,
+        communication_delay=0.005,
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_target = np.zeros(7)
+
+    u_opt, info = controller.solve(x0, x_target)
+
+    assert info['success']
+
+
+def test_delay_compensation_mode_invalid():
+    """Test that invalid delay_compensation_mode logs warning."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        delay_compensation_mode='invalid_mode',
+    )
+
+    x0 = np.array([0.0, 0.0, 0.0, 1.0, 0.1, 0.0, 0.0])
+    x_target = np.zeros(7)
+
+    # Should not crash, just log warning
+    u_opt, info = controller.solve(x0, x_target)
+    assert info['success']
+
+
+def test_discrete_time_delay_parameters():
+    """Test that sampling_period and communication_delay are stored."""
+    controller = create_mpc_controller(
+        configuration_mode=ConfigurationMode.TEST,
+        sampling_period=0.02,
+        communication_delay=0.01,
+    )
+
+    assert controller.sampling_period == 0.02
+    assert controller.communication_delay == 0.01

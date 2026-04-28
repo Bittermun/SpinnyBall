@@ -25,7 +25,7 @@ class TestSNode:
     def test_initialization(self):
         """S-Node initializes correctly."""
         position = np.array([100.0, 0.0, 0.0])
-        node = SNode(position)
+        node = SNode(id=0, position=position)
         
         assert np.allclose(node.position, position)
         assert node.capture_radius == 10.0
@@ -36,11 +36,11 @@ class TestSNode:
     def test_position_validation(self):
         """S-Node validates position shape."""
         with pytest.raises(ValueError):
-            SNode(np.array([1.0, 2.0]))  # Wrong shape
+            SNode(id=0, position=np.array([1.0, 2.0]))  # Wrong shape
     
     def test_can_capture(self):
         """Test capture condition."""
-        node = SNode(np.array([0.0, 0.0, 0.0]), max_packets=5)
+        node = SNode(id=0, position=np.array([0.0, 0.0, 0.0]), max_packets=5)
         
         # Can capture when below max and eta_ind sufficient
         assert node.can_capture(0.9)
@@ -52,7 +52,7 @@ class TestSNode:
     
     def test_distance_to(self):
         """Test distance calculation."""
-        node = SNode(np.array([0.0, 0.0, 0.0]))
+        node = SNode(id=0, position=np.array([0.0, 0.0, 0.0]))
         position = np.array([3.0, 4.0, 0.0])
         
         distance = node.distance_to(position)
@@ -174,8 +174,8 @@ class TestMultiBodyStream:
         
         # Create 2 S-Nodes
         nodes = [
-            SNode(np.array([15.0, 0.0, 0.0]), capture_radius=10.0),
-            SNode(np.array([35.0, 0.0, 0.0]), capture_radius=10.0),
+            SNode(id=0, position=np.array([15.0, 0.0, 0.0]), capture_radius=10.0),
+            SNode(id=1, position=np.array([35.0, 0.0, 0.0]), capture_radius=10.0),
         ]
         
         return MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=100.0)

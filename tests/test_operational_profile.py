@@ -47,6 +47,12 @@ class TestOperationalProfile:
         
         resolved = resolve_profile_params(data, "operational")
         params = resolved["params"]
+        profile_meta = resolved["profile"]
+        
+        # Check that profile metadata includes new profile types
+        assert profile_meta.get("material_profile") is not None, "Material profile should be resolved"
+        assert profile_meta.get("geometry_profile") is not None, "Geometry profile should be resolved"
+        assert profile_meta.get("environment_profile") is not None, "Environment profile should be resolved"
         
         # Check that operational values override defaults
         assert params["u"] == 1600.0
