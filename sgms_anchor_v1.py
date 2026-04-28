@@ -141,6 +141,14 @@ DEFAULT_PARAMS = {
     "cryocooler_power": 5.0,  # Cryocooler cooling power (W)
     "temperature": 77.0,  # Operating temperature (K)
     "B_field": 1.0,  # Magnetic field (T)
+    "altitude_km": 400.0,  # Orbital altitude (km)
+    "inclination_deg": 51.6,  # Orbital inclination (degrees)
+    "include_j2": False,  # Include J2 perturbation
+    "include_srp": False,  # Include solar radiation pressure
+    "include_drag": False,  # Include atmospheric drag
+    "enable_thermal_dynamics": False,  # Enable temperature evolution
+    "enable_eclipse": False,  # Enable eclipse detection in thermal model
+    "control_mode": "pid",  # Control mode: "pid" or "mpc"
 }
 
 
@@ -335,10 +343,20 @@ def packet_modulation(t: float, period: float, sigma: float, phase: float = 0.0,
     return period * total
 
 
-def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
-    del t  # Force law is time-invariant aside from the supplied disturbance.
+def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0, orbital_state=None) -> float:
     f_p, f_m, f_pin, f_d = _stream_forces(x, vx, disturbance_theta, params)
-    return f_p + f_m + f_pin + f_d
+    f_total = f_p + f_m + f_pin + f_d
+    if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
+        if params.get("include_j2", False) or params.get("include_srp", False) or params.get("include_drag", False):
+            try:
+                from dynamics.orbital_coupling import OrbitalPropagator
+                propagator = OrbitalPropagator(altitude_km=params.get("altitude_km", 400.0), inclination_deg=params.get("inclination_deg", 51.6))
+                updated_state = propagator.propagate(orbital_state, t)
+                f_orbital = get_orbital_perturbation_force(params, updated_state, t, packet_mass=params["ms"])
+                f_total += f_orbital[0] * 0.01
+            except Exception:
+                pass
+    return f_total
 
 
 def discrete_packet_force(x: float, vx: float, t: float, params: dict, disturbance_theta: float = 0.0) -> float:
@@ -361,7 +379,48 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     else:
         t_eval = np.asarray(t_eval, dtype=float)
 
-    # Innonlocal orbital_state
+    # Initialize stream balance controller if enabled
+    balance_controller = None
+    dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
+    eps_log: list[tuple[float, float]] = []  # (t, epsilon) recorded during integration
+    if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
+        config = StreamBalanceConfig(target_epsilon=params.get("epsilon_target", 1e-4))
+        balance_controller = StreamBalanceController(config)
+
+    # Initialize MPC controller if requested
+    mpc_controller = None
+    control_mode = params.get("control_mode", "pid")
+    if control_mode == "mpc" and MPC_AVAILABLE:
+        try:
+            mpc_controller = MPCController(horizon=10, dt=0.01, configuration_mode=ConfigurationMode.OPERATIONAL)
+        except Exception:
+            control_mode = "pid"
+
+    # Initialize orbital state if perturbations enabled or thermal dynamics with eclipse
+    orbital_state = None
+    enable_orbital = (
+        params.get("include_j2", False) or 
+        params.get("include_srp", False) or 
+        params.get("include_drag", False) or
+        (params.get("enable_thermal_dynamics", False) and params.get("enable_eclipse", False))
+    )
+    if ORBITAL_PERTURBATIONS_AVAILABLE and enable_orbital:
+        try:
+            orbital_state = create_orbital_state_from_params(params)
+        except Exception:
+            orbital_state = None
+
+    dt_noise = params["disturbance_hold_s"]
+    noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
+    noise_t = np.linspace(0.0, dt_noise * (noise_steps - 1), noise_steps)
+    disturbance_theta = make_disturbance_series(params, dt=dt_noise, steps=noise_steps, seed=seed)
+
+    def noise_at(t: float) -> float:
+        return float(np.interp(t, noise_t, disturbance_theta))
+
+    def rhs(t: float, y: np.ndarray) -> list[float]:
+        x, vx = y
+        nonlocal orbital_state
         
         # Propagate orbital state if enabled
         if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
@@ -371,39 +430,9 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
                     altitude_km=params.get("altitude_km", 400.0),
                     inclination_deg=params.get("inclination_deg", 51.6)
                 )
-                orbital_state = propagator.propagate(orbital_state, t)itialize stream balance controller if enabled
-         balexceptaException:
-                pass
-        
-        nce_controller = None
-    dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
-    eps_log: list[tuple[float, float]] = []  # (t, epsilon) recorded during integration
-    if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
-        config = StreamBalanceConfig(target_epsilon=params.get("epsilon_target", 1e-4))
-        balance_controller = StreamBalanceController(config)
-
-    dt_noise = params["disturbance_hold_s"]
-    noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
-    noise_t = np.linspace(0.0, dt_noise * (noise_steps - 1), noise_steps)
-    disturbance_theta = make_disturbance_series(params, dt=dt_noise, steps=noise_steps, seed=seed)
-namic_epsilon))
-        
-        # Use MPC for cotrol if enbled
-        if pc_controller s not None and ontrolmod == "mc":
-            try:
-                # MPC compute optma ctrol inputs
-                # For reduced-order model, adjust g_gain based on MPC output
-                mpc_output = mpc_controller.compute_control(x, vx, t
-                # Apply MPC adjustment to control gain
-                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output
+                orbital_state = propagator.propagate(orbital_state, t)
             except Exception:
-                # Fall back to default g_gain on error
-                sim_params["g_gain"] = params["g_gain"]
-    def noise_at(t: float) -> float:
-        return float(np.interp(t, noise_t, disturbance_theta))
-
-    def rhs(t: float, y: np.ndarray) -> list[float]:
-        x, vx = y, orbital_state=orbital_state
+                pass
         
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
@@ -421,7 +450,20 @@ namic_epsilon))
         # Use dynamic epsilon in force calculation
         sim_params = params.copy()
         sim_params["eps"] = dynamic_epsilon
-        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t))
+        
+        # Use MPC for control if enabled
+        if mpc_controller is not None and control_mode == "mpc":
+            try:
+                # MPC computes optimal control inputs
+                # For reduced-order model, adjust g_gain based on MPC output
+                mpc_output = mpc_controller.compute_control(x, vx, t)
+                # Apply MPC adjustment to control gain
+                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output)
+            except Exception:
+                # Fall back to default g_gain on error
+                sim_params["g_gain"] = params["g_gain"]
+        
+        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=orbital_state)
         return [vx, force / params["ms"]]
 
     sol = solve_ivp(
@@ -434,15 +476,13 @@ namic_epsilon))
         atol=params["atol"],
         max_step=params["max_step"],
     )
-        atol=params["atol"],
-        max_step=params["max_step"],
-    )
 
     force = np.empty_like(sol.t)
     f_plus = np.empty_like(sol.t)
     f_minus = np.empty_like(sol.t)
     f_damp = np.empty_like(sol.t)
     disturbance = np.empty_like(sol.t)
+    temperature = np.empty_like(sol.t)
 
     # Build epsilon history from values recorded during integration; fall back to
     # the constant final value when the controller was not active.
@@ -452,6 +492,17 @@ namic_epsilon))
         # Sort by time (RK45 may record intermediate stages out of order)
         sort_idx = np.argsort(log_t, kind="stable")
         log_t, log_eps = log_t[sort_idx], log_eps[sort_idx]
+        epsilon_history = np.interp(sol.t, log_t, log_eps)
+    else:
+        epsilon_history = np.full_like(sol.t, dynamic_epsilon)
+
+    for i, t in enumerate(sol.t):
+        disturbance[i] = noise_at(float(t))
+        sim_params = params.copy()
+        sim_params["eps"] = epsilon_history[i]
+        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
+        f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
+        force[i] = fp + fm + fpin + fd
         
         # Update temperature if thermal dynamics enabled
         if params.get("enable_thermal_dynamics", False):
@@ -474,18 +525,6 @@ namic_epsilon))
                 temperature[i] = params["temperature"]
         else:
             temperature[i] = params["temperature"]
-        epsilon_history = np.interp(sol.t, log_t, log_eps)
-    else:
-        epsilon_history = np.full_like(sol.t, dynamic_epsilon)
-
-    for i, t in enumerate(sol.t):
-        disturbance[i] = noise_at(float(t))
-        sim_params = params.copy()
-        sim_params["eps"] = epsilon_history[i]
-        fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
-        f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
-        force[i] = fp + fm + fpin + fd,
-        "temperature": temperature
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -509,6 +548,7 @@ namic_epsilon))
         "f_damp": f_damp,
         "disturbance_theta": disturbance,
         "epsilon_history": epsilon_history,
+        "temperature": temperature,
         "metrics": metrics,
         "params": params,
     }
@@ -838,17 +878,7 @@ def main() -> None:
         "lam": args.lam,
         "g_gain": args.g_gain,
         "k_fp": args.k_fp,
-        "ms": args.ms,one:
-            print(f"Discrete period:    {packet_period:.3f} s")
-    else:
-        # Single Simulation Mode
-        t_eval = np.linspace(0.0, params["t_max"], 4000)
-        result = simulate_anchor(params, t_eval=t_eval, seed=7)
-        print_summary(result["metrics"])
-        print(f"Simulation cmplete. Final x: {result['x'][-1]:.6f} m")
-
-if __am__ == "__main__"
-    main()
+        "ms": args.ms,
     })
 
     if args.audit:
