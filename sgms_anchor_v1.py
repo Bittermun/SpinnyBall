@@ -430,8 +430,10 @@ namic_epsilon))
         [params["x0"], params["v0"]],
         method="RK45",
         t_eval=t_eval,
-    temperature = np.empty_like(sol.t)
         rtol=params["rtol"],
+        atol=params["atol"],
+        max_step=params["max_step"],
+    )
         atol=params["atol"],
         max_step=params["max_step"],
     )
