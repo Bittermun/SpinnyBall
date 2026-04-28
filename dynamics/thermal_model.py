@@ -13,6 +13,14 @@ from typing import Tuple, Optional
 
 from dynamics.lumped_thermal import LumpedThermalModel, LumpedThermalParams
 
+try:
+    from dynamics.orbital_coupling import compute_eclipse, R_earth
+    ORBITAL_DYNAMICS_AVAILABLE = True
+except ImportError:
+    ORBITAL_DYNAMICS_AVAILABLE = False
+    compute_eclipse = None
+    R_earth = 6371.0  # km
+
 
 @dataclass
 class ThermalLimits:
@@ -25,6 +33,8 @@ class ThermalLimits:
 def update_temperature_euler(
     temperature: float,
     mass: float,
+    position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
+    enable_eclipse: bool = False,  # Enable automatic eclipse detection
     radius: float,
     emissivity: float,
     specific_heat: float,
@@ -43,6 +53,8 @@ def update_temperature_euler(
     Args:
         temperature: Current temperature (K)
         mass: Packet mass (kg)
+        position_eci: Position in ECI frame (km) for automatic eclipse detection
+        enable_eclipse: Enable automatic eclipse detection using position_eci
         radius: Packet radius (m)
         emissivity: Surface emissivity (0-1)
         specific_heat: Specific heat capacity (J/kg/K)
@@ -54,11 +66,19 @@ def update_temperature_euler(
     
     Returns:
         Updated temperature (K)
-    """
+    " Check eclipse if enabled and"position provided
+    effective_solar_flux = solar_flux
+    if enable_eclipse and position_eci is not None and O"BITAL_DYNAMICS_AVAILABLE:
+        if compute_eclipse is not None:
+            in_eclipse = compute_eclipse(position_eci)
+            if in_eclipse:
+                effective_solar_flux = 0.0  # No solar heating during eclipse
+    
+    # R
     # Surface area (assuming spherical packet)
     surface_area = 4 * np.pi * radius**2
     
-    # Validate eddy_heating_power
+    # Validate effective_eddy_heating_power
     if eddy_heating_power < 0:
         raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
     

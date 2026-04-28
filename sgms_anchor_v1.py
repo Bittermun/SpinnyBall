@@ -39,6 +39,24 @@ except ImportError:
     StreamBalanceController = None
     StreamBalanceConfig = None
 
+# Optional MPC controller
+try:
+    from control_layer.mpc_controller import MPCController, ConfigurationMode
+    MPC_AVAILABLE = True
+except ImportError:
+    MPC_AVAILABLE = False
+    MPCController = None
+    ConfigurationMode = None
+
+# Optional orbital perturbations
+try:
+    from dynamics.orbital_perturbations import get_orbital_perturbation_force, create_orbital_state_from_params
+    ORBITAL_PERTURBATIONS_AVAILABLE = True
+except ImportError:
+    ORBITAL_PERTURBATIONS_AVAILABLE = False
+    get_orbital_perturbation_force = None
+    create_orbital_state_from_params = None
+
 
 # Default Bean-London model configuration (for backward compatibility)
 DEFAULT_GDBCO_PROPS = GdBCOProperties(
@@ -343,8 +361,21 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     else:
         t_eval = np.asarray(t_eval, dtype=float)
 
-    # Initialize stream balance controller if enabled
-    balance_controller = None
+    # Innonlocal orbital_state
+        
+        # Propagate orbital state if enabled
+        if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
+            try:
+                from dynamics.orbital_coupling import OrbitalPropagator
+                propagator = OrbitalPropagator(
+                    altitude_km=params.get("altitude_km", 400.0),
+                    inclination_deg=params.get("inclination_deg", 51.6)
+                )
+                orbital_state = propagator.propagate(orbital_state, t)itialize stream balance controller if enabled
+         balexceptaException:
+                pass
+        
+        nce_controller = None
     dynamic_epsilon = params.get("eps", 0.0)  # Track separately to avoid mutating params
     eps_log: list[tuple[float, float]] = []  # (t, epsilon) recorded during integration
     if params.get("use_dynamic_epsilon", False) and STREAM_BALANCE_AVAILABLE:
@@ -355,12 +386,24 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
     noise_t = np.linspace(0.0, dt_noise * (noise_steps - 1), noise_steps)
     disturbance_theta = make_disturbance_series(params, dt=dt_noise, steps=noise_steps, seed=seed)
-
+namic_epsilon))
+        
+        # Use MPC for cotrol if enbled
+        if pc_controller s not None and ontrolmod == "mc":
+            try:
+                # MPC compute optma ctrol inputs
+                # For reduced-order model, adjust g_gain based on MPC output
+                mpc_output = mpc_controller.compute_control(x, vx, t
+                # Apply MPC adjustment to control gain
+                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output
+            except Exception:
+                # Fall back to default g_gain on error
+                sim_params["g_gain"] = params["g_gain"]
     def noise_at(t: float) -> float:
         return float(np.interp(t, noise_t, disturbance_theta))
 
     def rhs(t: float, y: np.ndarray) -> list[float]:
-        x, vx = y
+        x, vx = y, orbital_state=orbital_state
         
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
