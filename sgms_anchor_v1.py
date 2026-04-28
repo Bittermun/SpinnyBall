@@ -387,6 +387,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         [params["x0"], params["v0"]],
         method="RK45",
         t_eval=t_eval,
+    temperature = np.empty_like(sol.t)
         rtol=params["rtol"],
         atol=params["atol"],
         max_step=params["max_step"],
@@ -406,6 +407,28 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         # Sort by time (RK45 may record intermediate stages out of order)
         sort_idx = np.argsort(log_t, kind="stable")
         log_t, log_eps = log_t[sort_idx], log_eps[sort_idx]
+        
+        # Update temperature if thermal dynamics enabled
+        if params.get("enable_thermal_dynamics", False):
+            try:
+                from dynamics.thermal_model import update_temperature_euler
+                position_eci = orbital_state.r if orbital_state is not None else None
+                temperature[i] = update_temperature_euler(
+                    temperature=temperature[i-1] if i > 0 else params["temperature"],
+                    mass=params["ms"],
+                    radius=0.01,
+                    emissivity=0.8,
+                    specific_heat=500.0,
+                    dt=sol.t[i] - sol.t[i-1] if i > 0 else 0.01,
+                    solar_flux=1361.0,
+                    eddy_heating_power=0.0,
+                    position_eci=position_eci,
+                    enable_eclipse=params.get("enable_eclipse", False)
+                )
+            except Exception:
+                temperature[i] = params["temperature"]
+        else:
+            temperature[i] = params["temperature"]
         epsilon_history = np.interp(sol.t, log_t, log_eps)
     else:
         epsilon_history = np.full_like(sol.t, dynamic_epsilon)
@@ -416,7 +439,8 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         sim_params["eps"] = epsilon_history[i]
         fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
-        force[i] = fp + fm + fpin + fd
+        force[i] = fp + fm + fpin + fd,
+        "temperature": temperature
 
     metrics = analytical_metrics(params)
     metrics.update(
@@ -769,7 +793,17 @@ def main() -> None:
         "lam": args.lam,
         "g_gain": args.g_gain,
         "k_fp": args.k_fp,
-        "ms": args.ms,
+        "ms": args.ms,one:
+            print(f"Discrete period:    {packet_period:.3f} s")
+    else:
+        # Single Simulation Mode
+        t_eval = np.linspace(0.0, params["t_max"], 4000)
+        result = simulate_anchor(params, t_eval=t_eval, seed=7)
+        print_summary(result["metrics"])
+        print(f"Simulation cmplete. Final x: {result['x'][-1]:.6f} m")
+
+if __am__ == "__main__"
+    main()
     })
 
     if args.audit:
