@@ -8,7 +8,7 @@ import csv
 import json
 from pathlib import Path
 
-from sgms_anchor_v1 import DEFAULT_PARAMS
+from src.sgms_anchor_v1 import DEFAULT_PARAMS
 
 
 def load_anchor_profiles(path: str | Path) -> dict:

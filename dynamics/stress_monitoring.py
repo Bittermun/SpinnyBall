@@ -136,10 +136,12 @@ def verify_packet_stress(
     Calculate and verify stress for a packet.
     
     Args:
-        mass: Packet mass (kg)
+        mass: Packet mass (kg). For SmCo packets, density is high (~8400 kg/m^3).
         radius: Packet radius (m)
         angular_velocity: Angular velocity vector (rad/s)
-        max_stress: Maximum allowable stress (Pa)
+        max_stress: Maximum allowable stress (Pa). Defaults to 1.2 GPa (with safety_factor=1.5 -> 800 MPa limit),
+                    representing the yield strength of the BFRP/Carbon-Fiber structural jacket enclosing the 
+                    brittle magnetic core (e.g. SmCo).
         safety_factor: Safety factor
         scaling_config: Heritage scaling configuration (optional)
     

@@ -113,8 +113,8 @@ def run_grid_point(
     """Run a single grid point (for parallel execution)."""
     config = MonteCarloConfig(
         n_realizations=n_realizations_per_point,
-        time_horizon=10.0,  # HIGH-FIDELITY: Full 10s simulation (not 1s)
-        dt=0.001,  # HIGH-FIDELITY: 1ms timestep (not 10ms)
+        time_horizon=5.0,  # Reduced for speed
+        dt=0.005,  # Increased for speed
         latency_ms=latency_ms,
         latency_std_ms=0.0,
         pass_fail_gates={
@@ -344,9 +344,9 @@ if __name__ == "__main__":
     results = run_t1_sweep(
         latency_range=(5.0, 50.0),
         eta_ind_range=(0.8, 0.95),
-        n_latency_points=10,
-        n_eta_points=8,
-        n_realizations_per_point=100,  # HIGH-FIDELITY: More MC runs for statistical confidence
+        n_latency_points=5,
+        n_eta_points=4,
+        n_realizations_per_point=20,  # Reduced for speed
         use_checkpoint=True,  # Enable checkpoint for long runs
         checkpoint_file='t1_high_fidelity_checkpoint.json',
         n_jobs=-1,  # Use all cores

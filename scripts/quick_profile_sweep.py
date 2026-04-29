@@ -131,6 +131,25 @@ PROFILES = {
         "k_fp": 7000.0,
         "mp": 8.0,
         "radius": 0.1
+    },
+    "smco-heavy": {
+        "u": 15000.0,
+        "lam": 20.0,
+        "g_gain": 0.0002,
+        "ms": 1000.0,
+        "eps": 0.0001,
+        "c_damp": 4.0,
+        "theta_bias": 0.087,
+        "t_max": 240.0,
+        "x0": 0.1,
+        "v0": 0.0,
+        "k_drag": 0.01,
+        "cryocooler_power": 10.0,
+        "temperature": 77.0,
+        "B_field": 1.0,
+        "k_fp": 9000.0,
+        "mp": 35.0,
+        "radius": 0.1
     }
 }
 
