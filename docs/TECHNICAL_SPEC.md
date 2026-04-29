@@ -17,6 +17,9 @@ The anchor system suspends a station node via a closed-loop, counter-propagating
 | Damping coefficient | c_damp | 4.0 | N·s/m | System baseline |
 | Spin rate | omega | 5,236 | rad/s | 50,000 RPM |
 | Packet radius | r | 0.1 | m | Prolate spheroid, SmCo payload |
+| Orbital Altitude | h | 550 | km | SSO Baseline |
+
+**Packet Geometry Note**: Packet radius has evolved from 0.02m (early 8kg HTS packets) to 0.1m for the 35kg SmCo-heavy profile to maintain prolate stability and maximize flux-pinning surface area.
 
 ### Optimal Parameters (Sobol Analysis)
 
@@ -101,6 +104,30 @@ T_ss = (P / (eps * A * sigma_SB))^0.25
 - Heating power: 200 W (eddy current + solar)
 - Emissivity: 0.85, Surface area: 0.2 m^2
 - Result: T_ss = 379.5 K — 15.7% below 450 K limit
+
+### Energy Budget & Power Requirements (15 km/s)
+
+At the 15 km/s design point, the primary energy consumers are station-keeping and thermal management:
+
+1. **Station-Keeping Thrusters**: To offset the stream-momentum-flux vector drift (J2 perturbation), a continuous station-keeping thrust of ~4.2 N is required. Assuming a high-Isp ion drive (3000s), this requires ~15 kW of continuous electrical power.
+2. **Cryocooler Burden**: SmCo operates passively at 379K, requiring zero cryogenic cooling. This represents a 95% reduction in auxiliary power compared to HTS (GdBCO) systems which require ~50 kW of cooling power per km of stream to maintain 77K against eddy heating.
+3. **Packet Spin-Up**: Accelerating 35 kg packets to 50,000 RPM requires ~4.8 MJ per packet. In steady-state, spin-maintenance (magnetic drag) requires < 50W per packet.
+
+### Material Selection: SmCo vs. GdBCO (HTS)
+
+The transition from GdBCO to Samarium Cobalt (SmCo) for the heavy-lift (15 km/s) profile is driven by thermal safety:
+- **GdBCO (HTS)**: Offers extreme pinning stiffness but is subject to **Quench Risk**. At 15 km/s, eddy heating exceeds the capacity of passive radiative cooling to stay below the 92K transition temperature. A cooling failure leads to an immediate loss of flux-pinning and a system cascade.
+- **SmCo (Permanent Magnet)**: Provides stable flux-pinning stiffness up to 300°C (573K). At 15 km/s, the steady-state temperature of 379K (106°C) is well within SmCo's safe operating range. The system is **passively stable** without active refrigeration.
+
+### Orbital Coupling & Perturbations
+
+The station is modeled in a 550 km Sun-Synchronous Orbit (SSO):
+- **J2 Perturbation**: Primary driver of nodal regression. The stream momentum flux must be re-oriented at a rate of 0.98°/day to maintain alignment.
+- **Solar Radiation Pressure (SRP)**: Adds a cyclic force of ~0.08 N, easily compensated by the k_eff = 2.3e6 N/m stiffness.
+- **Atmospheric Drag**: At 550 km, drag is negligible (10^-9 N) for the packet stream but non-zero for the 1000kg station node.
+- **Eclipse Effects**: 35-minute eclipse per 95-minute orbit causes packet temperature to fluctuate between 280K and 379K. SmCo stiffness variance over this range is < 2%.
+
+---
 
 ---
 

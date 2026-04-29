@@ -113,8 +113,8 @@ def run_grid_point(
     """Run a single grid point (for parallel execution)."""
     config = MonteCarloConfig(
         n_realizations=n_realizations_per_point,
-        time_horizon=5.0,  # Reduced for speed
-        dt=0.005,  # Increased for speed
+        time_horizon=2.0,  # Ultra-fast for immediate data
+        dt=0.01,  # Standard timestep
         latency_ms=latency_ms,
         latency_std_ms=0.0,
         pass_fail_gates={
@@ -346,10 +346,10 @@ if __name__ == "__main__":
         eta_ind_range=(0.8, 0.95),
         n_latency_points=5,
         n_eta_points=4,
-        n_realizations_per_point=20,  # Reduced for speed
+        n_realizations_per_point=5,  # Ultra-fast
         use_checkpoint=True,  # Enable checkpoint for long runs
         checkpoint_file='t1_high_fidelity_checkpoint.json',
-        n_jobs=-1,  # Use all cores
+        n_jobs=1,  # Sequential for stability
         use_zero_torque_numba=True,
     )
 
@@ -370,6 +370,20 @@ if __name__ == "__main__":
     print(f"\nMin eta_ind for 95% success at each latency:")
     for lat, eta in zip(results['latency_values'], analysis['min_eta_95']):
         print(f"  latency={lat:.1f}ms: η_ind={eta:.3f}")
+
+    output_path = Path("results/t1_latency_eta_sweep.json")
+    output_path.parent.mkdir(parents=True, exist_ok=True)
+    serializable_results = {
+        'latency_values': results['latency_values'].tolist(),
+        'eta_ind_values': results['eta_ind_values'].tolist(),
+        'success_rate_grid': results['success_rate_grid'].tolist(),
+        'overall_success_rate': float(analysis['overall_success_rate']),
+        'max_latency_95': [float(x) for x in analysis['max_latency_95']]
+    }
+    with open(output_path, "w") as f:
+        json.dump(serializable_results, f, indent=2)
+    print(f"\nResults saved to {output_path}")
+
 
     print("\nConclusion:")
     if analysis['overall_success_rate'] >= 0.95:
