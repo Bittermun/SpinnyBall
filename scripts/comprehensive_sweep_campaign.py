@@ -94,12 +94,16 @@ def run_command(cmd, name, log_file):
         f.write(f"Command: {' '.join(cmd)}\n")
         f.write(f"Start time: {datetime.now()}\n\n")
         
+        import os
+        env = os.environ.copy()
+        env["PYTHONPATH"] = ".;.\\src;.\\scripts"
         result = subprocess.run(
             cmd,
             cwd="c:\\Users\\msunw\\Desktop\\SpinnyBall",
             stdout=f,
             stderr=subprocess.STDOUT,
-            text=True
+            text=True,
+            env=env
         )
     
     duration = time.time() - start_time
@@ -120,6 +124,8 @@ def create_high_res_t1_script():
     content = '''
 import sys
 sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall')
+sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall\\\\scripts')
+sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall\\\\src')
 
 from sweep_latency_eta_ind import run_t1_sweep, plot_t1_results, analyze_stability_boundary
 
@@ -154,6 +160,8 @@ def create_high_res_t3_script():
     content = '''
 import sys
 sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall')
+sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall\\\\scripts')
+sys.path.insert(0, 'c:\\\\Users\\\\msunw\\\\Desktop\\\\SpinnyBall\\\\src')
 
 from sweep_fault_cascade import run_t3_sweep, plot_t3_results, analyze_containment_threshold
 
@@ -209,9 +217,9 @@ def run_smoke_tests():
     
     all_passed = all(status == "SUCCESS" for _, status in results)
     if not all_passed:
-        print("\n⚠ Some smoke tests failed. Proceeding with caution.")
+        print("\n[WARNING] Some smoke tests failed. Proceeding with caution.")
     else:
-        print("\n✓ All smoke tests passed.")
+        print("\n[OK] All smoke tests passed.")
     
     return all_passed
 
@@ -230,21 +238,21 @@ def run_parallel_sweeps():
     commands = []
     
     # Default sweeps (can run in parallel)
-    commands.append(("T1-Default", ["python", "sweep_latency_eta_ind.py"]))
-    commands.append(("T3-Default", ["python", "sweep_fault_cascade.py"]))
-    commands.append(("LOB-Scaling", ["python", "lob_scaling.py"]))
-    commands.append(("Sensitivity", ["python", "sgms_anchor_sensitivity.py"]))
+    commands.append(("T1-Default", ["python", "scripts/sweep_latency_eta_ind.py"]))
+    commands.append(("T3-Default", ["python", "scripts/sweep_fault_cascade.py"]))
+    commands.append(("LOB-Scaling", ["python", "scripts/lob_scaling.py"]))
+    commands.append(("Sensitivity", ["python", "scripts/sgms_anchor_sensitivity.py"]))
     
     # High-res sweeps (can run in parallel with defaults)
     commands.append(("T1-HighRes", ["python", t1_highres_script]))
     commands.append(("T3-HighRes", ["python", t3_highres_script]))
     
     # Other sweeps
-    if Path("validate_stream_balance.py").exists():
-        commands.append(("Stream-Balance", ["python", "validate_stream_balance.py"]))
+    if Path("scripts/validate_stream_balance.py").exists():
+        commands.append(("Stream-Balance", ["python", "scripts/validate_stream_balance.py"]))
     
-    if Path("scenarios/mission_scenarios.py").exists():
-        commands.append(("Mission-Scenarios", ["python", "scenarios/mission_scenarios.py"]))
+    if Path("scripts/scenarios/mission_scenarios.py").exists():
+        commands.append(("Mission-Scenarios", ["python", "scripts/scenarios/mission_scenarios.py"]))
     
     # Run in parallel (limit to 4 concurrent to avoid overwhelming system)
     results = []
@@ -302,7 +310,7 @@ def generate_summary_report(results):
         f.write("3. Compare default vs high-resolution results\n")
         f.write("4. Aggregate raw data for analysis\n")
     
-    print(f"\n✓ Summary report generated: {report_file}")
+    print(f"\n[OK] Summary report generated: {report_file}")
     return report_file
 
 

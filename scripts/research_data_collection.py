@@ -34,8 +34,16 @@ logger = logging.getLogger(__name__)
 RESEARCH_DIR = Path("research_data") / datetime.now().strftime("%Y%m%d-%H%M%S")
 RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
 
-def create_stream_with_nodes(n_nodes: int = 10, packet_mass: float = 0.05):
-    """Create stream with specified number of nodes."""
+def create_stream_with_nodes(n_nodes: int = 10, packet_mass: float = 0.05,
+                             k_fp: float = 4500.0, stream_velocity: float = 100.0):
+    """Create stream with specified number of nodes.
+    
+    Args:
+        n_nodes: Number of S-nodes in the stream.
+        packet_mass: Mass of the single test packet (kg).
+        k_fp: Flux-pinning stiffness per node (N/m). Defaults to 4500.
+        stream_velocity: Stream velocity (m/s). Defaults to 100.
+    """
     I = np.diag([0.0001, 0.00011, 0.00009])
     packets = [Packet(id=0, body=RigidBody(packet_mass, I), eta_ind=0.9)]
     
@@ -46,11 +54,11 @@ def create_stream_with_nodes(n_nodes: int = 10, packet_mass: float = 0.05):
             position=np.array([i * 10.0, 0.0, 0.0]),
             max_packets=10,
             eta_ind_min=0.82,
-            k_fp=4500.0,
+            k_fp=k_fp,
         )
         nodes.append(node)
     
-    return MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=100.0)
+    return MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=stream_velocity)
 
 
 def run_converged_monte_carlo(

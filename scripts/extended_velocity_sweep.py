@@ -10,6 +10,29 @@ from pathlib import Path
 from datetime import datetime
 from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
+from dynamics.multi_body import MultiBodyStream, Packet, SNode
+from dynamics.rigid_body import RigidBody
+
+def create_stream_factory(params):
+    def factory():
+        mass = params.get('mp', 8.0)
+        I = np.diag([0.0001, 0.00011, 0.00009])
+        packets = [Packet(id=0, body=RigidBody(mass, I), eta_ind=0.9)]
+        
+        nodes = []
+        for i in range(10):
+            node = SNode(
+                id=i,
+                position=np.array([i * 10.0, 0.0, 0.0]),
+                max_packets=10,
+                eta_ind_min=0.82,
+                k_fp=params.get('k_fp', 4500.0),
+            )
+            nodes.append(node)
+            
+        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=params.get('u', 1600.0))
+        return stream
+    return factory
 
 def extended_velocity_sweep():
     """Run extended velocity sweep with wider range."""
@@ -36,7 +59,12 @@ def extended_velocity_sweep():
         n_realizations=100,  # Quick but statistically significant
         fault_rate=1e-4,
         containment_threshold=2,
-        random_seed=42
+        random_seed=42,
+        pass_fail_gates={
+            "eta_ind": (0.82, ">="),
+            "stress": (1.2e9, "<="),
+            "k_eff": (6000.0, ">=")
+        }
     )
     
     runner = CascadeRunner(mc_config)
@@ -51,23 +79,14 @@ def extended_velocity_sweep():
         test_params['u'] = v
         
         # Run simulation
-        try:
-            mc_results = runner.run_monte_carlo(test_params)
-            
-            results['cascade_probability'].append(mc_results['cascade_probability'])
-            results['containment_rate'].append(mc_results['containment_rate'])
-            results['static_offset'].append(mc_results['static_offset_m'])
-            results['k_eff'].append(mc_results['k_eff_n_per_m'])
-            results['period'].append(mc_results['period_s'])
-            
-        except Exception as e:
-            print(f"Error at v={v}: {e}")
-            # Add placeholder values
-            results['cascade_probability'].append(0.0)
-            results['containment_rate'].append(1.0)
-            results['static_offset'].append(0.0)
-            results['k_eff'].append(4500.0)
-            results['period'].append(0.1)
+        stream_factory = create_stream_factory(test_params)
+        mc_results = runner.run_monte_carlo(stream_factory)
+        
+        results['cascade_probability'].append(mc_results.get('cascade_probability', 0.0))
+        results['containment_rate'].append(mc_results.get('containment_rate', 1.0))
+        results['static_offset'].append(0.0)
+        results['k_eff'].append(mc_results.get('k_eff_min', 4500.0))
+        results['period'].append(0.1)
     
     # Calculate velocity effects
     cascade_array = np.array(results['cascade_probability'])

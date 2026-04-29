@@ -276,6 +276,10 @@ class CascadeRunner:
         n_steps = int(self.config.time_horizon / self.config.dt)
         current_time = 0.0
 
+        # Save initial node stiffnesses so fault degradation doesn't
+        # permanently mutate the stream between realizations.
+        initial_k_fp = {node.id: node.k_fp for node in stream.nodes if hasattr(node, 'k_fp')}
+
         # Latency tracking
         latency_events = 0
         max_latency_ms = 0.0
@@ -374,10 +378,18 @@ class CascadeRunner:
             if cascade_occurred:
                 break
         
-        # Check k_eff (simplified - would need anchor parameters)
-        # For now, assume within limit
-        k_eff_min = 6000.0
-        k_eff_within_limit = True
+        # Restore node stiffnesses to initial values (undo in-place fault mutations)
+        for node in stream.nodes:
+            if node.id in initial_k_fp:
+                node.k_fp = initial_k_fp[node.id]
+
+        # Compute k_eff_min from the minimum stiffness reached during the run
+        # (already captured via nodes_affected; use degraded threshold as proxy)
+        if stream.nodes:
+            k_eff_min = min(initial_k_fp.get(n.id, 6000.0) / (self.config.cascade_threshold ** len(nodes_affected)) for n in stream.nodes)
+        else:
+            k_eff_min = 6000.0  # fallback if no nodes
+        k_eff_within_limit = k_eff_min >= self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
         
         # Determine containment success and cascade from node failures
         containment_successful = len(nodes_affected) <= self.config.containment_threshold
@@ -533,7 +545,8 @@ class CascadeRunner:
             if r.failure_mode:
                 failure_modes[r.failure_mode] = failure_modes.get(r.failure_mode, 0) + 1
 
-        cascade_probability = failure_count / len(results)
+        cascade_count = sum(1 for r in results if r.cascade_occurred)
+        cascade_probability = cascade_count / len(results)
         containment_rate = sum(containment_successful_values) / len(results) if results else 1.0
         n = len(results)
 
@@ -562,10 +575,12 @@ class CascadeRunner:
             "n_realizations": n,
             "n_success": success_count,
             "n_failure": failure_count,
+            "n_cascade": cascade_count,
             "success_rate": success_count / n,
             "success_rate_ci": _wilson_ci(success_count, n),
             "cascade_probability": cascade_probability,
-            "cascade_probability_ci": _wilson_ci(failure_count, n),
+            "cascade_probability_ci": _wilson_ci(cascade_count, n),
+
             "eta_ind_min_mean": np.mean(eta_ind_values),
             "eta_ind_min_std": np.std(eta_ind_values),
             "eta_ind_min_min": np.min(eta_ind_values),
@@ -577,7 +592,7 @@ class CascadeRunner:
             "failure_modes": failure_modes,
             "latency_events": sum(latency_events),
             "max_latency_ms": max(max_latency_values) if max_latency_values else 0.0,
-            "k_eff_min": 6000.0,  # Placeholder for stiffness metric
+            "k_eff_min": float(np.min([r.k_eff_min for r in results])) if results else 6000.0,
             "meets_cascade_target": cascade_probability < 1e-6,  # Target: <10⁻⁶
             "acceleration_mode": self.acceleration_mode,
             "nodes_affected_mean": np.mean(nodes_affected_values) if nodes_affected_values else 0.0,
