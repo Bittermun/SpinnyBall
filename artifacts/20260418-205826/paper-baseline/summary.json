@@ -1,0 +1,250 @@
+{
+  "anchor": {
+    "continuum_metrics": {
+      "bias_force_n": 0.00087,
+      "force_peak_n": 0.24913000000000007,
+      "force_per_stream_n": 4.35,
+      "k_control": 2.5,
+      "k_eff": 2.5,
+      "k_fp": 0.0,
+      "k_total": 2.5,
+      "omega_n_rad_s": 0.05,
+      "packet_period_s": 0.01,
+      "packet_rate_hz": 100.0,
+      "period_s": 125.66370614359172,
+      "static_offset_m": 0.000348,
+      "vx_final_m_s": 0.0016805897862289894,
+      "x_final_m": 0.05071794277089246,
+      "x_peak_m": 0.1,
+      "zeta": 0.04
+    },
+    "continuum_period_s": null,
+    "discrete_period_s": null
+  },
+  "calibration": {
+    "params": {
+      "atol": 1e-10,
+      "c_damp": 4.0,
+      "disturbance_hold_s": 1.0,
+      "disturbance_theta_std": 0.0,
+      "eps": 0.0001,
+      "g_gain": 0.05,
+      "k_fp": 0.0,
+      "lam": 0.5,
+      "max_step": 0.25,
+      "mp": 0.05,
+      "ms": 1000.0,
+      "packet_phase_s": 0.0,
+      "packet_sigma_s": 0.01,
+      "rtol": 1e-08,
+      "t_max": 240.0,
+      "theta_bias": 0.087,
+      "u": 10.0,
+      "v0": 0.0,
+      "x0": 0.1
+    },
+    "provenance": {
+      "c_damp": {
+        "calibrated_value": 4.0,
+        "source": "reduced-order damping assumption",
+        "status": "placeholder"
+      },
+      "g_gain": {
+        "calibrated_value": 0.05,
+        "source": "paper baseline feedback",
+        "status": "paper control assumption"
+      },
+      "lam": {
+        "calibrated_value": 0.5,
+        "source": "paper density assumption",
+        "status": "reduced-order assumption"
+      },
+      "ms": {
+        "calibrated_value": 1000.0,
+        "source": "suspended node baseline",
+        "status": "memo-baseline"
+      },
+      "theta_bias": {
+        "calibrated_value": 0.087,
+        "source": "master memo baseline bend angle",
+        "status": "memo-baseline"
+      },
+      "u": {
+        "calibrated_value": 10.0,
+        "source": "paper baseline stream speed",
+        "status": "memo-baseline"
+      }
+    }
+  },
+  "claim_context": {
+    "phase_decision": {
+      "claim_level": "L1-reduced-order",
+      "decision": "defer",
+      "high_fidelity_required": false,
+      "rationale": [
+        "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+        "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+      ]
+    },
+    "profile_claim": {
+      "claim_level": "L1-reduced-order",
+      "intended_use": "paper"
+    }
+  },
+  "name": "paper-baseline",
+  "params": {
+    "atol": 1e-10,
+    "c_damp": 4.0,
+    "disturbance_hold_s": 1.0,
+    "disturbance_theta_std": 0.0,
+    "eps": 0.0001,
+    "g_gain": 0.05,
+    "k_fp": 0.0,
+    "lam": 0.5,
+    "max_step": 0.25,
+    "mp": 0.05,
+    "ms": 1000.0,
+    "packet_phase_s": 0.0,
+    "packet_sigma_s": 0.01,
+    "rtol": 1e-08,
+    "t_max": 240.0,
+    "theta_bias": 0.087,
+    "u": 10.0,
+    "v0": 0.0,
+    "x0": 0.1
+  },
+  "profile": {
+    "category": "paper",
+    "name": "paper-baseline",
+    "notes": [
+      "Use for paper-facing reduced-order figures and tables.",
+      "Prioritizes traceable assumptions over aggressive performance."
+    ],
+    "provenance": {
+      "g_gain": "paper control assumption",
+      "lam": "reduced-order anchor assumption",
+      "ms": "suspended node baseline",
+      "u": "master memo baseline"
+    }
+  },
+  "robustness": {
+    "rows": [
+      {
+        "area_abs_x": 0.5171292860696247,
+        "controller": "lqr",
+        "peak_abs_u_n": 9.753124511871285,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.01188272437627381,
+        "scenario": "nominal"
+      },
+      {
+        "area_abs_x": 0.5171292860696247,
+        "controller": "lqr",
+        "peak_abs_u_n": 9.753124511871285,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.01188272437627381,
+        "scenario": "higher-imbalance"
+      },
+      {
+        "area_abs_x": 0.5171271174873163,
+        "controller": "lqr",
+        "peak_abs_u_n": 9.753124511871256,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.011882651884777221,
+        "scenario": "low-damping"
+      },
+      {
+        "area_abs_x": 0.5165996975871013,
+        "controller": "lqr",
+        "peak_abs_u_n": 9.60799680255745,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.011866874700408815,
+        "scenario": "stiffer-feedback"
+      }
+    ]
+  },
+  "sensitivity": {
+    "k_eff": {
+      "S1": {
+        "eps": 0.0,
+        "g_gain": 0.1270911765891071,
+        "lam": 0.17300235684980492,
+        "u": 0.4713608564532625
+      },
+      "ST": {
+        "eps": 0.0,
+        "g_gain": 0.2961587476151614,
+        "lam": 0.38079269797808635,
+        "u": 0.7019947576258737
+      }
+    },
+    "packet_rate_hz": {
+      "S1": {
+        "eps": 0.0,
+        "g_gain": 0.0,
+        "lam": 0.3959994187842259,
+        "u": 0.46239453608244674
+      },
+      "ST": {
+        "eps": 0.0,
+        "g_gain": 0.0,
+        "lam": 0.5291382856995671,
+        "u": 0.5980338033267837
+      }
+    },
+    "period_s": {
+      "S1": {
+        "eps": 0.0,
+        "g_gain": 0.01897111492440068,
+        "lam": 0.033641681050866956,
+        "u": 0.8315988130415539
+      },
+      "ST": {
+        "eps": 0.0,
+        "g_gain": 0.17260846750283113,
+        "lam": 0.21112244124405782,
+        "u": 1.0012430282670788
+      }
+    },
+    "static_offset_m": {
+      "S1": {
+        "eps": 0.3041604278683724,
+        "g_gain": 0.5119677627922826,
+        "lam": -1.3039060890701515e-18,
+        "u": 5.4127086354446666e-18
+      },
+      "ST": {
+        "eps": 0.5101102705470595,
+        "g_gain": 0.7387940783878838,
+        "lam": 3.1870250962377376e-32,
+        "u": 2.018585018242321e-32
+      }
+    }
+  },
+  "slug": "paper-baseline",
+  "trade_study": {
+    "rows": [
+      {
+        "area_abs_x": 12.756030956784382,
+        "controller": "open",
+        "peak_abs_u_n": 0.0,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.059680186951519665
+      },
+      {
+        "area_abs_x": 12.828021352725496,
+        "controller": "p",
+        "peak_abs_u_n": 0.125,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.060144877839705416
+      },
+      {
+        "area_abs_x": 0.5171292860696247,
+        "controller": "lqr",
+        "peak_abs_u_n": 9.753124511871285,
+        "peak_abs_x_m": 0.1,
+        "rms_x_m": 0.01188272437627381
+      }
+    ]
+  }
+}

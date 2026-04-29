@@ -27,6 +27,20 @@ from scipy.spatial.transform import Rotation as R
 
 from .gyro_matrix import skew_symmetric
 
+# Numba JIT for performance
+try:
+    from numba import jit, prange
+    _NUMBA_AVAILABLE = True
+except ImportError:
+    _NUMBA_AVAILABLE = False
+    # Fallback decorators
+    def jit(nopython=True, **kwargs):
+        def decorator(func):
+            return func
+        return decorator
+    def prange(x):
+        return range(x)
+
 if TYPE_CHECKING:
     from .bean_london_model import BeanLondonModel
 
@@ -180,6 +194,101 @@ def normalize_quaternion(q: np.ndarray) -> np.ndarray:
             f"Consider smaller timestep or higher-order integrator."
         )
     return q / norm
+
+
+@jit(nopython=True)
+def _skew_symmetric_numba(omega: np.ndarray) -> np.ndarray:
+    """Numba-compiled skew-symmetric matrix."""
+    return np.array([
+        [0, -omega[2], omega[1]],
+        [omega[2], 0, -omega[0]],
+        [-omega[1], omega[0], 0]
+    ])
+
+
+@jit(nopython=True)
+def _quaternion_derivative_numba(q: np.ndarray, omega: np.ndarray) -> np.ndarray:
+    """Numba-compiled quaternion derivative (scalar-first convention)."""
+    qw, qx, qy, qz = q
+    ow, ox, oy, oz = 0.0, omega[0], omega[1], omega[2]
+    dq = 0.5 * np.array([
+        qw*ow - qx*ox - qy*oy - qz*oz,
+        qw*ox + qx*ow + qy*oz - qz*oy,
+        qw*oy - qx*oz + qy*ow + qz*ox,
+        qw*oz + qx*oy - qy*ox + qz*ow,
+    ])
+    return dq
+
+
+@jit(nopython=True)
+def _rk4_step(rhs, t: float, y: np.ndarray, dt: float) -> np.ndarray:
+    """Single RK4 step (Numba-compiled)."""
+    k1 = dt * rhs(t, y)
+    k2 = dt * rhs(t + dt/2, y + k1/2)
+    k3 = dt * rhs(t + dt/2, y + k2/2)
+    k4 = dt * rhs(t + dt, y + k3)
+    return y + (k1 + 2*k2 + 2*k3 + k4) / 6
+
+
+@jit(nopython=True)
+def _euler_equations_zero_torque_numba(
+    t: float,
+    state: np.ndarray,
+    I: np.ndarray,
+    I_inv: np.ndarray,
+) -> np.ndarray:
+    """Numba-compiled Euler equations with zero torque (no function callback)."""
+    # Extract quaternion (scalar-last) and omega
+    q_scipy = state[:4]
+    omega = state[4:]
+
+    # Convert to scalar-first
+    q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+
+    # Compute quaternion derivative
+    dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+    # Convert back to scalar-last
+    dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+
+    # Compute gyroscopic coupling
+    I_omega = I @ omega
+    gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+
+    # Solve for angular acceleration (zero torque)
+    alpha = I_inv @ (-gyro_coupling)
+
+    return np.concatenate([dq_scipy, alpha])
+
+
+@jit(nopython=True)
+def _euler_equations_numba(
+    t: float,
+    state: np.ndarray,
+    I: np.ndarray,
+    I_inv: np.ndarray,
+    torque_vector: np.ndarray,
+) -> np.ndarray:
+    """Numba-compiled Euler equations (no torque function call)."""
+    # Extract quaternion (scalar-last) and omega
+    q_scipy = state[:4]
+    omega = state[4:]
+    
+    # Convert to scalar-first
+    q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+    
+    # Compute quaternion derivative
+    dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+    # Convert back to scalar-last
+    dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+    
+    # Compute gyroscopic coupling
+    I_omega = I @ omega
+    gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+    
+    # Solve for angular acceleration
+    alpha = I_inv @ (torque_vector - gyro_coupling)
+    
+    return np.concatenate([dq_scipy, alpha])
 
 
 def euler_equations(
@@ -372,19 +481,185 @@ class RigidBody:
             self._I_inv = np.linalg.inv(self.I)
         return self._I_inv
     
+    def integrate_numba_rk4_zero_torque(
+        self,
+        t_span: tuple[float, float],
+        dt: float = 0.01,
+    ) -> dict:
+        """
+        Integrate using Numba-compiled RK4 with zero torque (no function callback).
+
+        Args:
+            t_span: (t_start, t_end) integration interval
+            dt: Fixed timestep
+
+        Returns:
+            Dictionary with 't', 'state', 'sol'
+        """
+        t_start, t_end = t_span
+        n_steps = int((t_end - t_start) / dt)
+
+        # Precompute inertia inverse and inertia tensor
+        I_inv = self.I_inv
+        I_local = self.I
+
+        # Storage for trajectory
+        t_values = np.zeros(n_steps + 1)
+        state_values = np.zeros((7, n_steps + 1))
+
+        t_values[0] = t_start
+        state_values[:, 0] = self.state
+
+        # Integration loop with inlined RHS (no function callback)
+        current_state = self.state.copy()
+        current_t = t_start
+
+        for i in range(n_steps):
+            # Inline RK4 step with zero-torque Euler equations
+            y = current_state
+            t = current_t
+
+            # k1
+            q_scipy = y[:4]
+            omega = y[4:]
+            q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+            dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+            dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+            I_omega = I_local @ omega
+            gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+            alpha = I_inv @ (-gyro_coupling)
+            k1 = dt * np.concatenate([dq_scipy, alpha])
+
+            # k2
+            y2 = y + k1/2
+            q_scipy = y2[:4]
+            omega = y2[4:]
+            q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+            dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+            dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+            I_omega = I_local @ omega
+            gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+            alpha = I_inv @ (-gyro_coupling)
+            k2 = dt * np.concatenate([dq_scipy, alpha])
+
+            # k3
+            y3 = y + k2/2
+            q_scipy = y3[:4]
+            omega = y3[4:]
+            q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+            dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+            dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+            I_omega = I_local @ omega
+            gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+            alpha = I_inv @ (-gyro_coupling)
+            k3 = dt * np.concatenate([dq_scipy, alpha])
+
+            # k4
+            y4 = y + k3
+            q_scipy = y4[:4]
+            omega = y4[4:]
+            q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
+            dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
+            dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
+            I_omega = I_local @ omega
+            gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
+            alpha = I_inv @ (-gyro_coupling)
+            k4 = dt * np.concatenate([dq_scipy, alpha])
+
+            # RK4 update
+            current_state = y + (k1 + 2*k2 + 2*k3 + k4) / 6
+            current_t += dt
+
+            t_values[i + 1] = current_t
+            state_values[:, i + 1] = current_state
+
+        # Update final state
+        self.state = current_state
+        self.quaternion = self.state[:4]
+        self.angular_velocity = self.state[4:]
+        self.quaternion = normalize_quaternion(self.quaternion)
+
+        return {
+            "t": t_values,
+            "state": state_values,
+            "sol": None,  # No solve_ivp solution object
+        }
+
+    def integrate_numba_rk4(
+        self,
+        t_span: tuple[float, float],
+        torques: Callable[[float, np.ndarray], np.ndarray],
+        dt: float = 0.01,
+    ) -> dict:
+        """
+        Integrate using Numba-compiled RK4 (much faster than solve_ivp).
+
+        Args:
+            t_span: (t_start, t_end) integration interval
+            torques: Function torques(t, state) returning torque vector
+            dt: Fixed timestep
+
+        Returns:
+            Dictionary with 't', 'state', 'sol'
+        """
+        t_start, t_end = t_span
+        n_steps = int((t_end - t_start) / dt)
+
+        # Precompute inertia inverse
+        I_inv = self.I_inv
+
+        # Storage for trajectory
+        t_values = np.zeros(n_steps + 1)
+        state_values = np.zeros((7, n_steps + 1))
+
+        t_values[0] = t_start
+        state_values[:, 0] = self.state
+
+        # Define RHS for Numba
+        def rhs(t, y):
+            tau = torques(t, y)
+            if tau.ndim == 0:
+                tau = np.array([tau])
+            return _euler_equations_numba(t, y, self.I, I_inv, tau)
+
+        # Integration loop
+        current_state = self.state.copy()
+        current_t = t_start
+
+        for i in range(n_steps):
+            current_state = _rk4_step(rhs, current_t, current_state, dt)
+            current_t += dt
+
+            t_values[i + 1] = current_t
+            state_values[:, i + 1] = current_state
+
+        # Update final state
+        self.state = current_state
+        self.quaternion = self.state[:4]
+        self.angular_velocity = self.state[4:]
+        self.quaternion = normalize_quaternion(self.quaternion)
+
+        return {
+            "t": t_values,
+            "state": state_values,
+            "sol": None,  # No solve_ivp solution object
+        }
+
     def integrate(
         self,
         t_span: tuple[float, float],
         torques: Callable[[float, np.ndarray], np.ndarray],
         method: str = "RK45",
-        rtol: float = 1e-8,
-        atol: float = 1e-10,
-        max_step: float = 0.25,
+        rtol: float = 1e-10,  # HIGH-FIDELITY: Tighter relative tolerance
+        atol: float = 1e-12,  # HIGH-FIDELITY: Tighter absolute tolerance
+        max_step: float = 0.01,  # HIGH-FIDELITY: Smaller max step (10ms not 250ms)
         dense_output: bool = True,
+        use_numba_rk4: bool = True,
+        use_zero_torque_numba: bool = False,
     ) -> dict:
         """
         Integrate rotational dynamics over time span.
-        
+
         Args:
             t_span: (t_start, t_end) integration interval
             torques: Function torques(t, state) returning torque vector [τx, τy, τz]
@@ -393,13 +668,19 @@ class RigidBody:
             atol: Absolute tolerance
             max_step: Maximum step size
             dense_output: Whether to return dense output for interpolation
-        
+            use_numba_rk4: Use Numba-compiled RK4 (much faster, fixed dt)
+            use_zero_torque_numba: Use zero-torque Numba RK4 (fastest, no function callback)
+
         Returns:
             Dictionary with:
                 't': Time points
                 'state': State trajectories (shape: [7, n_points])
-                'sol': Scipy solve_ivp solution object
+                'sol': Scipy solve_ivp solution object (None if use_numba_rk4)
         """
+        if use_zero_torque_numba and _NUMBA_AVAILABLE:
+            return self.integrate_numba_rk4_zero_torque(t_span, dt=max_step if max_step < 0.1 else 0.01)
+        if use_numba_rk4 and _NUMBA_AVAILABLE:
+            return self.integrate_numba_rk4(t_span, torques, dt=max_step if max_step < 0.1 else 0.01)
         def rhs(t, y):
             return euler_equations(t, y, self.I, torques, I_inv=self.I_inv)
         

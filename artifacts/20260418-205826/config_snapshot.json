@@ -1,0 +1,84 @@
+{
+  "defaults": {
+    "calibration_path": "anchor_calibration.json",
+    "claims_path": "anchor_claims.json",
+    "params": {
+      "disturbance_theta_std": 0.0,
+      "t_max": 240.0
+    },
+    "profiles_path": "anchor_profiles.json",
+    "robustness": {
+      "base_disturbance": {
+        "end": 100.0,
+        "force": 0.02,
+        "start": 60.0
+      },
+      "controller": "lqr",
+      "num_points": 2400,
+      "scenarios": [
+        {
+          "name": "nominal",
+          "params": {}
+        },
+        {
+          "name": "higher-imbalance",
+          "params": {
+            "eps": 0.0005
+          }
+        },
+        {
+          "name": "low-damping",
+          "params": {
+            "c_damp": 1.0
+          }
+        },
+        {
+          "name": "stiffer-feedback",
+          "params": {
+            "g_gain": 0.08
+          }
+        }
+      ],
+      "t_max": 240.0
+    },
+    "sensitivity": {
+      "N": 256,
+      "calc_second_order": false,
+      "outputs": [
+        "k_eff",
+        "period_s",
+        "static_offset_m",
+        "packet_rate_hz"
+      ],
+      "seed": 11
+    },
+    "trade_study": {
+      "controllers": [
+        "open",
+        "p",
+        "lqr"
+      ],
+      "disturbance": {
+        "end": 100.0,
+        "force": 0.02,
+        "start": 60.0
+      },
+      "num_points": 2400,
+      "p_gain_scale": 0.5,
+      "t_max": 240.0
+    }
+  },
+  "experiments": [
+    {
+      "name": "paper-baseline",
+      "profile": "paper-baseline"
+    },
+    {
+      "name": "engineering-screen",
+      "params": {
+        "disturbance_theta_std": 0.0
+      },
+      "profile": "engineering-screen"
+    }
+  ]
+}

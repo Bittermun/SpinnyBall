@@ -427,16 +427,20 @@ class MultiBodyStream:
         torques: Callable[[int, float, np.ndarray], np.ndarray],
         max_steps: int = 1000,
         thermal_limits: ThermalLimits = None,
+        use_numba_rk4: bool = True,
+        use_zero_torque_numba: bool = False,
     ) -> dict:
         """
         Integrate multi-body dynamics over time step.
-        
+
         Args:
             dt: Time step (s)
             torques: Function torques(packet_id, t, state) returning torque
             max_steps: Maximum integration steps per packet
             thermal_limits: ThermalLimits object for temperature constraints
-        
+            use_numba_rk4: Use Numba-compiled RK4 integrator (faster)
+            use_zero_torque_numba: Use zero-torque Numba RK4 (fastest, no callback)
+
         Returns:
             Dictionary with integration results
         """
@@ -494,6 +498,8 @@ class MultiBodyStream:
                         rtol=1e-8,
                         atol=1e-10,
                         max_step=dt / max_steps,
+                        use_numba_rk4=use_numba_rk4,
+                        use_zero_torque_numba=use_zero_torque_numba,
                     )
                     
                     # Thermal update (radiation cooling + solar heating)

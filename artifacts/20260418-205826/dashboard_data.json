@@ -1,0 +1,274 @@
+{
+  "experiments": [
+    {
+      "calibration": {
+        "params": {
+          "atol": 1e-10,
+          "c_damp": 4.0,
+          "disturbance_hold_s": 1.0,
+          "disturbance_theta_std": 0.0,
+          "eps": 0.0001,
+          "g_gain": 0.05,
+          "k_fp": 0.0,
+          "lam": 0.5,
+          "max_step": 0.25,
+          "mp": 0.05,
+          "ms": 1000.0,
+          "packet_phase_s": 0.0,
+          "packet_sigma_s": 0.01,
+          "rtol": 1e-08,
+          "t_max": 240.0,
+          "theta_bias": 0.087,
+          "u": 10.0,
+          "v0": 0.0,
+          "x0": 0.1
+        },
+        "provenance": {
+          "c_damp": {
+            "calibrated_value": 4.0,
+            "source": "reduced-order damping assumption",
+            "status": "placeholder"
+          },
+          "g_gain": {
+            "calibrated_value": 0.05,
+            "source": "paper baseline feedback",
+            "status": "paper control assumption"
+          },
+          "lam": {
+            "calibrated_value": 0.5,
+            "source": "paper density assumption",
+            "status": "reduced-order assumption"
+          },
+          "ms": {
+            "calibrated_value": 1000.0,
+            "source": "suspended node baseline",
+            "status": "memo-baseline"
+          },
+          "theta_bias": {
+            "calibrated_value": 0.087,
+            "source": "master memo baseline bend angle",
+            "status": "memo-baseline"
+          },
+          "u": {
+            "calibrated_value": 10.0,
+            "source": "paper baseline stream speed",
+            "status": "memo-baseline"
+          }
+        }
+      },
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L1-reduced-order",
+          "intended_use": "paper"
+        }
+      },
+      "name": "paper-baseline",
+      "params": {
+        "atol": 1e-10,
+        "c_damp": 4.0,
+        "disturbance_hold_s": 1.0,
+        "disturbance_theta_std": 0.0,
+        "eps": 0.0001,
+        "g_gain": 0.05,
+        "k_fp": 0.0,
+        "lam": 0.5,
+        "max_step": 0.25,
+        "mp": 0.05,
+        "ms": 1000.0,
+        "packet_phase_s": 0.0,
+        "packet_sigma_s": 0.01,
+        "rtol": 1e-08,
+        "t_max": 240.0,
+        "theta_bias": 0.087,
+        "u": 10.0,
+        "v0": 0.0,
+        "x0": 0.1
+      },
+      "profile": {
+        "category": "paper",
+        "name": "paper-baseline",
+        "notes": [
+          "Use for paper-facing reduced-order figures and tables.",
+          "Prioritizes traceable assumptions over aggressive performance."
+        ],
+        "provenance": {
+          "g_gain": "paper control assumption",
+          "lam": "reduced-order anchor assumption",
+          "ms": "suspended node baseline",
+          "u": "master memo baseline"
+        }
+      },
+      "slug": "paper-baseline",
+      "trade_study": {
+        "rows": [
+          {
+            "area_abs_x": 12.756030956784382,
+            "controller": "open",
+            "peak_abs_u_n": 0.0,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.059680186951519665
+          },
+          {
+            "area_abs_x": 12.828021352725496,
+            "controller": "p",
+            "peak_abs_u_n": 0.125,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.060144877839705416
+          },
+          {
+            "area_abs_x": 0.5171292860696247,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.753124511871285,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.01188272437627381
+          }
+        ]
+      }
+    },
+    {
+      "calibration": {
+        "params": {
+          "atol": 1e-10,
+          "c_damp": 8.0,
+          "disturbance_hold_s": 1.0,
+          "disturbance_theta_std": 0.0,
+          "eps": 0.0005,
+          "g_gain": 0.08,
+          "k_fp": 0.0,
+          "lam": 0.75,
+          "max_step": 0.25,
+          "mp": 0.05,
+          "ms": 1000.0,
+          "packet_phase_s": 0.0,
+          "packet_sigma_s": 0.01,
+          "rtol": 1e-08,
+          "t_max": 240.0,
+          "theta_bias": 0.087,
+          "u": 20.0,
+          "v0": 0.0,
+          "x0": 0.08
+        },
+        "provenance": {
+          "c_damp": {
+            "calibrated_value": 8.0,
+            "source": "higher damping screen",
+            "status": "engineering-screen"
+          },
+          "g_gain": {
+            "calibrated_value": 0.08,
+            "source": "stiffer engineering controller",
+            "status": "engineering-screen"
+          },
+          "lam": {
+            "calibrated_value": 0.75,
+            "source": "higher-density engineering sweep",
+            "status": "engineering-screen"
+          },
+          "ms": {
+            "calibrated_value": 1000.0,
+            "source": "suspended node baseline",
+            "status": "memo-baseline"
+          },
+          "theta_bias": {
+            "calibrated_value": 0.087,
+            "source": "master memo baseline bend angle",
+            "status": "memo-baseline"
+          },
+          "u": {
+            "calibrated_value": 20.0,
+            "source": "higher-throughput engineering sweep",
+            "status": "engineering-screen"
+          }
+        }
+      },
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L0-engineering-screen",
+          "intended_use": "engineering"
+        }
+      },
+      "name": "engineering-screen",
+      "params": {
+        "atol": 1e-10,
+        "c_damp": 8.0,
+        "disturbance_hold_s": 1.0,
+        "disturbance_theta_std": 0.0,
+        "eps": 0.0005,
+        "g_gain": 0.08,
+        "k_fp": 0.0,
+        "lam": 0.75,
+        "max_step": 0.25,
+        "mp": 0.05,
+        "ms": 1000.0,
+        "packet_phase_s": 0.0,
+        "packet_sigma_s": 0.01,
+        "rtol": 1e-08,
+        "t_max": 240.0,
+        "theta_bias": 0.087,
+        "u": 20.0,
+        "v0": 0.0,
+        "x0": 0.08
+      },
+      "profile": {
+        "category": "engineering",
+        "name": "engineering-screen",
+        "notes": [
+          "Use for engineering trade studies and stronger-control screening.",
+          "Not the default paper claim profile."
+        ],
+        "provenance": {
+          "c_damp": "higher damping engineering case",
+          "g_gain": "stiffer control screen",
+          "lam": "higher traffic density screen",
+          "u": "engineering sweep point"
+        }
+      },
+      "slug": "engineering-screen",
+      "trade_study": {
+        "rows": [
+          {
+            "area_abs_x": 7.843975320376249,
+            "controller": "open",
+            "peak_abs_u_n": 0.0,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.03778079639291927
+          },
+          {
+            "area_abs_x": 7.893052893798844,
+            "controller": "p",
+            "peak_abs_u_n": 0.96,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.037856658714547256
+          },
+          {
+            "area_abs_x": 0.41014017046465273,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596766,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293772848878331
+          }
+        ]
+      }
+    }
+  ],
+  "generated_at_utc": "2026-04-18T20:58:26+00:00",
+  "run_label": "20260418-205826"
+}

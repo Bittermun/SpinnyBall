@@ -1,0 +1,117 @@
+{
+  "calibration_path": "anchor_calibration.json",
+  "claims_path": "anchor_claims.json",
+  "config_path": "anchor_experiments.json",
+  "dashboard_data_path": "artifacts\\20260418-205826\\dashboard_data.json",
+  "dashboard_path": "artifacts\\20260418-205826\\dashboard.html",
+  "experiments": [
+    {
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L1-reduced-order",
+          "intended_use": "paper"
+        }
+      },
+      "files": [
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_displacement.png",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_packet_compare.png",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_velocity_sweep.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\anchor_grid.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_heatmaps.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\controller_trade_study.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\controller_trade_study.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\robustness_summary.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\robustness.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\sobol_indices.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\sobol_indices.png"
+      ],
+      "name": "paper-baseline",
+      "profile": {
+        "category": "paper",
+        "name": "paper-baseline",
+        "notes": [
+          "Use for paper-facing reduced-order figures and tables.",
+          "Prioritizes traceable assumptions over aggressive performance."
+        ],
+        "provenance": {
+          "g_gain": "paper control assumption",
+          "lam": "reduced-order anchor assumption",
+          "ms": "suspended node baseline",
+          "u": "master memo baseline"
+        }
+      },
+      "slug": "paper-baseline",
+      "summary_path": "artifacts\\20260418-205826\\paper-baseline\\summary.json"
+    },
+    {
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L0-engineering-screen",
+          "intended_use": "engineering"
+        }
+      },
+      "files": [
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_displacement.png",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_packet_compare.png",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_velocity_sweep.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\anchor_grid.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_heatmaps.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\controller_trade_study.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\controller_trade_study.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\robustness_summary.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\robustness.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\sobol_indices.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\sobol_indices.png"
+      ],
+      "name": "engineering-screen",
+      "profile": {
+        "category": "engineering",
+        "name": "engineering-screen",
+        "notes": [
+          "Use for engineering trade studies and stronger-control screening.",
+          "Not the default paper claim profile."
+        ],
+        "provenance": {
+          "c_damp": "higher damping engineering case",
+          "g_gain": "stiffer control screen",
+          "lam": "higher traffic density screen",
+          "u": "engineering sweep point"
+        }
+      },
+      "slug": "engineering-screen",
+      "summary_path": "artifacts\\20260418-205826\\engineering-screen\\summary.json"
+    }
+  ],
+  "generated_at_utc": "2026-04-18T20:58:26+00:00",
+  "profile_summary_path": "artifacts\\20260418-205826\\profile_summary.csv",
+  "profiles_path": "anchor_profiles.json",
+  "report_path": "artifacts\\20260418-205826\\report.html",
+  "run_label": "20260418-205826",
+  "validation_decision": {
+    "claim_level": "L1-reduced-order",
+    "decision": "defer",
+    "high_fidelity_required": false,
+    "rationale": [
+      "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+      "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+    ]
+  }
+}

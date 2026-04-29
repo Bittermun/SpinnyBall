@@ -109,6 +109,15 @@ class MonteCarloConfig:
     n_workers: int = 4  # Number of workers for multiprocessing
     batch_size: int = 100  # Batch size for GPU vectorization
 
+    # Early termination options
+    enable_early_termination: bool = False  # Stop early when CI converges
+    ci_width_threshold: float = 0.05  # Stop when CI width < this fraction (e.g., 0.05 = 5%)
+    min_realizations: int = 20  # Minimum realizations before checking convergence
+
+    # Numba acceleration
+    use_numba_rk4: bool = True  # Use Numba-compiled RK4 integrator
+    use_zero_torque_numba: bool = False  # Use zero-torque Numba RK4 (fastest, no callback)
+
 
 class CascadeRunner:
     """
@@ -119,31 +128,26 @@ class CascadeRunner:
     """
     
     def __init__(self, config: MonteCarloConfig):
-        """
-        Initialize cascade runner.
-
-        Args:
-            config: Monte-Carlo configuration
-        """
+        """Initialize cascade runner with configuration."""
         self.config = config
-
-        # Set default pass/fail gates if not specified
-        if not self.config.pass_fail_gates:
-            self.config.pass_fail_gates = {
-                "eta_ind": (0.82, ">="),
-                "stress": (1.2e9, "<="),  # 1.2 GPa
-                "k_eff": (6000.0, ">="),  # N/m
-            }
-
-        # Set random seed for reproducibility
-        if self.config.random_seed is not None:
-            np.random.seed(self.config.random_seed)
-
-        # Latency injection state
-        self.latency_buffer: Dict[int, List[Tuple[float, np.ndarray]]] = {}  # packet_id -> [(release_time, state), ...]
 
         # Detect and configure acceleration
         self._configure_acceleration()
+        
+        # Initialize Wilson CI method
+        self._wilson_ci = self._create_wilson_ci()
+    
+    def _create_wilson_ci(self):
+        """Create Wilson CI function."""
+        def _wilson_ci(k, n, z=1.96):
+            if n == 0:
+                return (0.0, 1.0)
+            p = k / n
+            denominator = 1 + z**2 / n
+            centre = (p + z**2 / (2*n)) / denominator
+            half_width = z * np.sqrt((p * (1-p) + z**2 / (4*n)) / n) / denominator
+            return (max(0.0, centre - half_width), min(1.0, centre + half_width))
+        return _wilson_ci
 
     def _configure_acceleration(self):
         """Configure acceleration based on availability and config."""
@@ -277,6 +281,10 @@ class CascadeRunner:
         max_latency_ms = 0.0
         per_packet_latency: List[Tuple[int, float]] = []
 
+        # Integration method
+        use_numba = self.config.use_numba_rk4 and _NUMBA_AVAILABLE
+        use_zero_torque_numba = self.config.use_zero_torque_numba and _NUMBA_AVAILABLE
+
         def zero_torque(packet_id, t, state):
             return np.array([0.0, 0.0, 0.0])
 
@@ -337,7 +345,12 @@ class CascadeRunner:
                             nodes_affected.add(node.id)
                             logger.debug(f"Step {step}: Node {node.id} failed: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
 
-            result = stream.integrate(self.config.dt, zero_torque)
+            result = stream.integrate(
+                self.config.dt,
+                zero_torque,
+                use_numba_rk4=use_numba,
+                use_zero_torque_numba=use_zero_torque_numba,
+            )
             current_time += self.config.dt
 
             # Check metrics at each step
@@ -463,7 +476,26 @@ class CascadeRunner:
         """
         results = []
 
-        if self.acceleration_mode == "multiprocessing":
+        # Early termination: run in batches and check CI convergence
+        if self.config.enable_early_termination and self.acceleration_mode != "multiprocessing":
+            batch_size = 10
+            for start_idx in range(0, self.config.n_realizations, batch_size):
+                current_batch_size = min(batch_size, self.config.n_realizations - start_idx)
+                for i in range(start_idx, start_idx + current_batch_size):
+                    stream = stream_factory()
+                    result = self.run_realization(stream, i)
+                    results.append(result)
+
+                # Check convergence after min_realizations
+                if len(results) >= self.config.min_realizations:
+                    success_count = sum(1 for r in results if r.success)
+                    ci_lower, ci_upper = self._wilson_ci(success_count, len(results))
+                    ci_width = ci_upper - ci_lower
+
+                    if ci_width < self.config.ci_width_threshold:
+                        logger.info(f"Early termination: CI width {ci_width:.3f} < threshold {self.config.ci_width_threshold} after {len(results)} realizations")
+                        break
+        elif self.acceleration_mode == "multiprocessing":
             # Use multiprocessing for parallel execution
             with mp.Pool(self.config.n_workers) as pool:
                 args_list = [(stream_factory, i) for i in range(self.config.n_realizations)]
@@ -506,7 +538,7 @@ class CascadeRunner:
         n = len(results)
 
         # Wilson score interval for binomial proportions (95% CI)
-        def wilson_ci(k, n, z=1.96):
+        def _wilson_ci(k, n, z=1.96):
             if n == 0:
                 return (0.0, 1.0)
             p = k / n
@@ -514,6 +546,9 @@ class CascadeRunner:
             centre = (p + z**2 / (2*n)) / denominator
             half_width = z * np.sqrt((p * (1-p) + z**2 / (4*n)) / n) / denominator
             return (max(0.0, centre - half_width), min(1.0, centre + half_width))
+
+        # Make method available for early termination
+        self._wilson_ci = _wilson_ci
 
         # Normal CI for means (95%)
         def mean_ci(values, z=1.96):
@@ -528,9 +563,9 @@ class CascadeRunner:
             "n_success": success_count,
             "n_failure": failure_count,
             "success_rate": success_count / n,
-            "success_rate_ci": wilson_ci(success_count, n),
+            "success_rate_ci": _wilson_ci(success_count, n),
             "cascade_probability": cascade_probability,
-            "cascade_probability_ci": wilson_ci(failure_count, n),
+            "cascade_probability_ci": _wilson_ci(failure_count, n),
             "eta_ind_min_mean": np.mean(eta_ind_values),
             "eta_ind_min_std": np.std(eta_ind_values),
             "eta_ind_min_min": np.min(eta_ind_values),
@@ -550,7 +585,7 @@ class CascadeRunner:
             "nodes_affected_max": max(nodes_affected_values) if nodes_affected_values else 0,
             "nodes_affected_ci": mean_ci(nodes_affected_values),
             "containment_rate": containment_rate,
-            "containment_rate_ci": wilson_ci(sum(containment_successful_values), n),
+            "containment_rate_ci": _wilson_ci(sum(containment_successful_values), n),
             "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
         }
 
