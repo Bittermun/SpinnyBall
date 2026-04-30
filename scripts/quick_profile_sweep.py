@@ -153,13 +153,13 @@ PROFILES = {
     }
 }
 
-def simulate_t3_point(fault_rate: float, params: dict, n_mc: int = 20):
+def simulate_t3_point(fault_rate: float, params: dict, n_mc: int = 100):
     """Run a single T3 fault-rate point via CascadeRunner Monte Carlo.
 
     Args:
         fault_rate: Fault rate in failures/hour.
         params: Anchor profile parameters.
-        n_mc: Number of Monte Carlo realizations.
+        n_mc: Number of Monte Carlo realizations (high-resolution: 100).
 
     Returns:
         dict with cascade_probability, cascade_ci, containment_rate,

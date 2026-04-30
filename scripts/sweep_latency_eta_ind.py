@@ -14,8 +14,12 @@ from typing import Dict, List, Tuple
 import logging
 import json
 import os
+import sys
 from pathlib import Path
 from joblib import Parallel, delayed
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
