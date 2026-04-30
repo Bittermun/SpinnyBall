@@ -73,6 +73,7 @@ class VelocityOptimizer:
     DEFAULT_CAPTURE_EFFICIENCY = 0.85
     DEFAULT_STREAM_DENSITY = 0.5
     DEFAULT_TARGET_FORCE = 10000.0
+    DEFAULT_STREAM_LENGTH = 4.8  # meters
 
     def __init__(
         self,
@@ -80,6 +81,7 @@ class VelocityOptimizer:
         capture_efficiency: float = DEFAULT_CAPTURE_EFFICIENCY,
         stream_density: float = DEFAULT_STREAM_DENSITY,
         target_force: float = DEFAULT_TARGET_FORCE,
+        stream_length: float = DEFAULT_STREAM_LENGTH,
         use_slingshot: bool = True,
         use_flux_gyro: bool = True
     ):
@@ -87,6 +89,7 @@ class VelocityOptimizer:
         self.capture_efficiency = capture_efficiency
         self.stream_density = stream_density
         self.target_force = target_force
+        self.stream_length = stream_length
         self.use_slingshot = use_slingshot
         self.use_flux_gyro = use_flux_gyro
         self._setup_default_constraints()
@@ -104,7 +107,11 @@ class VelocityOptimizer:
             self.constraints[2].max_value = 18000.0
 
     def compute_ball_count(self, velocity: float, include_slingshot: bool = False) -> int:
-        """Compute number of balls required for target force."""
+        """Compute number of balls required for target force.
+        
+        Formula from TECHNICAL_SPEC.md: N = F * L / (m * v² * η)
+        where F is force, L is stream length, m is ball mass, v is velocity, η is efficiency.
+        """
         if velocity < 1.0:
             return 999999
 
@@ -112,8 +119,9 @@ class VelocityOptimizer:
         if include_slingshot:
             v_eff = velocity * 1.2
 
-        momentum_per_ball = self.ball_mass * v_eff * self.capture_efficiency
-        N = int(np.ceil(self.target_force / momentum_per_ball))
+        # Correct dimensional formula: N = F * L / (m * v² * η)
+        N = int(np.ceil(self.target_force * self.stream_length / 
+                        (self.ball_mass * v_eff**2 * self.capture_efficiency)))
         return max(N, 1)
 
     def compute_infrastructure_cost(self, velocity: float, ball_count: int) -> float:

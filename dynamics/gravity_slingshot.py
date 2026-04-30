@@ -313,7 +313,7 @@ class GravitySlingshotOptimizer:
   
   # Energy gain (per unit mass)
   energy_gain = 0.5 * (np.linalg.norm(approach.v_infinity_out)**2 - 
-           np.linalg.norm(approach.v_infinity_out)**2)
+           np.linalg.norm(v_inf_in)**2)
   
   # Feasibility score based on constraints
   periapsis_radius = body.radius + optimal_altitude

@@ -212,10 +212,16 @@ class EarthMoonPumpingSimulator:
     def compute_acceleration(
         self,
         state: BallState,
-        active_thrust: bool = False
+        active_thrust: bool = False,
+        dt: float = 0.01
     ) -> Tuple[np.ndarray, np.ndarray]:
         """
         Compute total acceleration on ball.
+        
+        Args:
+            state: Current ball state
+            active_thrust: Whether flux-pinning thrust is active
+            dt: Time step for energy/delta-v accounting
         
         Returns:
             Tuple of (translational acceleration, torque)
@@ -250,8 +256,8 @@ class EarthMoonPumpingSimulator:
                 
                 # Track work done
                 power = np.dot(self.max_flux_force * v_hat, state.v)
-                state.total_flux_work += power * 0.01  # Approx per-timestep (dt handled in integrate)
-                state.cumulative_dv += np.linalg.norm(a_flux) * 0.01
+                state.total_flux_work += power * dt
+                state.cumulative_dv += np.linalg.norm(a_flux) * dt
             else:
                 a_flux = np.zeros(3)
         else:
@@ -284,7 +290,7 @@ class EarthMoonPumpingSimulator:
                 total_flux_work=0, cumulative_dv=0,
                 lunar_encounters=0, specific_energy=0
             )
-            a, _ = self.compute_acceleration(temp_state, thrust)
+            a, _ = self.compute_acceleration(temp_state, thrust, dt)
             return a
         
         # k1

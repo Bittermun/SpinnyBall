@@ -115,12 +115,17 @@ def calculate_inelastic_hitch(
     
     # Apply coefficient of restitution (energy recovery factor)
     # Higher e means less energy dissipation
+    # Physics: In COM frame, KE_final/KE_initial = e², so v_final = v_initial * e
     if config.coefficient_of_restitution < 1.0:
-        # Adjust final velocity to account for energy recovery
-        # v_final_adjusted = v_final * sqrt(e)
-        # This is a simplified model - actual physics is more complex
-        energy_recovered = energy_dissipated * (1.0 - config.coefficient_of_restitution)
-        energy_dissipated -= energy_recovered
+        # Adjust final velocity magnitude by COR factor
+        # This recovers energy proportional to e²
+        v_final_mag = np.linalg.norm(final_velocity)
+        v_final_adjusted_mag = v_final_mag * config.coefficient_of_restitution
+        final_velocity = final_velocity * (v_final_adjusted_mag / v_final_mag) if v_final_mag > 0 else final_velocity
+        
+        # Recalculate energy with adjusted velocity
+        KE_final = 0.5 * total_mass * np.linalg.norm(final_velocity)**2
+        energy_dissipated = KE_total_initial - KE_final
         energy_dissipation_fraction = energy_dissipated / KE_total_initial if KE_total_initial > 0 else 0.0
     
     # Calculate misalignment (simplified: perpendicular component of relative velocity)
