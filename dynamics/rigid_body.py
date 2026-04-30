@@ -19,9 +19,11 @@ Reference: Goldstein, Classical Mechanics (3rd ed.), Chapter 4
 
 from __future__ import annotations
 
+import numpy as np
+import warnings
+
 from typing import TYPE_CHECKING, Callable, Optional
 
-import numpy as np
 from scipy.integrate import solve_ivp
 from scipy.spatial.transform import Rotation as R
 
@@ -790,14 +792,22 @@ class RigidBody:
         # For simplified model, assume force acts at center of mass
         # Torque arises from angular displacement (libration)
         # Use stiffness to compute restoring torque
+        # Extract angular displacement from quaternion using full rotation
+        qw = self.quaternion[3]
+        q_vector = self.quaternion[:3]
+        qw = np.clip(qw, -1.0, 1.0)  # Numerical stability
+        angle = 2.0 * np.arccos(qw)
+        sin_half_angle = np.sin(angle / 2.0)
+        if sin_half_angle > 1e-10:
+            axis = q_vector / sin_half_angle
+            angular_disp = axis * angle
+        else:
+            angular_disp = np.zeros(3)  # No rotation
         torque = np.zeros(3)
         for i in range(3):
-            # Angular displacement approximation from quaternion
-            # Small angle approximation: θ ≈ 2 * q_xyz
-            angular_disp = 2.0 * self.quaternion[i] if i < 3 else 0.0
             stiffness = self.flux_model.get_stiffness(
-                angular_disp, B_mag, superconductor_temp
+                angular_disp[i], B_mag, superconductor_temp
             )
-            torque[i] = -stiffness * angular_disp
+            torque[i] = -stiffness * angular_disp[i]
 
         return np.concatenate([force, torque])
