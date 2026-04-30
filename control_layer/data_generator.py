@@ -48,12 +48,11 @@ def generate_packet_loss_perturbation(
     Returns:
         Tuple of (loss_plus, loss_minus) - binary arrays indicating lost packets
     """
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed) if random_seed is not None else np.random.default_rng()
     
     # Independent loss for each stream
-    loss_plus = np.random.random(n_packets) < loss_rate
-    loss_minus = np.random.random(n_packets) < loss_rate
+    loss_plus = rng.random(n_packets) < loss_rate
+    loss_minus = rng.random(n_packets) < loss_rate
     
     return loss_plus.astype(int), loss_minus.astype(int)
 
@@ -76,12 +75,11 @@ def generate_timing_jitter_perturbation(
     Returns:
         Tuple of (jitter_plus, jitter_minus) - timing jitter arrays (s)
     """
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed) if random_seed is not None else np.random.default_rng()
     
-    # Gaussian jitter for each stream
-    jitter_plus = np.random.normal(0, jitter_std, n_packets)
-    jitter_minus = np.random.normal(0, jitter_std, n_packets)
+    # Independent jitter for each stream
+    jitter_plus = rng.normal(0, jitter_std, n_packets)
+    jitter_minus = rng.normal(0, jitter_std, n_packets)
     
     return jitter_plus, jitter_minus
 
@@ -104,12 +102,11 @@ def generate_mass_drift_perturbation(
     Returns:
         Tuple of (mass_plus, mass_minus) - mass arrays (kg)
     """
-    if random_seed is not None:
-        np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed) if random_seed is not None else np.random.default_rng()
     
-    # Random walk mass drift
-    drift_plus = np.cumsum(np.random.normal(0, drift_rate * nominal_mass, n_packets))
-    drift_minus = np.cumsum(np.random.normal(0, drift_rate * nominal_mass, n_packets))
+    # Independent drift for each stream
+    drift_plus = np.cumsum(rng.normal(0, drift_rate * nominal_mass, n_packets))
+    drift_minus = np.cumsum(rng.normal(0, drift_rate * nominal_mass, n_packets))
     
     mass_plus = nominal_mass + drift_plus
     mass_minus = nominal_mass + drift_minus
@@ -160,8 +157,7 @@ class SyntheticDataGenerator:
             GeneratorConfig(random_seed=self.config.random_seed)
         )
 
-        # Set random seed
-        np.random.seed(self.config.random_seed)
+        self.rng = np.random.default_rng(self.config.random_seed) if self.config.random_seed is not None else np.random.default_rng()
 
         logger.info(
             f"Synthetic data generator initialized with {self.config.n_samples} samples, "

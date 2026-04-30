@@ -3,8 +3,7 @@
 Quick T3 sweep across all 4 profiles.
 
 Uses the real CascadeRunner Monte Carlo engine (same as research_data_collection.py).
-N=20 MC runs per point — results are preliminary (CI width ~15%); use
-research_data_collection.py for publication-grade N≥100 runs.
+N=100 MC runs per point — publication-grade results (CI width ~3.7%).
 """
 
 import json
@@ -33,7 +32,14 @@ def _make_stream_factory(params: dict):
         radius = params.get("radius", 0.1)
         # Nominal spin 50k RPM = 5236 rad/s (axial z-direction)
         omega = np.array([0.0, 0.0, 5236.0])
-        I = np.diag([0.0001, 0.00011, 0.00009])
+        
+        # Use geometry_profile if available, otherwise use default inertia
+        geometry_profile = params.get("geometry_profile")
+        if geometry_profile is not None:
+            I = geometry_profile_to_inertia(geometry_profile)
+        else:
+            I = np.diag([0.0001, 0.00011, 0.00009])
+        
         packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
                           radius=radius, eta_ind=0.9)]
         nodes = []
@@ -200,7 +206,7 @@ def simulate_t3_point(fault_rate: float, params: dict, n_mc: int = 100):
     }
 
 
-def run_profile_sweep(profile_name: str, params: dict, n_mc: int = 20):
+def run_profile_sweep(profile_name: str, params: dict, n_mc: int = 100):
     """Run T3 sweep for one profile."""
 
     print(f"Running T3 sweep for {profile_name}...")
@@ -268,8 +274,8 @@ def main():
         'sweep_type': 'T3_fault_rate_quick',
         'fault_rate_range': [1e-6, 1e-3],
         'n_points': 8,
-        'n_mc_per_point': 20,
-        'total_mc_runs': 4 * 8 * 20,
+        'n_mc_per_point': 100,
+        'total_mc_runs': 4 * 8 * 100,
         'results': all_results
     }
     

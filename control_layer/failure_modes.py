@@ -56,7 +56,7 @@ class FailureModeLibrary:
             random_seed: Random seed for reproducibility
         """
         self.random_seed = random_seed
-        np.random.seed(random_seed)
+        self.rng = np.random.default_rng(random_seed)  # Use isolated RNG instead of global seed
 
         # Failure mode parameters
         self.failure_params = {
@@ -122,7 +122,7 @@ class FailureModeLibrary:
         if failure_event.failure_type == FailureType.DEBRIS_IMPACT:
             # Momentum kick in random direction
             momentum = params["min_momentum"] + severity * (params["max_momentum"] - params["min_momentum"])
-            direction = np.random.randn(3)
+            direction = self.rng.standard_normal(3)
             norm = np.linalg.norm(direction)
             if norm > 1e-8:
                 direction = direction / norm
@@ -143,16 +143,20 @@ class FailureModeLibrary:
 
         elif failure_event.failure_type == FailureType.SENSOR_FAILURE:
             # Add sensor noise (simulated by perturbing state)
-            noise = np.random.randn(7) * params["noise_std"] * severity
-            bias = (np.random.rand(7) - 0.5) * 2 * params["bias_range"] * severity
+            noise = self.rng.standard_normal(7) * params["noise_std"] * severity
+            bias = (self.rng.random(7) - 0.5) * 2 * params["bias_range"] * severity
             # Apply to state (simulated)
             packet.body.quaternion += noise[:4] * 0.01
+            # Renormalize quaternion to maintain unit constraint
+            quat_norm = np.linalg.norm(packet.body.quaternion)
+            if quat_norm > 1e-8:
+                packet.body.quaternion /= quat_norm
             packet.body.angular_velocity += noise[4:] * 0.1
 
         elif failure_event.failure_type == FailureType.ACTUATOR_FAILURE:
             # Reduce control signal (simulated by reducing angular velocity)
             reduction = 1.0 - severity * params["signal_reduction"]
-            if np.random.random() < params["signal_loss_prob"]:
+            if self.rng.random() < params["signal_loss_prob"]:
                 # Complete signal loss
                 packet.body.angular_velocity *= 0.1
             else:
@@ -160,18 +164,18 @@ class FailureModeLibrary:
 
         elif failure_event.failure_type == FailureType.PACKET_CAPTURE_FAILURE:
             # Missed capture (simulated by reducing eta_ind)
-            if np.random.random() < params["miss_probability"]:
+            if self.rng.random() < params["miss_probability"]:
                 packet.eta_ind *= 0.5  # Reduced capture efficiency
 
         elif failure_event.failure_type == FailureType.PACKET_RELEASE_FAILURE:
             # Stuck packet (simulated by stopping motion)
-            if np.random.random() < params["stuck_probability"]:
+            if self.rng.random() < params["stuck_probability"]:
                 packet.body.velocity *= 0.1
 
         elif failure_event.failure_type == FailureType.VELOCITY_PERTURBATION:
             # Velocity kick
             kick = params["min_kick"] + severity * (params["max_kick"] - params["min_kick"])
-            direction = np.random.randn(3)
+            direction = self.rng.standard_normal(3)
             norm = np.linalg.norm(direction)
             if norm > 1e-8:
                 direction = direction / norm
@@ -180,7 +184,7 @@ class FailureModeLibrary:
         elif failure_event.failure_type == FailureType.SPIN_RATE_PERTURBATION:
             # Angular velocity perturbation
             delta_omega = params["min_delta_omega"] + severity * (params["max_delta_omega"] - params["min_delta_omega"])
-            direction = np.random.randn(3)
+            direction = self.rng.standard_normal(3)
             norm = np.linalg.norm(direction)
             if norm > 1e-8:
                 direction = direction / norm
@@ -189,7 +193,7 @@ class FailureModeLibrary:
         elif failure_event.failure_type == FailureType.POSITION_PERTURBATION:
             # Position offset
             offset = params["min_offset"] + severity * (params["max_offset"] - params["min_offset"])
-            direction = np.random.randn(3)
+            direction = self.rng.standard_normal(3)
             norm = np.linalg.norm(direction)
             if norm > 1e-8:
                 direction = direction / norm
@@ -200,16 +204,18 @@ class FailureModeLibrary:
     def generate_failure_sequence(
         self,
         time_horizon: float,
-        max_failures: int = 3,
-        failure_types: Optional[List[FailureType]] = None,
+        max_failures: int = 5,
+        failure_types: List[FailureType] | None = None,
+        num_packets: int = 10,
     ) -> List[FailureEvent]:
         """
-        Generate a sequence of failure events.
+        Generate a random sequence of failure events.
 
         Args:
             time_horizon: Simulation time horizon
             max_failures: Maximum number of failures
             failure_types: List of failure types to include (None = all)
+            num_packets: Number of packets in the simulation
 
         Returns:
             List of failure events
@@ -217,14 +223,14 @@ class FailureModeLibrary:
         if failure_types is None:
             failure_types = list(FailureType)
 
-        num_failures = np.random.randint(1, max_failures + 1)
+        num_failures = self.rng.integers(1, max_failures + 1)
         events = []
 
         for _ in range(num_failures):
-            failure_type = np.random.choice(failure_types)
-            severity = np.random.uniform(0.1, 1.0)
-            timestamp = np.random.uniform(0, time_horizon)
-            packet_id = np.random.randint(0, 10)  # Assume 10 packets
+            failure_type = self.rng.choice(failure_types)
+            severity = self.rng.uniform(0.1, 1.0)
+            timestamp = self.rng.uniform(0, time_horizon)
+            packet_id = self.rng.integers(0, num_packets)  # Use actual packet count
 
             event = FailureEvent(
                 failure_type=failure_type,

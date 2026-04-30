@@ -208,8 +208,9 @@ class IsolationForestDetector:
         )
         self.scaler = StandardScaler()
 
-        # Training data buffer
+        # Training data buffer with max size to prevent unbounded growth
         self.training_data = []
+        self.max_training_samples = 10000  # Cap to prevent memory leak
         self.is_trained = False
 
     def add_training_sample(self, state: np.ndarray):
@@ -220,6 +221,9 @@ class IsolationForestDetector:
             state: State vector [state_dim]
         """
         self.training_data.append(state)
+        # Prevent unbounded growth by keeping only recent samples
+        if len(self.training_data) > self.max_training_samples:
+            self.training_data = self.training_data[-self.max_training_samples:]
 
     def train(self):
         """Train the isolation forest model."""
@@ -373,9 +377,10 @@ class ResponseHandler:
     Executes actions based on anomaly alerts.
     """
 
-    def __init__(self):
+    def __init__(self, max_alert_history: int = 1000):
         """Initialize response handler."""
         self.alert_history = []
+        self.max_alert_history = max_alert_history  # Cap to prevent memory leak
 
     def handle_alert(self, alert: AnomalyAlert) -> bool:
         """
@@ -388,6 +393,9 @@ class ResponseHandler:
             True if action was executed, False otherwise
         """
         self.alert_history.append(alert)
+        # Prevent unbounded growth by keeping only recent alerts
+        if len(self.alert_history) > self.max_alert_history:
+            self.alert_history = self.alert_history[-self.max_alert_history:]
 
         if alert.action == AlertAction.LOG:
             logger.info(f"[{alert.severity.value.upper()}] {alert.message}")

@@ -79,7 +79,7 @@ class PIDController:
         self.integral = 0.0
         self.prev_error = 0.0
         self.prev_derivative = 0.0  # For low-pass filtering
-        self.delay_buffer = deque(maxlen=params.delay_steps) if params.delay_steps > 0 else None  # Delay compensation
+        self.delay_buffer = deque() if params.delay_steps > 0 else None  # Delay compensation (no maxlen)
         
     def update(self, error: float) -> float:
         """Compute PID output with anti-windup and derivative filtering."""
@@ -111,7 +111,8 @@ class PIDController:
         # Delay compensation (Smith predictor pattern from MPC)
         if self.delay_buffer is not None:
             self.delay_buffer.append(output)
-            if len(self.delay_buffer) > self.params.delay_steps:
+            if len(self.delay_buffer) >= self.params.delay_steps:
+                # Return the oldest delayed value (delay_steps steps ago)
                 output = self.delay_buffer.popleft()
         
         # Update state
@@ -342,12 +343,28 @@ def simulate_controller(
             # Apply disturbance
             u_total = u + disturbance_force[i]
             
-            # Update state (Euler integration)
+            # Update state using RK4 integration for stability
             # m_s * x_ddot + c_damp * x_dot + k_eff * x = u_total
             # x_ddot = (u_total - c_damp * x_dot - k_eff * x) / m_s
-            a = (u_total - params["c_damp"] * x[1] - metrics["k_eff"] * x[0]) / params["ms"]
-            x[1] += a * dt  # Update velocity
-            x[0] += x[1] * dt  # Update position
+            
+            def acceleration(pos, vel, force):
+                return (force - params["c_damp"] * vel - metrics["k_eff"] * pos) / params["ms"]
+            
+            # RK4 integration
+            k1_v = acceleration(x[0], x[1], u_total) * dt
+            k1_x = x[1] * dt
+            
+            k2_v = acceleration(x[0] + k1_x/2, x[1] + k1_v/2, u_total) * dt
+            k2_x = (x[1] + k1_v/2) * dt
+            
+            k3_v = acceleration(x[0] + k2_x/2, x[1] + k2_v/2, u_total) * dt
+            k3_x = (x[1] + k2_v/2) * dt
+            
+            k4_v = acceleration(x[0] + k3_x, x[1] + k3_v, u_total) * dt
+            k4_x = (x[1] + k3_v) * dt
+            
+            x[1] += (k1_v + 2*k2_v + 2*k3_v + k4_v) / 6  # Update velocity
+            x[0] += (k1_x + 2*k2_x + 2*k3_x + k4_x) / 6  # Update position
         
         # Convert to numpy arrays
         states = np.array(states)

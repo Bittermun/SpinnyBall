@@ -384,9 +384,14 @@ class CascadeRunner:
                 node.k_fp = initial_k_fp[node.id]
 
         # Compute k_eff_min from the minimum stiffness reached during the run
-        # (already captured via nodes_affected; use degraded threshold as proxy)
+        # Apply degradation only to affected nodes, not globally
         if stream.nodes:
-            k_eff_min = min(initial_k_fp.get(n.id, 6000.0) / (self.config.cascade_threshold ** len(nodes_affected)) for n in stream.nodes)
+            k_eff_min = min(
+                initial_k_fp.get(n.id, 6000.0) / (self.config.cascade_threshold ** len(nodes_affected))
+                if n.id in [affected.id for affected in nodes_affected]
+                else initial_k_fp.get(n.id, 6000.0)
+                for n in stream.nodes
+            )
         else:
             k_eff_min = 6000.0  # fallback if no nodes
         k_eff_within_limit = k_eff_min >= self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
@@ -445,9 +450,14 @@ class CascadeRunner:
         """
         Run a batch of realizations using JAX for GPU acceleration.
 
-        This is a simplified version that vectorizes the perturbation generation
-        and statistics computation. Full physics vectorization would require
-        rewriting the MultiBodyStream integration in JAX.
+        NOTE: This is currently a sequential loop wrapper - it does NOT vectorize
+        the physics integration. Full physics vectorization would require rewriting
+        the MultiBodyStream integration in JAX (major refactoring task).
+        
+        Current implementation:
+        - Sequential loop over realizations (no GPU vectorization)
+        - JAX is only used for perturbation generation if enabled elsewhere
+        - TODO: Rewrite MultiBodyStream.integrate() in JAX for true GPU acceleration
 
         Args:
             stream_factory: Function that creates a fresh MultiBodyStream
@@ -550,19 +560,6 @@ class CascadeRunner:
         containment_rate = sum(containment_successful_values) / len(results) if results else 1.0
         n = len(results)
 
-        # Wilson score interval for binomial proportions (95% CI)
-        def _wilson_ci(k, n, z=1.96):
-            if n == 0:
-                return (0.0, 1.0)
-            p = k / n
-            denominator = 1 + z**2 / n
-            centre = (p + z**2 / (2*n)) / denominator
-            half_width = z * np.sqrt((p * (1-p) + z**2 / (4*n)) / n) / denominator
-            return (max(0.0, centre - half_width), min(1.0, centre + half_width))
-
-        # Make method available for early termination
-        self._wilson_ci = _wilson_ci
-
         # Normal CI for means (95%)
         def mean_ci(values, z=1.96):
             if len(values) == 0:
@@ -577,9 +574,9 @@ class CascadeRunner:
             "n_failure": failure_count,
             "n_cascade": cascade_count,
             "success_rate": success_count / n,
-            "success_rate_ci": _wilson_ci(success_count, n),
+            "success_rate_ci": self._wilson_ci(success_count, n),
             "cascade_probability": cascade_probability,
-            "cascade_probability_ci": _wilson_ci(cascade_count, n),
+            "cascade_probability_ci": self._wilson_ci(cascade_count, n),
 
             "eta_ind_min_mean": np.mean(eta_ind_values),
             "eta_ind_min_std": np.std(eta_ind_values),
@@ -600,7 +597,7 @@ class CascadeRunner:
             "nodes_affected_max": max(nodes_affected_values) if nodes_affected_values else 0,
             "nodes_affected_ci": mean_ci(nodes_affected_values),
             "containment_rate": containment_rate,
-            "containment_rate_ci": _wilson_ci(sum(containment_successful_values), n),
+            "containment_rate_ci": self._wilson_ci(sum(containment_successful_values), n),
             "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
         }
 

@@ -47,8 +47,7 @@ class TrainingDataGenerator:
         self.config = config or GeneratorConfig()
         
         # Set random seed for reproducibility
-        if self.config.random_seed is not None:
-            np.random.seed(self.config.random_seed)
+        self.rng = np.random.default_rng(self.config.random_seed) if self.config.random_seed is not None else np.random.default_rng()
         
         logger.info(f"Training data generator initialized with seed {self.config.random_seed}")
 
@@ -107,8 +106,7 @@ class TrainingDataGenerator:
             labels: [n_samples] (1 = wobble, 0 = no wobble)
         """
         # Reset seed for reproducibility
-        if self.config.random_seed is not None:
-            np.random.seed(self.config.random_seed)
+        rng = np.random.default_rng(self.config.random_seed) if self.config.random_seed is not None else np.random.default_rng()
         
         signals = []
         labels = []
@@ -123,9 +121,9 @@ class TrainingDataGenerator:
             signal_magnitude = np.linalg.norm(signal, axis=1)
             
             # Randomly decide to add wobble
-            if np.random.random() < 0.5:
+            if rng.random() < 0.5:
                 # Add wobble (high-frequency component)
-                wobble_mag = np.random.uniform(*wobble_magnitude_range)
+                wobble_mag = rng.uniform(*wobble_magnitude_range)
                 wobble = wobble_mag * np.sin(2 * np.pi * 50 * np.arange(n_timesteps) / n_timesteps)
                 signal_magnitude += wobble
                 labels.append(1)
@@ -153,8 +151,7 @@ class TrainingDataGenerator:
             targets: [n_samples × prediction_horizon × state_dim]
         """
         # Reset seed for reproducibility
-        if self.config.random_seed is not None:
-            np.random.seed(self.config.random_seed)
+        rng = np.random.default_rng(self.config.random_seed) if self.config.random_seed is not None else np.random.default_rng()
         
         history_length = 100
         inputs = []
@@ -208,13 +205,13 @@ class TrainingDataGenerator:
             if perturbation_type == "debris":
                 # Apply debris impact
                 for packet in stream.packets:
-                    impulse = np.random.randn(3) * 0.1
+                    impulse = self.rng.standard_normal(3) * 0.1
                     packet.body.velocity += impulse / packet.body.mass
             elif perturbation_type == "thermal":
                 # Apply thermal transient
                 for packet in stream.packets:
-                    packet.temperature += np.random.uniform(0, 50)
+                    packet.temperature += self.rng.uniform(0, 50)
             elif perturbation_type == "magnetic":
                 # Apply magnetic noise
                 for packet in stream.packets:
-                    packet.eta_ind *= np.random.uniform(0.9, 1.0)
+                    packet.eta_ind *= self.rng.uniform(0.9, 1.0)

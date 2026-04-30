@@ -50,8 +50,7 @@ def run_single_realization(
     Returns:
         Dictionary with realization results
     """
-    if seed is not None:
-        np.random.seed(seed)
+    rng = np.random.default_rng(seed) if seed is not None else np.random.default_rng()
     
     # Initialize controller
     controller = StreamBalanceController(config)

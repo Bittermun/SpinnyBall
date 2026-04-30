@@ -14,9 +14,7 @@ from dynamics.gdBCO_material import GdBCOMaterial
 
 @dataclass
 class BeanLondonState:
-    """State for Bean-London model (history-dependent)."""
-    magnetization: np.ndarray  # Magnetization history
-    previous_field: np.ndarray  # Previous magnetic field values
+    """State for Bean-London model."""
     penetration_depth: float  # Current flux penetration depth
 
 
@@ -51,11 +49,7 @@ class BeanLondonModel:
         
         self.material = material
         self.geometry = geometry
-        self.state = BeanLondonState(
-            magnetization=np.array([0.0]),
-            previous_field=np.array([initial_B_field]),
-            penetration_depth=0.0,
-        )
+        self.state = BeanLondonState(penetration_depth=0.0)
         
     def compute_pinning_force(self, displacement: float, B_field: float, 
                             temperature: float) -> float:
@@ -84,10 +78,8 @@ class BeanLondonModel:
         if max_penetration <= 0:
             raise ValueError("max_penetration must be > 0")
         
-        penetration_depth = min(
-            abs(displacement) / max_penetration * max_penetration,
-            max_penetration
-        )
+        # Penetration depth saturates at max_penetration
+        penetration_depth = min(abs(displacement), max_penetration)
         self.state.penetration_depth = penetration_depth  # Update state
         
         # Effective volume with critical current
@@ -114,34 +106,7 @@ class BeanLondonModel:
         
         return F_pin
     
-    def update_magnetization(self, B_field: float, temperature: float):
-        """Update magnetization history (hysteresis).
-        
-        The magnetization changes when the external field changes,
-        with the rate limited by flux creep.
-        
-        Args:
-            B_field: Current magnetic flux density (T)
-            temperature: Temperature (K)
-        """
-        # Simplified hysteresis model
-        delta_B = B_field - self.state.previous_field[-1]
-        
-        # Magnetization change proportional to field change
-        Jc = self.material.critical_current_density(B_field, temperature)
-        delta_M = -Jc * delta_B  # Opposes field change
-        
-        # Update history
-        self.state.magnetization = np.append(self.state.magnetization, 
-                                            self.state.magnetization[-1] + delta_M)
-        self.state.previous_field = np.append(self.state.previous_field, B_field)
-        
-        # Keep history manageable
-        if len(self.state.magnetization) > 100:
-            self.state.magnetization = self.state.magnetization[-100:]
-            self.state.previous_field = self.state.previous_field[-100:]
-    
-    def get_stiffness(self, displacement: float, B_field: float, 
+    def get_stiffness(self, displacement: float, B_field: float,
                      temperature: float) -> float:
         """Compute effective stiffness k_fp = -dF_pin/dx using analytical derivative.
         

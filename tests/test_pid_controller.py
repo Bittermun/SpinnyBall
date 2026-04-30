@@ -110,18 +110,23 @@ def test_pid_output_saturation():
 
 
 def test_pid_delay_compensation():
-    """Test delay compensation."""
-    params = PIDParameters(kp=1.0, ki=0.1, kd=0.01, delay_steps=3)
+    """Test delay compensation actually delays output."""
+    params = PIDParameters(kp=1.0, ki=0.0, kd=0.0, delay_steps=3)
     pid = PIDController(params, dt=0.01)
     
-    # First few outputs should be buffered
+    # Feed constant error of 1.0
     outputs = []
     for i in range(5):
         output = pid.update(1.0)
         outputs.append(output)
     
-    # After delay_steps, outputs should start appearing
-    assert len(pid.delay_buffer) == 3
+    # First delay_steps outputs should be 0 (buffered)
+    for i in range(3):
+        assert outputs[i] == 0.0, f"Output at step {i} should be 0 during buffering, got {outputs[i]}"
+    
+    # After delay_steps, output should appear
+    assert outputs[3] == 1.0, f"Output at step 3 should be 1.0 after delay, got {outputs[3]}"
+    assert outputs[4] == 1.0, f"Output at step 4 should be 1.0, got {outputs[4]}"
 
 
 def test_pid_mode_enum():

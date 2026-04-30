@@ -23,17 +23,23 @@ sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
-from dynamics.rigid_body import RigidBody
+from dynamics.rigid_body import RigidBody, geometry_profile_to_inertia
 from control_layer.mpc_controller import MPCController, ConfigurationMode
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 
-def create_stream(eta_ind: float = 0.9):
+def create_stream(eta_ind: float = 0.9, geometry_profile: dict = None):
     """Create a MultiBodyStream with specified eta_ind (module-level for pickling)."""
     mass = 0.05
-    I = np.diag([0.0001, 0.00011, 0.00009])
+    
+    # Use geometry_profile if available, otherwise use default inertia
+    if geometry_profile is not None:
+        I = geometry_profile_to_inertia(geometry_profile)
+    else:
+        I = np.diag([0.0001, 0.00011, 0.00009])
+    
     packets = [Packet(id=0, body=RigidBody(mass, I), eta_ind=eta_ind)]
     
     # HIGH-FIDELITY: Enable orbital dynamics and thermal effects
@@ -350,10 +356,10 @@ if __name__ == "__main__":
         eta_ind_range=(0.8, 0.95),
         n_latency_points=5,
         n_eta_points=4,
-        n_realizations_per_point=5,  # Ultra-fast
+        n_realizations_per_point=20,  # Increased for meaningful statistics
         use_checkpoint=True,  # Enable checkpoint for long runs
         checkpoint_file='t1_high_fidelity_checkpoint.json',
-        n_jobs=1,  # Sequential for stability
+        n_jobs=-1,  # Use all cores for parallel execution
         use_zero_torque_numba=True,
     )
 

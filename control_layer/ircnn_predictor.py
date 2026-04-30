@@ -148,13 +148,13 @@ class IRCNNPredictor(nn.Module):
             h = block(h)
         return self.output_proj(h)
 
-    def compute_log_likelihood(self, x: torch.Tensor, x_pred: torch.Tensor) -> torch.Tensor:
+    def compute_log_likelihood(self, x: torch.Tensor, x_target: torch.Tensor) -> torch.Tensor:
         """
-        Compute exact log likelihood using invertibility.
+        Compute log likelihood of target given input.
 
         Args:
-            x: Input tensor [batch, input_dim]
-            x_pred: Predicted tensor [batch, input_dim]
+            x: Input tensor [batch_size, input_dim]
+            x_target: Target tensor to compare against [batch_size, input_dim]
 
         Returns:
             Log likelihood (scalar)
@@ -170,8 +170,8 @@ class IRCNNPredictor(nn.Module):
 
         x_pred = self.output_proj(h)
 
-        # Gaussian likelihood
-        log_likelihood = -0.5 * torch.sum((x_pred - x) ** 2) + log_det
+        # Gaussian likelihood comparing prediction to target
+        log_likelihood = -0.5 * torch.sum((x_pred - x_target) ** 2) + log_det
         return log_likelihood
 
     def get_model_info(self) -> dict:

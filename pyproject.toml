@@ -41,6 +41,10 @@ jaxlib = { version = "^0.4.0", optional = true }
 # Sensitivity & Monte-Carlo (for Weeks 7-9)
 SALib = { version = "^1.4.0", optional = true }
 
+# Data & ML (for synthetic failure generation and anomaly detection)
+h5py = { version = "^3.11.0", optional = true }
+scikit-learn = { version = "^1.5.0", optional = true }
+
 # Backend API (for Weeks 10-12)
 fastapi = { version = "^0.115.0", optional = true }
 uvicorn = { version = "^0.32.0", optional = true }
@@ -54,9 +58,10 @@ mpc = ["casadi", "numba"]
 ml = ["torch"]
 jax = ["jax", "jaxlib"]
 monte-carlo = ["SALib", "torch"]
+data = ["h5py", "scikit-learn"]
 validation = ["mujoco"]
 backend = ["fastapi", "uvicorn", "pydantic"]
-all = ["casadi", "numba", "torch", "jax", "jaxlib", "SALib", "mujoco", "fastapi", "uvicorn", "pydantic"]
+all = ["casadi", "numba", "torch", "jax", "jaxlib", "SALib", "h5py", "scikit-learn", "mujoco", "fastapi", "uvicorn", "pydantic"]
 
 [tool.poetry.group.dev.dependencies]
 pytest = "^7.4.0"

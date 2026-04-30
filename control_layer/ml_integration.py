@@ -40,7 +40,7 @@ class MLIntegrationLayer:
             config_path = "config/ml_config.json"
 
         self.config_path = Path(config_path)
-        self._lock = asyncio.Lock()
+        self._lock = None  # Deferred Lock creation to avoid event loop binding issues
         self._config = None
         self._vmd_implementation = "stub"
         self._ircnn_implementation = "stub"
@@ -84,6 +84,12 @@ class MLIntegrationLayer:
         self._enable_training = False
         self._model_paths = {}
 
+    def _get_lock(self) -> asyncio.Lock:
+        """Get or create the asyncio.Lock in the current event loop context."""
+        if self._lock is None:
+            self._lock = asyncio.Lock()
+        return self._lock
+
     async def initialize(self, timeout: float = 30.0):
         """
         Async initialization with timeout and error handling.
@@ -91,7 +97,7 @@ class MLIntegrationLayer:
         Args:
             timeout: Timeout in seconds for model loading
         """
-        async with self._lock:
+        async with self._get_lock():
             if self.wobble_detector is None and not self.use_stub:
                 try:
                     # Wait for initialization with timeout

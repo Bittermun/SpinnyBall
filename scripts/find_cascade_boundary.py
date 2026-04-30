@@ -41,7 +41,14 @@ def _make_stream_factory(params: dict):
         mass = params.get("mp", 8.0)
         radius = params.get("radius", 0.1)
         omega = np.array([0.0, 0.0, 5236.0])
-        I = np.diag([0.0001, 0.00011, 0.00009])
+        
+        # Use geometry_profile if available, otherwise use default inertia
+        geometry_profile = params.get("geometry_profile")
+        if geometry_profile is not None:
+            I = geometry_profile_to_inertia(geometry_profile)
+        else:
+            I = np.diag([0.0001, 0.00011, 0.00009])
+        
         packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
                           radius=radius, eta_ind=0.9)]
         nodes = []
@@ -67,9 +74,9 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 def run_stress_test():
-    # Grid: 10^2 to 10^5 /hr (Very high to trigger cascades in 5s window)
-    fault_rates = np.logspace(2, 5, 10)
-    n_realizations = 50
+    # Grid: 10^-2 to 10^5 /hr (Extended range to find cascade onset)
+    fault_rates = np.logspace(-2, 5, 15)
+    n_realizations = 100
     
     results = []
     
@@ -78,7 +85,7 @@ def run_stress_test():
         
         config = MonteCarloConfig(
             n_realizations=n_realizations,
-            time_horizon=5.0,
+            time_horizon=60.0,  # Increased to 60s to allow cascades to develop
             dt=0.01,
             fault_rate=rate,
             cascade_threshold=1.05,

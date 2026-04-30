@@ -9,6 +9,7 @@ architecture described in the ideal blueprint.
 from __future__ import annotations
 
 import numpy as np
+import heapq
 from dataclasses import dataclass, field
 from typing import List, Callable, Optional
 from enum import Enum
@@ -108,7 +109,7 @@ class Packet:
     current_node: Optional[int] = None
     eta_ind: float = 1.0  # Default induction efficiency
     radius: float = 0.02  # Default 2cm radius for stress calculations
-    temperature: float = 300.0  # Initial temperature (K)
+    temperature: float = 77.0  # Initial temperature (K) - LN2 operating point
     emissivity: float = 0.8  # Al/BFRP emissivity
     specific_heat: float = 900.0  # J/kg·K for Al
     orbital_state: Optional[OrbitalState] = None  # Orbital state in ECI frame
@@ -175,31 +176,34 @@ class ReleaseEvent:
 
 
 class EventQueue:
-    """Event queue for managing capture/release events."""
+    """Event queue for managing capture/release events using heapq for O(log n) operations."""
     
     def __init__(self):
-        self.events: List[CaptureEvent | ReleaseEvent] = []
+        self.events: List[tuple[float, CaptureEvent | ReleaseEvent]] = []  # (time, event) heap
         self.current_time: float = 0.0
     
     def add_capture(self, time: float, packet_id: int, node_id: int, eta_ind: float):
-        """Add capture event to queue."""
+        """Add capture event to queue using heapq for O(log n) insertion."""
         event = CaptureEvent(time=time, packet_id=packet_id, node_id=node_id, eta_ind=eta_ind)
-        self.events.append(event)
-        self.events.sort(key=lambda e: e.time)
+        heapq.heappush(self.events, (time, event))
     
     def add_release(self, time: float, packet_id: int, node_id: int, target_velocity: np.ndarray):
-        """Add release event to queue."""
+        """Add release event to queue using heapq for O(log n) insertion."""
         event = ReleaseEvent(time=time, packet_id=packet_id, node_id=node_id, target_velocity=target_velocity)
-        self.events.append(event)
-        self.events.sort(key=lambda e: e.time)
+        heapq.heappush(self.events, (time, event))
     
     def get_events_at(self, time: float) -> List[CaptureEvent | ReleaseEvent]:
         """Get all events at or before given time."""
-        return [e for e in self.events if e.time <= time]
+        result = []
+        while self.events and self.events[0][0] <= time:
+            _, event = heapq.heappop(self.events)
+            result.append(event)
+        return result
     
     def remove_processed(self, time: float):
-        """Remove events that have been processed."""
-        self.events = [e for e in self.events if e.time > time]
+        """Remove events that have been processed (no-op with heapq approach)."""
+        # Events are already removed during get_events_at via heappop
+        pass
 
 
 class MultiBodyStream:
@@ -287,9 +291,10 @@ class MultiBodyStream:
             # Import once outside loop for efficiency
             from .gdBCO_material import GdBCOProperties
             for packet in self.packets:
-                props = GdBCOProperties(Tc=92.0, Jc0=1e8, B0=5.0, n_exponent=1.5, alpha=0.5)
+                # Use thin-film coated conductor geometry (consistent with sgms_anchor_v1.py)
+                props = GdBCOProperties(Tc=92.0, Jc0=3e10, B0=5.0, n_exponent=1.5, alpha=0.5, thickness=1e-6)
                 material = GdBCOMaterial(props)
-                geometry = {"thickness": 0.001, "width": 0.01, "length": 0.01}
+                geometry = {"thickness": 1e-6, "width": 0.012, "length": 0.01}
                 packet.body.flux_model = BeanLondonModel(material, geometry)
     
     def _initialize_orbital_states(self, altitude: float, inclination: float):
@@ -324,12 +329,12 @@ class MultiBodyStream:
         
         # Add SRP perturbation (Solar Radiation Pressure)
         if self.enable_srp_perturbation:
-            # Estimate total mass from packets for SRP calculation
-            total_mass = sum(p.body.mass for p in self.packets) if self.packets else 100.0
+            # Use average packet mass for SRP calculation (propagator is shared)
+            avg_mass = sum(p.body.mass for p in self.packets) / len(self.packets) if self.packets else 100.0
             self.orbital_propagator.add_srp_perturbation(
                 C_r=self.srp_coefficient,
                 A=self.cross_sectional_area,
-                m=total_mass
+                m=avg_mass
             )
         
         # Add atmospheric drag perturbation

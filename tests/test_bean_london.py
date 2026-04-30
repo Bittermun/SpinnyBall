@@ -154,7 +154,7 @@ def test_get_stiffness():
 
 
 def test_stiffness_numerical_derivative():
-    """Test that stiffness is computed via analytical derivative."""
+    """Test that stiffness is positive (restoring force)."""
     props = GdBCOProperties()
     material = GdBCOMaterial(props)
     geometry = {

@@ -125,8 +125,8 @@ def update_temperature_euler(
     # Radiative cooling power (W)
     power_out = emissivity * stefan_boltzmann * surface_area * (temperature**4 - ambient_temp**4)
     
-    # Solar heating power (W)
-    power_in = solar_flux * surface_area
+    # Solar heating power (W) - use effective_solar_flux to account for eclipse
+    power_in = effective_solar_flux * surface_area
     
     # Add eddy-current heating
     power_in += eddy_heating_power

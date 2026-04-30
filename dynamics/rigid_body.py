@@ -582,6 +582,11 @@ class RigidBody:
             current_state = y + (k1 + 2*k2 + 2*k3 + k4) / 6
             current_t += dt
 
+            # Renormalize quaternion to prevent drift during integration
+            q_norm = np.linalg.norm(current_state[:4])
+            if q_norm > 1e-12:
+                current_state[:4] = current_state[:4] / q_norm
+
             t_values[i + 1] = current_t
             state_values[:, i + 1] = current_state
 

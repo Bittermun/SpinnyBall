@@ -143,7 +143,9 @@ class StreamBalanceController:
         epsilon = flow_imbalance + 0.5 * loss_imbalance + 0.3 * jitter_imbalance
         
         # Update state - track packet loss rate properly
-        self.state.total_packets_processed += 2  # Both streams
+        # Track actual packets processed (2 streams * n_packets_per_stream)
+        n_packets_per_stream = len(packet_loss_plus) if hasattr(packet_loss_plus, '__len__') else 1
+        self.state.total_packets_processed += 2 * n_packets_per_stream  # Both streams
         self.state.total_packets_lost += total_packets
         if self.state.total_packets_processed > 0:
             self.state.packet_loss_rate = self.state.total_packets_lost / self.state.total_packets_processed

@@ -31,7 +31,7 @@ from monte_carlo.pass_fail_gates import evaluate_monte_carlo_gates  # noqa: E402
 logger = logging.getLogger(__name__)
 
 try:
-    from ml_integration import MLIntegrationLayer
+    from backend.ml_integration import MLIntegrationLayer
     ML_AVAILABLE = True
 except ImportError:
     ML_AVAILABLE = False
@@ -430,8 +430,8 @@ async def run_monte_carlo(request: MonteCarloRequest):
     # Create runner
     runner = CascadeRunner(config)
 
-    # Run Monte-Carlo
-    results = runner.run_monte_carlo(stream_factory)
+    # Run Monte-Carlo in thread pool to avoid blocking event loop
+    results = await asyncio.to_thread(runner.run_monte_carlo, stream_factory)
 
     # Evaluate gates including latency
     gate_results = evaluate_monte_carlo_gates(results)

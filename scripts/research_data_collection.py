@@ -76,7 +76,7 @@ def run_converged_monte_carlo(
     
     Convergence criterion: Wilson 95% CI width < target_ci_width
     """
-    np.random.seed(random_seed)
+    rng = np.random.default_rng(random_seed)
     
     config = MonteCarloConfig(
         n_realizations=100,  # Start with 100
@@ -85,7 +85,7 @@ def run_converged_monte_carlo(
         fault_rate=fault_rate,
         cascade_threshold=cascade_threshold,
         containment_threshold=containment_threshold,
-        random_seed=random_seed,
+        random_seed=random_seed,  # Note: CascadeRunner uses its own RNG
         pass_fail_gates={
             "eta_ind": (0.82, ">="),
             "stress": (1.2e9, "<="),

@@ -38,7 +38,11 @@ def test_delay_compensation_disabled():
         enable_delay_compensation=False,
     )
 
-    x0 = np.random.randn(7)
+    # Use normalized quaternion for physical validity
+    q = np.random.randn(4)
+    q = q / np.linalg.norm(q)
+    omega = np.random.randn(3) * 0.1
+    x0 = np.concatenate([q, omega])
     x_target = np.zeros(7)
 
     u_opt, info = controller.solve(x0, x_target)
@@ -61,7 +65,11 @@ def test_delay_steps_zero():
         enable_delay_compensation=True,
     )
 
-    x0 = np.random.randn(7)
+    # Use normalized quaternion for physical validity
+    q = np.random.randn(4)
+    q = q / np.linalg.norm(q)
+    omega = np.random.randn(3) * 0.1
+    x0 = np.concatenate([q, omega])
     x_target = np.zeros(7)
 
     u_opt_enabled, info_enabled = controller_enabled.solve(x0, x_target)

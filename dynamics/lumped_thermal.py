@@ -140,6 +140,10 @@ class LumpedThermalModel:
         self.T_stator += dT_stator
         self.T_rotor += dT_rotor
 
+        # Prevent temperatures from going below ambient (physical limit)
+        self.T_stator = max(self.T_stator, self.params.ambient_temp)
+        self.T_rotor = max(self.T_rotor, self.params.ambient_temp)
+
         return {
             'T_stator': self.T_stator,
             'T_rotor': self.T_rotor,

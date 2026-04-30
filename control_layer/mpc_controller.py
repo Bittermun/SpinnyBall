@@ -245,6 +245,10 @@ class MPCController:
             dx_k = ca.vertcat(dq_k, alpha_k)
             
             # Euler integration: x[k+1] = x[k] + dt * dx_k
+            # NOTE: Plant-model mismatch - MPC uses forward Euler while physics engine uses RK4/RK45.
+            # This is a trade-off for computational efficiency. For small dt and short horizons,
+            # the error is acceptable. For long horizons or high precision requirements,
+            # consider using RK4 in MPC constraints.
             self.opti.subject_to(self.x[:, k+1] == self.x[:, k] + self.dt * dx_k)
         
         # Initial condition
@@ -393,6 +397,11 @@ class MPCController:
             x_pred[:4] = x_pred[:4] + self.dt_delay * dq
             x_pred[4:7] = x_pred[4:7] + self.dt_delay * alpha
 
+            # Renormalize quaternion to prevent drift
+            q_norm = np.linalg.norm(x_pred[:4])
+            if q_norm > 1e-12:
+                x_pred[:4] = x_pred[:4] / q_norm
+
         return x_pred
 
     def apply_discrete_time_delay(
@@ -464,6 +473,11 @@ class MPCController:
             # Euler integration
             x_delayed[:4] = x_delayed[:4] + self.dt_delay * dq
             x_delayed[4:7] = x_delayed[4:7] + self.dt_delay * alpha
+
+            # Renormalize quaternion to prevent drift
+            q_norm = np.linalg.norm(x_delayed[:4])
+            if q_norm > 1e-12:
+                x_delayed[:4] = x_delayed[:4] / q_norm
 
         logger.debug(f"Discrete-time delay applied: {total_delay*1000:.1f} ms ({delay_steps} steps)")
         return x_delayed
@@ -669,8 +683,13 @@ def verify_mpc_latency(controller: MPCController, n_trials: int = 10) -> dict:
     times = []
     
     for _ in range(n_trials):
-        x0 = np.random.randn(7)
+        # Generate valid unit quaternion for initial state
+        q_random = np.random.randn(4)
+        q_random = q_random / np.linalg.norm(q_random)  # Normalize to unit quaternion
+        omega_random = np.random.randn(3) * 0.1  # Small random angular velocity
+        x0 = np.concatenate([q_random[1:], [q_random[0]], omega_random])  # Scalar-last format
         x_target = np.zeros(7)
+        x_target[3] = 1.0  # Identity quaternion for target
         
         start = time.perf_counter()
         u_opt, info = controller.solve(x0, x_target)
