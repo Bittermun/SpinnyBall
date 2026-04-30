@@ -22,7 +22,7 @@ class VMDParameters:
     """VMD hyperparameters."""
     num_modes: int = 4
     alpha: float = 2000.0  # Bandwidth constraint
-    tau: float = 0.0  # Time-step of dual ascent
+    tau: float = 0.1  # Time-step of dual ascent (non-zero to enable ADMM constraint enforcement)
     K: int = 4  # Number of DC components
     DC: bool = False  # Include DC component
     init: int = 1  # Initialization (1: uniform, 2: random, 3: noise)
@@ -113,15 +113,14 @@ class VMDDecomposer:
         else:
             logger.warning(f"VMD did not converge after {self.params.max_iter} iterations")
         
-        # Validate energy conservation
-        energy_original = np.sum(signal ** 2)
-        energy_reconstructed = np.sum(np.sum(modes, axis=0) ** 2)
-        energy_error = abs(energy_original - energy_reconstructed) / energy_original
+        # Validate signal reconstruction (VMD guarantees signal ≈ Σ modes, not Parseval energy)
+        signal_reconstructed = np.sum(modes, axis=0)
+        reconstruction_error = np.linalg.norm(signal - signal_reconstructed) / np.linalg.norm(signal)
         
-        if energy_error > 0.05:
-            logger.warning(f"VMD energy conservation error: {energy_error:.4f} (> 5%)")
+        if reconstruction_error > 0.05:
+            logger.warning(f"VMD reconstruction error: {reconstruction_error:.4f} (> 5%)")
         else:
-            logger.info(f"VMD energy conservation error: {energy_error:.4f}")
+            logger.info(f"VMD reconstruction error: {reconstruction_error:.4f}")
         
         return modes
 
@@ -201,7 +200,8 @@ class VMDDecomposer:
         # Compute derivative in frequency domain
         derivative = 1j * 2 * np.pi * self.freqs * mode_hat
         
-        # Find frequency that minimizes derivative magnitude
+        # Find frequency that minimizes derivative magnitude (center frequency)
+        # VMD finds ω_k where the mode is most stationary (derivative is smallest)
         power_spectrum = np.abs(derivative) ** 2
         omega_k = self.freqs[np.argmin(power_spectrum)]
         

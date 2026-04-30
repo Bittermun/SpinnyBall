@@ -129,6 +129,7 @@ DEFAULT_PARAMS = {
     "packet_sigma_s": 0.01,
     "packet_phase_s": 0.0,
     "k_fp": 0.0,
+    "k_structural": 0.0,  # Structural stiffness (N/m)
     "k_drag": 0.01,  # Eddy-current drag coefficient (N·s/m)
     "x0": 0.1,
     "v0": 0.0,
@@ -354,8 +355,10 @@ def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_th
                 updated_state = propagator.propagate(orbital_state, t)
                 f_orbital = get_orbital_perturbation_force(params, updated_state, t, packet_mass=params["ms"])
                 f_total += f_orbital[0] * 0.01
-            except Exception:
-                pass
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Orbital perturbation force calculation failed at t={t:.3f}: {e}")
     return f_total
 
 
@@ -393,11 +396,15 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     if control_mode == "mpc" and MPC_AVAILABLE:
         try:
             mpc_controller = MPCController(horizon=10, dt=0.01, configuration_mode=ConfigurationMode.OPERATIONAL)
-        except Exception:
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"MPC initialization failed, falling back to PID: {e}")
             control_mode = "pid"
 
     # Initialize orbital state if perturbations enabled or thermal dynamics with eclipse
     orbital_state = None
+    orbital_propagator = None  # Create once to avoid recreation on every RK45 step
     enable_orbital = (
         params.get("include_j2", False) or 
         params.get("include_srp", False) or 
@@ -407,8 +414,18 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     if ORBITAL_PERTURBATIONS_AVAILABLE and enable_orbital:
         try:
             orbital_state = create_orbital_state_from_params(params)
-        except Exception:
+            # Create propagator once for reuse in rhs closure
+            from dynamics.orbital_coupling import OrbitalPropagator
+            orbital_propagator = OrbitalPropagator(
+                altitude_km=params.get("altitude_km", 400.0),
+                inclination_deg=params.get("inclination_deg", 51.6)
+            )
+        except Exception as e:
+            import logging
+            logger = logging.getLogger(__name__)
+            logger.warning(f"Orbital state initialization failed: {e}")
             orbital_state = None
+            orbital_propagator = None
 
     dt_noise = params["disturbance_hold_s"]
     noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
@@ -422,17 +439,14 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         x, vx = y
         nonlocal orbital_state
         
-        # Propagate orbital state if enabled
-        if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
+        # Propagate orbital state if enabled (use pre-created propagator)
+        if orbital_state is not None and orbital_propagator is not None:
             try:
-                from dynamics.orbital_coupling import OrbitalPropagator
-                propagator = OrbitalPropagator(
-                    altitude_km=params.get("altitude_km", 400.0),
-                    inclination_deg=params.get("inclination_deg", 51.6)
-                )
-                orbital_state = propagator.propagate(orbital_state, t)
-            except Exception:
-                pass
+                orbital_state = orbital_propagator.propagate(orbital_state, t)
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
         
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
@@ -521,7 +535,10 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
                     position_eci=position_eci,
                     enable_eclipse=params.get("enable_eclipse", False)
                 )
-            except Exception:
+            except Exception as e:
+                import logging
+                logger = logging.getLogger(__name__)
+                logger.warning(f"Thermal model update failed at t={sol.t[i]:.3f}, using constant temperature: {e}")
                 temperature[i] = params["temperature"]
         else:
             temperature[i] = params["temperature"]

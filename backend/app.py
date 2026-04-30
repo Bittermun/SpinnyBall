@@ -198,7 +198,7 @@ class ThermalPredictionRequest(BaseModel):
 # Simulation State with Thread Safety
 # ============================================================
 
-class SimulationState:
+class SimulationStateManager:
     """Thread-safe simulation state management."""
 
     def __init__(self):
@@ -249,7 +249,7 @@ class SimulationState:
 
 
 # Global simulation state instance
-simulation_state = SimulationState()
+simulation_state = SimulationStateManager()
 
 # ML integration
 if ML_AVAILABLE:
@@ -462,8 +462,11 @@ async def run_monte_carlo(request: MonteCarloRequest):
 @app.get("/health")
 async def health_check():
     """Health check endpoint."""
-    stream, _, _ = await simulation_state.get_state()
-    return {"status": "healthy", "simulation_initialized": stream is not None}
+    try:
+        stream, _, _ = await simulation_state.get_state()
+        return {"status": "healthy", "simulation_initialized": stream is not None}
+    except HTTPException:
+        return {"status": "unhealthy", "simulation_initialized": False}
 
 
 # ============================================================

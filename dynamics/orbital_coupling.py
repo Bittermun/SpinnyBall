@@ -546,21 +546,22 @@ class OrbitalPropagator:
             return self._keplerian_propagate_fallback(dt)
     
     def _keplerian_propagate_fallback(self, dt: float) -> OrbitalState:
-        """Simple Keplerian propagation fallback (no perturbations)."""
+        """Simple Keplerian propagation fallback using symplectic Euler (no perturbations)."""
         if not hasattr(self, '_state'):
             raise ValueError("No state vector available")
         
-        # Very simple approximation: constant velocity for small dt
-        # For larger dt, this is inaccurate but usable as fallback
-        r_new = self._state.r + self._state.v * dt
-        
-        # Update velocity due to gravity (simplified)
-        r_mag = np.linalg.norm(r_new)
-        a_grav = -self.mu * r_new / r_mag**3
+        # Symplectic Euler (leapfrog) for energy conservation:
+        # 1. Update velocity using current position
+        r_mag = np.linalg.norm(self._state.r)
+        a_grav = -self.mu * self._state.r / r_mag**3
         v_new = self._state.v + a_grav * dt
         
+        # 2. Update position using new velocity
+        r_new = self._state.r + v_new * dt
+        
         epoch = (self._state.epoch + dt) if self._state.epoch is not None else None
-        return OrbitalState(r=r_new, v=v_new, epoch=epoch)
+        self._state = OrbitalState(r=r_new, v=v_new, epoch=epoch)
+        return self._state
     
     def get_orbital_elements(self) -> OrbitalElements:
         """Get current orbital elements.
