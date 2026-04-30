@@ -222,9 +222,8 @@ def _quaternion_derivative_numba(q: np.ndarray, omega: np.ndarray) -> np.ndarray
     return dq
 
 
-@jit(nopython=True)
 def _rk4_step(rhs, t: float, y: np.ndarray, dt: float) -> np.ndarray:
-    """Single RK4 step (Numba-compiled)."""
+    """Single RK4 step (physics functions are Numba-compiled)."""
     k1 = dt * rhs(t, y)
     k2 = dt * rhs(t + dt/2, y + k1/2)
     k3 = dt * rhs(t + dt/2, y + k2/2)
@@ -290,7 +289,16 @@ def _euler_equations_numba(
     # Solve for angular acceleration
     alpha = I_inv @ (torque_vector - gyro_coupling)
     
-    return np.concatenate([dq_scipy, alpha])
+    # Manual concatenation for Numba compatibility
+    result = np.empty(7)
+    result[0] = dq_scipy[0]
+    result[1] = dq_scipy[1]
+    result[2] = dq_scipy[2]
+    result[3] = dq_scipy[3]
+    result[4] = alpha[0]
+    result[5] = alpha[1]
+    result[6] = alpha[2]
+    return result
 
 
 def euler_equations(

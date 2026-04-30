@@ -8,6 +8,12 @@ Sweep parameters:
 - Question: Does the system contain failures or amplify them?
 """
 
+import sys
+import os
+
+# Add the project root to the system path for module imports
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
+
 import numpy as np
 import matplotlib.pyplot as plt
 from typing import Dict, List, Tuple
@@ -214,14 +220,14 @@ def analyze_containment_threshold(results: Dict) -> Dict:
 
 
 if __name__ == "__main__":
-    # Run sweep
+    # Run sweep with extended range to find cascade boundary
     results = run_t3_sweep(
-        fault_rate_range=(1e-6, 1e-3),
-        n_fault_rate_points=8,
+        fault_rate_range=(1e-6, 1e-2),  # Extended to 1e-2 to find cascade boundary
+        n_fault_rate_points=12,  # More points for finer resolution
         cascade_threshold=1.05,
         containment_threshold=2,
         n_nodes=10,
-        n_realizations_per_point=50,  # Reduced for speed
+        n_realizations_per_point=100,  # High-resolution for convergence
         time_horizon=10.0,
     )
 
