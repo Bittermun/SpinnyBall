@@ -53,7 +53,8 @@ class PacketParams:
     omega_spin: float = 5236.0  # rad/s (~50,000 RPM) - Nominal (35,000-60,000 RPM range)
     omega_max: float = 5657.0   # rad/s (~54,000 RPM) - Derived from σ_θ = ρr²ω² ≤ 800 MPa
     u_velocity: float = None    # m/s - Set from config (debug: 10.0, operational: 1600.0)
-    lam: float = 16.6667        # kg/m (s=0.12m) - Placeholder
+    lam: float = 16.6667        # kg/m (s=0.12m) - Calculated from N×mp/L where N=40, mp=2.0kg, L=4.8m
+    # Validated against momentum flux requirement: F = λv² = 4.27×10⁷ N at 1600 m/s
     k_fp: float = 4500.0        # GdBCO pinning stiffness (N/m) - Baseline >200 N/m, heritage 6-10× scaling
     node_mass: float = 1000.0   # Station mass (kg)
     num_packets: int = 40       # Sim pool

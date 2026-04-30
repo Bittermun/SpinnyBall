@@ -48,6 +48,15 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Added broader exception handling in pipeline (FileNotFoundError, OSError, json.JSONDecodeError)
 - Fixed profile validation to check experiment overrides before applying environment values
 - Fixed PIDParameters dataclass field order (added default values to kp, ki, kd for backward compatibility)
+- Fixed simulate_multi_pass_accumulation undefined rhs bug (replaced with lambda calling eom)
+- Fixed simulate_multi_pass_accumulation state vector length (6→9 elements to include spin axis)
+- Removed unnecessary global P declaration from simulate_multi_pass_accumulation
+- Fixed mutual inductance B_amp calculation in Bx_field (now uses correct segment amplitude)
+- Fixed multi_body node_map to use node.id as key instead of enumerate index
+- Fixed flux pinning displacement to use relative position from S-Node instead of absolute position
+- Fixed orbital/RigidBody state desync by syncing orbital_state to body.position/velocity after propagation
+- Fixed RigidBody.flux_model initialization in MultiBodyStream (now initializes BeanLondonModel when available)
+- Updated test_flux_pinning_integration.py to pass node_position parameter to compute_flux_pinning_torque
 - Fixed numpy bool to Python bool casting in ML integration (API contract compliance)
 - Fixed division by zero edge case in FMECA export (abs(omega_initial) > 1e-10 check)
 - Added TYPE_CHECKING for BeanLondonModel type hint in rigid_body.py
@@ -58,9 +67,26 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 - Fixed Bean-London stiffness calculation with analytical derivative
 - Updated stress formula to use hoop stress (σ_θ = ρ·r²·ω²) from paper
 - Adjusted safety margin thresholds in operational scale tests to realistic values
+- Fixed ThermalLimits max_packet_temp from 450K to 90K for GdBCO superconductors (below Tc=92K)
+- Fixed multi_body.py thermal integration to pass position_eci for eclipse detection
+- Fixed multi_body.py to calculate eddy heating power for FREE packets using velocity
+- Fixed multi_body.py to use prolate spheroid surface area instead of sphere
+- Fixed JAX thermal model to use radiative cooling instead of invalid convection for space
+- Added prolate spheroid surface area calculation to thermal_model.py with aspect_ratio support
+- Updated TemperatureGate default to 90K for superconducting operation
+- Code review fixes: Moved import outside loop in MultiBodyStream for efficiency
+- Code review fixes: Added __del__ cleanup to JAXThermalModel to prevent memory leaks
+- Code review fixes: Fixed null reference checks in thermal model eclipse detection
+- Code review fixes: Added comprehensive parameter validation to update_temperature_euler
+- Code review fixes: Defined magic numbers as module-level constants (SOLAR_CONSTANT, etc.)
+- Code review fixes: Added type hints to torque functions in multi_body.py
 - Fixed all Bean-London model tests (11/11 passing)
 - Fixed all parameter sweep tests (43/43 passing)
 - Fixed all operational scale tests (8/8 passing)
+- Documentation: Salvaged Phase 3 Integration Report template from origin/science branch
+- Documentation: Salvaged BENCHMARKS.md from origin/science branch with performance metrics
+- Documentation: Created comprehensive thermal model validation report using salvaged templates
+- Documentation: Updated README.md with thermal model validation framework
 
 ### Removed
 

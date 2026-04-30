@@ -197,9 +197,8 @@ def test_update_temperature_euler_zero_specific_heat():
 
 
 def test_update_temperature_euler_negative_dt():
-    """Test update_temperature_euler with negative dt (should handle gracefully)."""
-    # Negative dt would cause temperature to go backward in time
-    # This is physically invalid but function should handle it
+    """Test update_temperature_euler with negative dt (should raise ValueError)."""
+    # Negative dt is physically invalid and should raise ValueError
     temperature = 77.0
     mass = 0.05
     radius = 0.1
@@ -207,15 +206,12 @@ def test_update_temperature_euler_negative_dt():
     specific_heat = 500.0
     dt = -0.01  # Negative time step
     
-    new_temp = update_temperature_euler(
-        temperature=temperature,
-        mass=mass,
-        radius=radius,
-        emissivity=emissivity,
-        specific_heat=specific_heat,
-        dt=dt,
-    )
-    
-    # Temperature should decrease (or increase depending on radiative balance)
-    # Just verify it doesn't crash
-    assert isinstance(new_temp, float)
+    with pytest.raises(ValueError, match="dt must be > 0"):
+        update_temperature_euler(
+            temperature=temperature,
+            mass=mass,
+            radius=radius,
+            emissivity=emissivity,
+            specific_heat=specific_heat,
+            dt=dt,
+        )

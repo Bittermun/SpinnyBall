@@ -110,7 +110,9 @@ def extended_velocity_sweep():
         results['cascade_probability'].append(mc_results.get('cascade_probability', 0.0))
         results['containment_rate'].append(mc_results.get('containment_rate', 1.0))
         results['static_offset'].append(0.0)
-        results['k_eff'].append(mc_results.get('k_eff_min', 4500.0))
+        # Calculate velocity-dependent stiffness: k_eff = lam * u^2 * g_gain + k_fp
+        k_eff_calc = test_params['lam'] * (v**2) * test_params['g_gain'] + test_params['k_fp']
+        results['k_eff'].append(k_eff_calc)
         results['period'].append(0.1)
     
     # Calculate velocity effects

@@ -204,13 +204,13 @@ class TemperatureGate(PassFailGate):
     """
     Gate for temperature (thermal safety).
 
-    Requirement: T_packet ≤ 450 K, T_node ≤ 400 K
-    Default: T ≤ 450 K (packet limit)
+    Requirement: T_packet ≤ 90 K (below GdBCO Tc=92K), T_node ≤ 400 K
+    Default: T ≤ 90 K (packet limit for superconducting operation)
     """
 
     def __init__(
         self,
-        max_packet_temp: float = 450.0,  # K
+        max_packet_temp: float = 90.0,  # K - below GdBCO Tc=92K
         max_node_temp: float = 400.0,  # K
         gate_type: str = "packet",  # "packet" or "node"
         warning_threshold: Optional[float] = None,

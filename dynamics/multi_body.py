@@ -114,24 +114,29 @@ class Packet:
     orbital_state: Optional[OrbitalState] = None  # Orbital state in ECI frame
     in_eclipse: bool = False  # Eclipse state
     
-    def compute_flux_pinning_torque(self, B_field: np.ndarray) -> np.ndarray:
+    def compute_flux_pinning_torque(self, B_field: np.ndarray, node_position: np.ndarray) -> np.ndarray:
         """Compute flux-pinning torque from body's flux model.
-        
+
         Args:
             B_field: Magnetic field vector [Bx, By, Bz] (T)
-            
+            node_position: Position of the S-Node for relative displacement calculation
+
         Returns:
             Torque vector [τx, τy, τz] in body frame (N·m)
         """
         if self.body.flux_model is None:
             return np.zeros(3)
-        
+
+        # Relative displacement from S-Node
+        displacement = self.body.position - node_position
+
         # Get 6-DoF force/torque from Bean-London model
         force_torque = self.body.compute_flux_pinning_force(
             B_field=B_field,
             superconductor_temp=self.temperature,
+            displacement=displacement,
         )
-        
+
         # Return only torque component [τx, τy, τz]
         return force_torque[3:6]
     
@@ -259,7 +264,7 @@ class MultiBodyStream:
         self.B_field = np.asarray(B_field, dtype=float)
         
         # Build node lookup by ID
-        self.node_map = {i: node for i, node in enumerate(nodes)}
+        self.node_map = {node.id: node for node in nodes}
         
         # Orbital perturbation settings
         self.enable_j2_perturbation = enable_j2_perturbation
@@ -276,6 +281,16 @@ class MultiBodyStream:
             self._configure_perturbations()
         else:
             self.orbital_propagator = None
+
+        # Initialize flux-pinning models if available
+        if FLUX_PINNING_AVAILABLE:
+            # Import once outside loop for efficiency
+            from .gdBCO_material import GdBCOProperties
+            for packet in self.packets:
+                props = GdBCOProperties(Tc=92.0, Jc0=1e8, B0=5.0, n_exponent=1.5, alpha=0.5)
+                material = GdBCOMaterial(props)
+                geometry = {"thickness": 0.001, "width": 0.01, "length": 0.01}
+                packet.body.flux_model = BeanLondonModel(material, geometry)
     
     def _initialize_orbital_states(self, altitude: float, inclination: float):
         """Initialize orbital states for all packets.
@@ -328,19 +343,23 @@ class MultiBodyStream:
     
     def propagate_orbital_dynamics(self, dt: float):
         """Propagate orbital state for all packets.
-        
+
         Args:
             dt: Time step (s)
         """
         if not self.enable_orbital_dynamics or not ORBITAL_DYNAMICS_AVAILABLE:
             return
-        
+
         for packet in self.packets:
             if packet.orbital_state is not None and packet.state == PacketState.FREE:
                 # Propagate orbital state
                 self.orbital_propagator.from_state_vector(packet.orbital_state)
                 packet.orbital_state = self.orbital_propagator.propagate(dt)
-                
+
+                # SYNC: Update RigidBody position/velocity from orbital state
+                packet.body.position = packet.orbital_state.r.copy()
+                packet.body.velocity = packet.orbital_state.v.copy()
+
                 # Update eclipse state
                 if compute_eclipse is not None:
                     packet.in_eclipse = compute_eclipse(packet.orbital_state.r)
@@ -481,36 +500,59 @@ class MultiBodyStream:
                 
                 # Integrate if still free after capture check
                 if packet.state == PacketState.FREE:
-                    def packet_torques(t, state):
-                        # Base torque from control layer
-                        tau_control = torques(packet.id, t, state)
-                        
-                        # Add flux-pinning torque if available
-                        tau_pin = packet.compute_flux_pinning_torque(self.B_field)
-                        
-                        # Total torque: control + flux-pinning
+                    # Find nearest node for flux-pinning displacement calculation
+                    nearest_node_pos = None
+                    if self.nodes:
+                        distances = [node.distance_to(packet.position) for node in self.nodes]
+                        nearest_idx = np.argmin(distances)
+                        nearest_node_pos = self.nodes[nearest_idx].position
+
+                    # Define control torque function outside lambda for Numba compatibility
+                    def control_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
+                        return torques(packet_id, t, state)
+                    
+                    # Define flux-pinning torque function
+                    def flux_pinning_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
+                        if nearest_node_pos is not None:
+                            return packet.compute_flux_pinning_torque(self.B_field, nearest_node_pos)
+                        else:
+                            return np.zeros(3)
+                    
+                    # Combined torque function for Numba
+                    def packet_torques_func(t: float, state: np.ndarray) -> np.ndarray:
+                        tau_control = control_torque_func(packet.id, t, state)
+                        tau_pin = flux_pinning_torque_func(packet.id, t, state)
                         return tau_control + tau_pin
                     
                     packet_result = packet.body.integrate(
                         t_span=(self.time, self.time + dt),
-                        torques=packet_torques,
+                        torques=packet_torques_func,
                         method="RK45",
                         rtol=1e-8,
                         atol=1e-10,
                         max_step=dt / max_steps,
-                        use_numba_rk4=use_numba_rk4,
+                        use_numba_rk4=False,  # Disable Numba to avoid lambda issues
                         use_zero_torque_numba=use_zero_torque_numba,
                     )
                     
-                    # Thermal update (radiation cooling + solar heating)
+                    # Thermal update (radiation cooling + solar heating + eddy heating)
                     solar_flux = 0.0
                     if self.enable_orbital_dynamics and ORBITAL_DYNAMICS_AVAILABLE:
                         # Solar heating when not in eclipse
                         if not packet.in_eclipse:
-                            # Solar constant ~1361 W/m^2 at 1 AU
-                            solar_flux = 1361.0  # W/m^2
-                            # Reduce by albedo and view factor (simplified)
-                            solar_flux *= 0.3  # Effective absorption
+                            from dynamics.thermal_model import SOLAR_CONSTANT, SOLAR_ABSORPTION_FACTOR
+                            solar_flux = SOLAR_CONSTANT * SOLAR_ABSORPTION_FACTOR
+                    
+                    # Calculate eddy heating power for FREE packets
+                    eddy_power = 0.0
+                    if packet.state == PacketState.FREE:
+                        from .thermal_model import eddy_heating_power
+                        velocity_mag = np.linalg.norm(packet.velocity)
+                        eddy_power = eddy_heating_power(
+                            velocity=velocity_mag,
+                            k_drag=0.01,  # Match sgms_v1.py k_drag
+                            radius=packet.radius
+                        )
                     
                     packet.temperature = update_temperature_euler(
                         temperature=packet.temperature,
@@ -519,8 +561,12 @@ class MultiBodyStream:
                         emissivity=packet.emissivity,
                         specific_heat=packet.specific_heat,
                         dt=dt,
+                        position_eci=packet.orbital_state.r if packet.orbital_state else None,
+                        enable_eclipse=packet.orbital_state is not None,
                         solar_flux=solar_flux,
-                        eddy_heating_power=0.0,  # No eddy heating in multi-body dynamics
+                        eddy_heating_power=eddy_power,
+                        shape="prolate_spheroid",  # Use prolate spheroid for packets
+                        aspect_ratio=1.2  # Standard aspect ratio
                     )
                     
                     # Check thermal limits
@@ -552,6 +598,9 @@ class MultiBodyStream:
                         # Reduce by albedo and view factor (simplified)
                         solar_flux *= 0.3  # Effective absorption
                 
+                # Captured packets have no eddy heating (velocity = 0)
+                eddy_power = 0.0
+                
                 packet.temperature = update_temperature_euler(
                     temperature=packet.temperature,
                     mass=packet.body.mass,
@@ -559,8 +608,12 @@ class MultiBodyStream:
                     emissivity=packet.emissivity,
                     specific_heat=packet.specific_heat,
                     dt=dt,
+                    position_eci=packet.orbital_state.r if packet.orbital_state else None,
+                    enable_eclipse=packet.orbital_state is not None,
                     solar_flux=solar_flux,
-                    eddy_heating_power=0.0,  # No eddy heating in multi-body dynamics
+                    eddy_heating_power=eddy_power,
+                    shape="prolate_spheroid",  # Use prolate spheroid for packets
+                    aspect_ratio=1.2  # Standard aspect ratio
                 )
                 
                 # Check thermal limits

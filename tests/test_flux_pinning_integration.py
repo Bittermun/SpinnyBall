@@ -143,12 +143,13 @@ class TestFluxPinningIntegration:
         # This is a basic sanity check - full conservation test requires integration
         B_field = np.array([0.0, 0.0, 1.0])
         temp = 77.0
+        displacement = np.array([0.001, 0.0, 0.0])
 
         # Initial angular momentum
         L_initial = rigid_body.angular_momentum.copy()
 
         # Apply flux-pinning force (should not change L if no external torque)
-        force_torque = rigid_body.compute_flux_pinning_force(B_field, temp)
+        force_torque = rigid_body.compute_flux_pinning_force(B_field, temp, displacement)
 
         # Flux-pinning provides internal restoring torque, not external
         # So angular momentum should be conserved in absence of external torques
@@ -201,15 +202,7 @@ class TestFluxPinningMultiBodyIntegration:
     @pytest.fixture
     def stream_with_pinning(self):
         """Create MultiBodyStream with flux-pinning enabled."""
-        # Create GdBCO material
-        props = GdBCOProperties(Tc=92.0, Jc0=1e8, B0=5.0)
-        material = GdBCOMaterial(props)
-
-        # Create Bean-London model
-        geometry = {'thickness': 1e-6, 'width': 0.01, 'length': 0.01}
-        flux_model = BeanLondonModel(material, geometry)
-
-        # Create packets with flux-pinning models
+        # Create packets without flux models (MultiBodyStream will initialize them)
         packets = []
         for i in range(3):
             I = np.diag([0.0001, 0.00011, 0.00009])
@@ -222,7 +215,7 @@ class TestFluxPinningMultiBodyIntegration:
                 velocity=np.array([1600.0, 0.0, 0.0]),
                 quaternion=quaternion,
                 angular_velocity=np.array([0.1, 0.0, 0.0]),  # Small spin
-                flux_model=flux_model,
+                flux_model=None,  # Let MultiBodyStream initialize
             )
             packet = Packet(id=i, body=body, temperature=77.0)
             packets.append(packet)
@@ -242,9 +235,10 @@ class TestFluxPinningMultiBodyIntegration:
     def test_packet_torque_computation(self, stream_with_pinning):
         """Test that packets compute flux-pinning torque."""
         packet = stream_with_pinning.packets[0]
+        node = stream_with_pinning.nodes[0]
 
-        # Compute torque
-        torque = packet.compute_flux_pinning_torque(stream_with_pinning.B_field)
+        # Compute torque with node position
+        torque = packet.compute_flux_pinning_torque(stream_with_pinning.B_field, node.position)
 
         # Should return 3-element vector
         assert torque.shape == (3,)
@@ -253,15 +247,16 @@ class TestFluxPinningMultiBodyIntegration:
     def test_temperature_collapse_scenario(self, stream_with_pinning):
         """Test that pinning fails when temperature exceeds Tc."""
         packet = stream_with_pinning.packets[0]
+        node = stream_with_pinning.nodes[0]
 
         # Normal operation at 77K
         packet.temperature = 77.0
-        torque_cold = packet.compute_flux_pinning_torque(stream_with_pinning.B_field)
+        torque_cold = packet.compute_flux_pinning_torque(stream_with_pinning.B_field, node.position)
         torque_mag_cold = np.linalg.norm(torque_cold)
 
         # Thermal failure at 95K (> Tc)
         packet.temperature = 95.0
-        torque_hot = packet.compute_flux_pinning_torque(stream_with_pinning.B_field)
+        torque_hot = packet.compute_flux_pinning_torque(stream_with_pinning.B_field, node.position)
         torque_mag_hot = np.linalg.norm(torque_hot)
 
         # Hot torque should be near zero (or at least much smaller)

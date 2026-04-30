@@ -33,19 +33,19 @@ if JAX_AVAILABLE:
             self,
             dt: float = 0.01,
             thermal_mass: float = 1000.0,  # J/K
-            heat_capacity: float = 500.0,  # J/(kg·K)
-            convection_coeff: float = 10.0,  # W/(m²·K)
             surface_area: float = 0.1,  # m²
+            emissivity: float = 0.8,  # Surface emissivity for radiation
+            stefan_boltzmann: float = 5.67e-8,  # Stefan-Boltzmann constant
         ):
             """
-            Initialize JAX thermal model.
+            Initialize JAX thermal model for space vacuum.
 
             Args:
                 dt: Time step (s)
                 thermal_mass: Thermal mass (J/K)
-                heat_capacity: Specific heat capacity (J/(kg·K))
-                convection_coeff: Convection coefficient (W/(m²·K))
                 surface_area: Surface area (m²)
+                emissivity: Surface emissivity for radiative cooling (0-1)
+                stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K⁴)
             """
             if not JAX_AVAILABLE:
                 raise ImportError(
@@ -53,18 +53,18 @@ if JAX_AVAILABLE:
                     "Install with: poetry install --extras jax"
                 )
 
-            self.dt = dt
             self.thermal_mass = thermal_mass
-            self.heat_capacity = heat_capacity
-            self.convection_coeff = convection_coeff
             self.surface_area = surface_area
+            self.dt = dt
+            self.emissivity = emissivity
+            self.stefan_boltzmann = stefan_boltzmann
 
             # Compile thermal update function
             self._thermal_update_jit = jax.jit(self._thermal_update)
             # Pre-compile vmap for batch prediction to avoid re-compilation in loop
             self._thermal_update_vmap = jax.jit(jax.vmap(self._thermal_update))
 
-            logger.info("JAX thermal model initialized with JIT compilation")
+            logger.info("JAX thermal model initialized with radiative cooling for space")
 
         def _thermal_update(
             self,
@@ -83,11 +83,11 @@ if JAX_AVAILABLE:
             Returns:
                 Updated temperatures [N]
             """
-            # Convection heat loss
-            Q_conv = self.convection_coeff * self.surface_area * (T - T_amb)  # noqa: N806
+            # Radiative heat loss (space vacuum, no convection)
+            Q_rad = self.emissivity * self.stefan_boltzmann * self.surface_area * (T**4 - T_amb**4)  # noqa: N806
 
             # Temperature update
-            dT = (Q_in - Q_conv) / self.thermal_mass * self.dt  # noqa: N806
+            dT = (Q_in - Q_rad) / self.thermal_mass * self.dt  # noqa: N806
             T_new = T + dT  # noqa: N806
 
             return T_new  # noqa: N806
@@ -182,8 +182,20 @@ if JAX_AVAILABLE:
             return {
                 'dt': self.dt,
                 'thermal_mass': self.thermal_mass,
-                'heat_capacity': self.heat_capacity,
-                'convection_coeff': self.convection_coeff,
                 'surface_area': self.surface_area,
+                'emissivity': self.emissivity,
+                'stefan_boltzmann': self.stefan_boltzmann,
+                'cooling_type': 'radiative',  # Space vacuum, no convection
                 'jit_compiled': True,
             }
+
+        def __del__(self):
+            """Cleanup JIT compiled functions to prevent memory leaks."""
+            try:
+                if hasattr(self, '_thermal_update_jit'):
+                    del self._thermal_update_jit
+                if hasattr(self, '_thermal_update_vmap'):
+                    del self._thermal_update_vmap
+            except Exception:
+                # Ignore errors during cleanup
+                pass

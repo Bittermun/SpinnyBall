@@ -21,11 +21,17 @@ except ImportError:
     compute_eclipse = None
     R_earth = 6371.0  # km
 
+# Module-level constants
+SOLAR_CONSTANT = 1361.0  # W/m² - Solar constant at 1 AU
+SOLAR_ABSORPTION_FACTOR = 0.3  # Effective absorption factor (albedo and view factor)
+DEEP_SPACE_TEMP = 4.0  # K - Deep space temperature
+STEFAN_BOLTZMANN = 5.67e-8  # W/m²/K⁴ - Stefan-Boltzmann constant
+
 
 @dataclass
 class ThermalLimits:
     """Thermal safety limits for packets and nodes."""
-    max_packet_temp: float = 450.0  # K - maximum packet temperature
+    max_packet_temp: float = 90.0  # K - maximum packet temperature (below GdBCO Tc=92K)
     max_node_temp: float = 400.0  # K - maximum node temperature
     min_temp: float = 70.0  # K - minimum operating temperature (cryogenic range)
 
@@ -39,10 +45,12 @@ def update_temperature_euler(
     dt: float,
     position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
     enable_eclipse: bool = False,  # Enable automatic eclipse detection
-    ambient_temp: float = 4.0,  # K - deep space temperature
-    stefan_boltzmann: float = 5.67e-8,  # W/m²/K**4
+    ambient_temp: float = DEEP_SPACE_TEMP,  # K - deep space temperature
+    stefan_boltzmann: float = STEFAN_BOLTZMANN,  # W/m²/K**4
     solar_flux: float = 0.0,  # W/m² - solar heating flux
     eddy_heating_power: float = 0.0,  # W - eddy-current heating from drag
+    shape: str = "sphere",  # Shape type: "sphere" or "prolate_spheroid"
+    aspect_ratio: float = 1.2,  # Aspect ratio for prolate spheroid
 ) -> float:
     """
     Update packet temperature using Euler integration with radiative cooling.
@@ -63,21 +71,52 @@ def update_temperature_euler(
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
         solar_flux: Solar heating flux (W/m²), default 0
         eddy_heating_power: Eddy-current heating power from drag (W), default 0
+        shape: Shape type for surface area calculation ("sphere" or "prolate_spheroid")
+        aspect_ratio: Aspect ratio for prolate spheroid (c/a where c is axial, a is transverse)
     
     Returns:
         Updated temperature (K)
     """
-    # Check eclipse if enabled and position provided
-    effective_solar_flux = solar_flux
-    if enable_eclipse and position_eci is not None and ORBITAL_DYNAMICS_AVAILABLE:
-        if compute_eclipse is not None:
-            in_eclipse = compute_eclipse(position_eci)
-            if in_eclipse:
-                effective_solar_flux = 0.0  # No solar heating during eclipse
+    # Validate input parameters
+    if mass <= 0:
+        raise ValueError(f"mass must be > 0, got {mass}")
+    if radius <= 0:
+        raise ValueError(f"radius must be > 0, got {radius}")
+    if not (0 <= emissivity <= 1):
+        raise ValueError(f"emissivity must be in [0, 1], got {emissivity}")
+    if specific_heat <= 0:
+        raise ValueError(f"specific_heat must be > 0, got {specific_heat}")
+    if dt <= 0:
+        raise ValueError(f"dt must be > 0, got {dt}")
+    if eddy_heating_power < 0:
+        raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
+    if aspect_ratio < 1.0:
+        raise ValueError(f"aspect_ratio must be >= 1.0 for prolate spheroid, got {aspect_ratio}")
     
-    # Radiative cooling
-    # Surface area (assuming spherical packet)
-    surface_area = 4 * np.pi * radius**2
+    # Check eclipse if enabled and position
+    effective_solar_flux = solar_flux
+    if enable_eclipse and position_eci is not None and compute_eclipse is not None:
+        in_eclipse = compute_eclipse(position_eci)
+        if in_eclipse:
+            effective_solar_flux = 0.0  # No solar heating during eclipse
+    
+    # Calculate surface area based on shape
+    if shape == "sphere":
+        surface_area = 4 * np.pi * radius**2
+    elif shape == "prolate_spheroid":
+        # Prolate spheroid surface area: A = 2πa² + 2πc²/e * arcsin(e)
+        # where a = radius (equatorial), c = aspect_ratio * radius (polar)
+        # e = sqrt(1 - a²/c²) is eccentricity
+        a = radius
+        c = aspect_ratio * radius
+        e = np.sqrt(1 - (a**2 / c**2)) if c > a else 0.0
+        if e > 0:
+            surface_area = 2 * np.pi * a**2 + 2 * np.pi * c**2 / e * np.arcsin(e)
+        else:
+            # Nearly spherical limit
+            surface_area = 4 * np.pi * a**2
+    else:
+        raise ValueError(f"Unknown shape type: {shape}")
     
     # Validate effective_eddy_heating_power
     if eddy_heating_power < 0:
@@ -162,6 +201,8 @@ def steady_state_temperature(
     specific_heat: float,
     ambient_temp: float = 4.0,
     stefan_boltzmann: float = 5.67e-8,
+    shape: str = "sphere",
+    aspect_ratio: float = 1.2,
 ) -> float:
     """
     Calculate steady-state temperature given constant power input.
@@ -177,11 +218,25 @@ def steady_state_temperature(
         specific_heat: Specific heat capacity (J/kg/K)
         ambient_temp: Ambient temperature (K)
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
+        shape: Shape type for surface area calculation ("sphere" or "prolate_spheroid")
+        aspect_ratio: Aspect ratio for prolate spheroid
     
     Returns:
         Steady-state temperature (K)
     """
-    surface_area = 4 * np.pi * radius**2
+    # Calculate surface area based on shape
+    if shape == "sphere":
+        surface_area = 4 * np.pi * radius**2
+    elif shape == "prolate_spheroid":
+        a = radius
+        c = aspect_ratio * radius
+        e = np.sqrt(1 - (a**2 / c**2)) if c > a else 0.0
+        if e > 0:
+            surface_area = 2 * np.pi * a**2 + 2 * np.pi * c**2 / e * np.arcsin(e)
+        else:
+            surface_area = 4 * np.pi * a**2
+    else:
+        raise ValueError(f"Unknown shape type: {shape}")
     
     # Solve radiative balance: P_in = εσA(T**4 - T_ambient**4)
     temp_fourth = power_in / (emissivity * stefan_boltzmann * surface_area) + ambient_temp**4

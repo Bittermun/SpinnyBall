@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import numpy as np
 import warnings
+from scipy.integrate import solve_ivp
 
 from typing import Optional, Tuple, Callable
 from dataclasses import dataclass
@@ -74,6 +75,7 @@ class FluxGyroConfig:
  inertia_tensor: np.ndarray  # 3x3 inertia (kg·m²)
  spin_rate: float  # Nominal spin rate (rad/s)
  spin_axis: np.ndarray  # Principal spin axis [x, y, z]
+ mass: float = 1.0  # Rotor mass (kg)
  
  # Flux-pinning parameters
  k_fp_base: float  # Base flux-pinning stiffness (N/m)
@@ -151,12 +153,37 @@ class FluxGyroscopicCoupledSystem:
   
   # Use Bean-London model if available
   if self.flux_model is not None and FLUX_AVAILABLE:
-   # Get full 6-DoF force/torque from model
-   force_torque = self.flux_model.compute_pinning_force_6dof(
-    displacement, state.quaternion, B_mag, state.temperature
-   )
-   force = force_torque[:3]
-   torque = force_torque[3:]
+   # Update magnetization history for hysteresis
+   self.flux_model.update_magnetization(B_mag, state.temperature)
+   
+   # Compute 3D force using per-axis scalar calls (BeanLondonModel API)
+   force = np.zeros(3)
+   for i in range(3):
+    force[i] = self.flux_model.compute_pinning_force(
+     displacement[i], B_mag, state.temperature
+    )
+   
+   # Compute torque from force (τ = r × F)
+   # For simplified model, torque arises from angular displacement (libration)
+   # Extract angular displacement from quaternion
+   qw = state.quaternion[3]
+   q_vector = state.quaternion[:3]
+   qw = np.clip(qw, -1.0, 1.0)
+   angle = 2.0 * np.arccos(qw)
+   sin_half_angle = np.sin(angle / 2.0)
+   if sin_half_angle > 1e-10:
+    axis = q_vector / sin_half_angle
+    angular_disp = axis * angle
+   else:
+    angular_disp = np.zeros(3)
+   
+   # Compute torque using stiffness
+   torque = np.zeros(3)
+   for i in range(3):
+    stiffness = self.flux_model.get_stiffness(
+     angular_disp[i], B_mag, state.temperature
+    )
+    torque[i] = -stiffness * angular_disp[i]
   else:
    # Simplified analytical model
    # Force: F = -k_fp * x (linear restoring)
@@ -231,9 +258,8 @@ class FluxGyroscopicCoupledSystem:
   if include_coupling:
    return gyroscopic_coupling(self.config.inertia_tensor, omega)
   else:
-   # Simplified: just return precession torque approximation
-   I = self.config.inertia_tensor
-   return np.cross(omega, I @ omega)
+   # Return zero torque when coupling is disabled
+   return np.zeros(3)
  
  def compute_coupled_dynamics(
   self,
@@ -268,23 +294,23 @@ class FluxGyroscopicCoupledSystem:
   # Compute flux-pinning forces/torques
   F_fp, tau_fp = self.compute_flux_pinning_torque(state)
   
-  # Compute gyroscopic torque
-  tau_gyro = self.compute_gyroscopic_torque(state.angular_velocity)
-  
   # Control torque (simplified PD control)
   error_pos = -state.position  # Target is origin
   error_vel = -state.velocity
   tau_control = (self.config.control_gain * 0.1 * np.cross(state.position, F_fp) +
           self.config.damping_ratio * error_vel)
   
-  # Total torque
-  tau_total = tau_fp + tau_gyro + tau_control + external_torque
+  # Total external torque (excluding gyroscopic term)
+  # Euler equation: I×ω̇ + ω×(I×ω) = τ_ext
+  # Therefore: I×ω̇ = τ_ext - ω×(I×ω)
+  tau_total = tau_fp + tau_control + external_torque
   
   # Solve for angular acceleration
   # I×α = τ_total - ω×(I×ω)
   I_omega = self.config.inertia_tensor @ state.angular_velocity
   omega_skew = skew_symmetric(state.angular_velocity)
   gyro_term = omega_skew @ I_omega
+  tau_gyro = gyro_term  # Gyroscopic torque for stability calculation
   
   alpha = self.I_inv @ (tau_total - gyro_term)
   
@@ -292,10 +318,10 @@ class FluxGyroscopicCoupledSystem:
   omega_new = state.angular_velocity + alpha * dt
   
   # Integrate quaternion
-  # q̇ = 0.5 * q ⊗ ω
+  # q̇ = 0.5 * q ⊗ ω (use current omega, not updated omega_new)
   q = state.quaternion
   qw, qx, qy, qz = q[3], q[0], q[1], q[2]
-  wx, wy, wz = omega_new
+  wx, wy, wz = state.angular_velocity
   
   dq = 0.5 * np.array([
    qw*wx + qy*wz - qz*wy,
@@ -308,10 +334,9 @@ class FluxGyroscopicCoupledSystem:
   q_new = q_new / np.linalg.norm(q_new)  # Normalize
   
   # Integrate position/velocity
-  mass = 1.0  # Assume unit mass (or get from config)
   F_total = F_fp + external_force
   
-  accel = F_total / mass
+  accel = F_total / self.config.mass
   v_new = state.velocity + accel * dt
   x_new = state.position + v_new * dt
   
@@ -333,6 +358,91 @@ class FluxGyroscopicCoupledSystem:
    B_field=state.B_field
   )
  
+ def _dynamics_ode(
+  self,
+  t: float,
+  y: np.ndarray,
+  external_force: Optional[np.ndarray] = None,
+  external_torque: Optional[np.ndarray] = None
+ ) -> np.ndarray:
+  """
+  ODE function for scipy.integrate.solve_ivp.
+  
+  State vector y = [r; v; q; omega] (3+3+4+3 = 13 elements)
+  
+  Args:
+   t: Time
+   y: State vector [r(3), v(3), q(4), omega(3)]
+   external_force: External force (N)
+   external_torque: External torque (N·m)
+   
+  Returns:
+   Derivative dy/dt
+  """
+  if external_force is None:
+   external_force = np.zeros(3)
+  if external_torque is None:
+   external_torque = np.zeros(3)
+  
+  # Unpack state
+  r = y[0:3]
+  v = y[3:6]
+  q = y[6:10]
+  omega = y[10:13]
+  
+  # Normalize quaternion
+  q = q / np.linalg.norm(q)
+  
+  # Reconstruct state object
+  # Note: temperature and B_field are treated as fixed parameters during ODE integration
+  # They are not part of the state vector y and do not evolve during simulation
+  state = FluxGyroState(
+   position=r,
+   velocity=v,
+   quaternion=q,
+   angular_velocity=omega,
+   temperature=self.config.T_critical * 0.83,  # Fixed at 83% Tc during integration
+   B_field=np.array([0., 0., 1.0])  # Fixed axial field during integration
+  )
+  
+  # Compute flux-pinning forces/torques
+  F_fp, tau_fp = self.compute_flux_pinning_torque(state)
+  
+  # Control torque (simplified PD control)
+  error_pos = -state.position
+  error_vel = -state.velocity
+  tau_control = (self.config.control_gain * 0.1 * np.cross(state.position, F_fp) +
+          self.config.damping_ratio * error_vel)
+  
+  # Total external torque
+  tau_total = tau_fp + tau_control + external_torque
+  
+  # Angular acceleration: I×ω̇ = τ_total - ω×(I×ω)
+  I_omega = self.config.inertia_tensor @ omega
+  omega_skew = skew_symmetric(omega)
+  gyro_term = omega_skew @ I_omega
+  alpha = self.I_inv @ (tau_total - gyro_term)
+  
+  # Linear dynamics
+  r_dot = v
+  v_dot = (F_fp + external_force) / self.config.mass
+  
+  # Quaternion kinematics: dq/dt = 0.5 * q ⊗ ω
+  qw, qx, qy, qz = q[3], q[0], q[1], q[2]
+  wx, wy, wz = omega
+  
+  dq = 0.5 * np.array([
+   qw*wx + qy*wz - qz*wy,
+   qw*wy + qz*wx - qx*wz,
+   qw*wz + qx*wy - qy*wx,
+   -qx*wx - qy*wy - qz*wz
+  ])
+  
+  # Assemble derivative
+  y_dot = np.concatenate([r_dot, v_dot, dq, alpha])
+  
+  return y_dot
+
  def _compute_stability_index(
   self,
   state: FluxGyroState,
@@ -380,20 +490,113 @@ class FluxGyroscopicCoupledSystem:
   initial_state: FluxGyroState,
   duration: float,
   dt: float = 0.001,
-  disturbance_schedule: Optional[Callable[[float], Tuple[np.ndarray, np.ndarray]]] = None
+  disturbance_schedule: Optional[Callable[[float], Tuple[np.ndarray, np.ndarray]]] = None,
+  use_adaptive: bool = True
  ) -> dict:
   """
-  Simulate full coupled system response.
+  Simulate full coupled system response using adaptive RK45 integration.
   
   Args:
    initial_state: Starting state
    duration: Simulation duration (s)
-   dt: Time step (s)
+   dt: Time step for output (s)
    disturbance_schedule: Function t -> (force, torque)
+   use_adaptive: If True, use solve_ivp with RK45; if False, use Euler
    
   Returns:
    Dictionary with simulation results
   """
+  if use_adaptive:
+   return self._simulate_adaptive(initial_state, duration, dt, disturbance_schedule)
+  else:
+   return self._simulate_euler(initial_state, duration, dt, disturbance_schedule)
+
+ def _simulate_adaptive(
+  self,
+  initial_state: FluxGyroState,
+  duration: float,
+  dt: float,
+  disturbance_schedule: Optional[Callable[[float], Tuple[np.ndarray, np.ndarray]]] = None
+ ) -> dict:
+  """Simulate using scipy.integrate.solve_ivp with RK45."""
+  # Pack initial state
+  y0 = np.concatenate([
+   initial_state.position,
+   initial_state.velocity,
+   initial_state.quaternion,
+   initial_state.angular_velocity
+  ])
+  
+  # Time points for dense output
+  t_eval = np.arange(0, duration, dt)
+  
+  # Define ODE wrapper with disturbances
+  def ode_wrapper(t, y):
+   F_ext = np.zeros(3)
+   tau_ext = np.zeros(3)
+   if disturbance_schedule:
+    F_ext, tau_ext = disturbance_schedule(t)
+   return self._dynamics_ode(t, y, F_ext, tau_ext)
+  
+  # Solve with RK45 (adaptive)
+  sol = solve_ivp(
+   ode_wrapper,
+   (0, duration),
+   y0,
+   t_eval=t_eval,
+   method='RK45',
+   rtol=1e-6,
+   atol=1e-9
+  )
+  
+  if not sol.success:
+   warnings.warn(f"Integration failed: {sol.message}")
+  
+  # Extract results
+  positions = sol.y[0:3, :].T
+  velocities = sol.y[3:6, :].T
+  quaternions = sol.y[6:10, :].T
+  omegas = sol.y[10:13, :].T
+  
+  # Compute stability indices using unified _compute_stability_index
+  stabilities = np.zeros(len(sol.t))
+  for i, t in enumerate(sol.t):
+   state = FluxGyroState(
+    position=positions[i],
+    velocity=velocities[i],
+    quaternion=quaternions[i],
+    angular_velocity=omegas[i],
+    temperature=initial_state.temperature,
+    B_field=initial_state.B_field
+   )
+   # Compute flux-pinning torque for stability calculation
+   F_fp, tau_fp = self.compute_flux_pinning_torque(state)
+   # Compute gyroscopic torque for stability calculation
+   tau_gyro = self.compute_gyroscopic_torque(state.angular_velocity)
+   # Use unified stability index calculation
+   stabilities[i] = self._compute_stability_index(state, state.angular_velocity, tau_fp, tau_gyro)
+  
+  return {
+   "time": sol.t,
+   "position": positions,
+   "velocity": velocities,
+   "angular_velocity": omegas,
+   "quaternion": quaternions,
+   "stability": stabilities,
+   "mean_stability": np.mean(stabilities),
+   "min_stability": np.min(stabilities),
+   "final_stability": stabilities[-1],
+   "success": sol.success
+  }
+
+ def _simulate_euler(
+  self,
+  initial_state: FluxGyroState,
+  duration: float,
+  dt: float,
+  disturbance_schedule: Optional[Callable[[float], Tuple[np.ndarray, np.ndarray]]] = None
+ ) -> dict:
+  """Simulate using manual Euler integration (legacy)."""
   n_steps = int(duration / dt)
   
   # Storage
@@ -435,13 +638,15 @@ class FluxGyroscopicCoupledSystem:
    "stability": stabilities,
    "mean_stability": np.mean(stabilities),
    "min_stability": np.min(stabilities),
-   "final_stability": stabilities[-1]
+   "final_stability": stabilities[-1],
+   "success": True
   }
  
  def get_optimal_spin_rate(
   self,
   target_stiffness: float,
-  max_power: float = 1000.0
+  max_power: float = 1000.0,
+  max_displacement: float = 0.01
  ) -> float:
   """
   Compute optimal spin rate for given stiffness constraint.
@@ -452,23 +657,24 @@ class FluxGyroscopicCoupledSystem:
   Args:
    target_stiffness: Desired effective stiffness (N/m)
    max_power: Maximum allowable power (W)
+   max_displacement: Maximum expected displacement (m) for torque conversion
    
   Returns:
    Optimal spin rate (rad/s)
   """
+  # Convert stiffness to torque scale: τ_target = k_fp * x_max
+  tau_target = target_stiffness * max_displacement
+  
   # Simplified model: gyroscopic torque ∝ ω²
   # For stability, need τ_gyro > disturbance torque
-  # Assuming disturbance ~ target_stiffness * displacement
-  
-  # Optimal ω balances stiffness and power
-  # P ∝ ω³, τ ∝ ω²
+  # Optimal ω balances torque and power: P ∝ ω³, τ ∝ ω²
   # At optimal: d(τ/P)/dω = 0 → ω_opt = (2*τ_target / (3*k_power))^1/3
   
-  # Characteristic values
-  k_power = max_power / (1000.0**3)  # Scale factor
+  # Characteristic power coefficient (W/(rad/s)^3)
+  k_power = max_power / (1000.0**3)
   
-  # Solve for optimal
-  omega_opt = (2.0 * target_stiffness / (3.0 * k_power))**(1.0/3.0)
+  # Solve for optimal spin rate
+  omega_opt = (2.0 * tau_target / (3.0 * k_power))**(1.0/3.0)
   
   # Cap at reasonable limits
   omega_max = 6000.0  # ~60,000 RPM
@@ -483,12 +689,15 @@ class FluxGyroscopicCoupledSystem:
   Returns:
    Dictionary with enhancement metrics
   """
-  # Gyro-only stability
+  # Gyro-only stability: nutation frequency for symmetric top
+  # ω_n = (I_spin / I_transverse) * ω_spin
   I_diag = np.diag(self.config.inertia_tensor)
-  gyro_freq = np.sqrt(np.mean(I_diag)) * self.config.spin_rate
+  I_spin = I_diag[2]  # Assume spin axis is z-axis
+  I_transverse = (I_diag[0] + I_diag[1]) / 2.0
+  gyro_freq = (I_spin / I_transverse) * self.config.spin_rate
   
   # Flux-only stability (model as spring-mass)
-  m_eff = 1.0
+  m_eff = self.config.mass
   flux_freq = np.sqrt(self.config.k_fp_base / m_eff)
   
   # Coupled stability (approximate)
@@ -526,9 +735,15 @@ def create_fast_rotor_config(
   Returns:
    FluxGyroConfig optimized for high-speed operation
  """
- # Solid sphere inertia
- I_val = (2.0/5.0) * mass * radius**2
- inertia = np.diag([I_val, I_val, I_val])
+ # Prolate spheroid inertia (project standard geometry)
+ # I_axial = (2/5) * m * a², I_transverse = (1/5) * m * (a² + c²)
+ # where a = radius (equatorial), c = aspect_ratio * radius (polar)
+ aspect_ratio = 1.2  # Standard aspect ratio from geometry_profiles.json
+ a = radius
+ c = aspect_ratio * radius
+ I_axial = (2.0/5.0) * mass * a**2
+ I_transverse = (1.0/5.0) * mass * (a**2 + c**2)
+ inertia = np.diag([I_axial, I_transverse, I_transverse])
  
  # Spin rate in rad/s
  spin_rad_s = spin_rpm * 2.0 * np.pi / 60.0
@@ -537,6 +752,7 @@ def create_fast_rotor_config(
   inertia_tensor=inertia,
   spin_rate=spin_rad_s,
   spin_axis=np.array([0.0, 0.0, 1.0]),
+  mass=mass,
   k_fp_base=9000.0,  # High stiffness GdBCO
   Jc_critical=2.5e10,
   B_critical=15.0,

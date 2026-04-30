@@ -212,7 +212,8 @@ SpinnyBall/
 │   ├── gyro_matrix.py          # Gyroscopic coupling matrix
 │   ├── multi_body.py           # Multi-body packet stream simulation
 │   ├── stiffness_verification.py  # Stiffness verification utilities
-│   └── stress_monitoring.py    # Stress monitoring utilities
+│   ├── stress_monitoring.py    # Stress monitoring utilities
+│   └── flux_gyroscopic_dynamics.py  # Flux-pinning + gyroscopic coupled dynamics (RK45)
 ├── control/
 │   ├── mpc_controller.py       # Model-predictive control (with configuration modes)
 │   ├── rom_predictor.py        # Reduced-order model predictor (with VMD-IRCNN integration)
@@ -526,6 +527,32 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 - **control/**: Model-predictive control (MPC) and reduced-order model (ROM) predictors
 - **monte_carlo/**: Cascade risk assessment and pass/fail gates
 
+### Thermal Model Validation
+
+**Status**: COMPLETE (April 2026)
+
+Comprehensive validation of thermal model and flux-pinning bug fixes for GdBCO-based space packets:
+
+**Key Fixes Implemented**:
+- Radiative cooling for space vacuum (replaced invalid convection)
+- Thermal limits corrected to 90K (below GdBCO Tc=92K)
+- Prolate spheroid surface area calculation
+- Eclipse detection integration with orbital dynamics
+- Eddy heating power calculation (P = k_drag * v²)
+- Flux-pinning initialization with GdBCOProperties
+- Numba compatibility for torque functions
+
+**Test Results**:
+- Thermal model tests: 12/12 passing
+- Flux-pinning integration tests: 14/14 passing
+- Multi-pass accumulation tests: 13/13 passing
+- Total: 39/39 tests passing
+
+**Documentation**:
+- `docs/thermal_model_validation_report.md` - Comprehensive validation report
+- `BENCHMARKS.md` - Performance metrics and benchmarking framework
+- `docs/phase3_integration_report.md` - Integration report template
+
 ### Validation References
 - MATLAB RK4 reference implementation
 - MuJoCo 6-DOF cross-check
@@ -534,6 +561,7 @@ where the skew-symmetric term \(\boldsymbol{\omega} \times (\mathbf{I} \boldsymb
 - Classical EM theory for eddy current heating
 - Euler equations for gyroscopic stability
 - Sobol sensitivity analysis
+- Stefan-Boltzmann law for radiative cooling
 
 ---
 

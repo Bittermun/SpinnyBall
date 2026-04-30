@@ -87,6 +87,8 @@ def geometry_profile_to_inertia(geometry_profile: dict | None) -> np.ndarray:
         aspect_ratio = geometry_profile.get("aspect_ratio", 1.2)
         # For prolate spheroid: I_transverse = (1/5) * m * (a² + c²), I_axial = (2/5) * m * a²
         # where a = radius (equatorial), c = aspect_ratio * radius (polar)
+        # IMPORTANT: The x-axis is the polar (axial) axis, y/z are transverse axes
+        # This matches the inertia tensor ordering: diag([I_axial, I_transverse, I_transverse])
         a = radius
         c = aspect_ratio * radius
         I_transverse = (1.0/5.0) * mass * (a**2 + c**2)
@@ -345,7 +347,7 @@ def euler_equations(
     # Get total torque
     tau = np.asarray(torques(t, state), dtype=float)
     if tau.ndim == 0:
-        tau = np.array([tau])  # Convert scalar to 1D array
+        raise ValueError("torques must return 3-element vector, got scalar")
     if tau.ndim != 1:
         raise ValueError(f"torques must return 1D array, got ndim={tau.ndim}")
     if tau.shape != (3,):

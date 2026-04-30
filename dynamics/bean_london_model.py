@@ -27,7 +27,7 @@ class BeanLondonModel:
     in the superconductor, creating a magnetization that opposes field changes.
     """
     
-    def __init__(self, material: GdBCOMaterial, geometry: dict):
+    def __init__(self, material: GdBCOMaterial, geometry: dict, initial_B_field: float = 0.0):
         """Initialize Bean-London model.
         
         Args:
@@ -36,6 +36,7 @@ class BeanLondonModel:
                 - thickness: Superconductor thickness (m)
                 - width: Tape width (m)
                 - length: Tape length (m)
+            initial_B_field: Initial magnetic field (T), default 0.0
         
         Raises:
             ValueError: If geometry parameters are invalid
@@ -52,7 +53,7 @@ class BeanLondonModel:
         self.geometry = geometry
         self.state = BeanLondonState(
             magnetization=np.array([0.0]),
-            previous_field=np.array([0.0]),
+            previous_field=np.array([initial_B_field]),
             penetration_depth=0.0,
         )
         

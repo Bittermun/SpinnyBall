@@ -26,29 +26,38 @@ P = {
     'mass':           2.0,
     'geometry':       'prolate',   # 'prolate' for paper-accurate physics, 'sphere' for legacy compatibility
     # Prolate spheroid dimensions (paper specification)
-    'a_axis':         0.040,       # transverse semi-axis (m)
-    'c_axis':         0.060,       # axial semi-axis (m)
-    # Sphere proxy dimensions (legacy, for backward compatibility)
-    'radius':         0.046,       # volume-equivalent sphere radius (m)
-    'I_moment':       1.69e-3,     # sphere moment of inertia (kg·m²) - legacy
-    'spin_hz':        833.33,
-    'omega':          2 * np.pi * 833.33,
-    'mu':             60.0,       # A·m²  PLACEHOLDER — treat as sweep variable (10–200 A·m²); see sweep_mu()
-    'conductivity':   1e6,
-    'skin_depth':     1.7e-4,
-    'v_z0':           15000.0,
-    'array_length':   8.0,
-    'n_segments':     6,
-    'segment_sigma':  1.0,
-    'gradient':       50.0,
-    'pulse_sigma':    5e-5,
-    'delta':  np.array([0, 2, -1, 1, -2, 0]) * 1e-6,    # 6-segment asymmetry
-    'amp':    np.array([1.0, 1.1, 1.2, 1.0, 0.9, 0.8]), # 6-segment amplitudes
+    'a':              40.0e-3,     # 40 mm equatorial semi-axis (diameter = 80 mm)
+    'c':              60.0e-3,     # 60 mm axial semi-axis (length = 120 mm)
+    # Mass distribution
+    'rho':            2000.0,      # kg/m^3 (typical for coated conductor + reinforcement)
+    # Magnetic field
+    'gradient':       100.0,      # T/m (100 T/m gradient field)
+    'B0':             0.0,         # T (bias field)
+    # Array geometry
+    'n_segments':     6,           # Number of coil segments
+    'seg_length':     1.0,         # m (length of each segment)
+    'array_length':   6.0,         # m (total array length)
+    'segment_sigma':  1.0,         # m (spatial sigma of segment field)
+    'pulse_sigma':    1e-4,        # s (temporal sigma of packet pulse)
+    'seg_z':          np.linspace(-3.0, 3.0, 6),  # m (segment centers)
+    'delta':          np.zeros(6),  # m (segment timing offsets)
+    'amp':            np.array([1.0, 1.1, 1.2, 1.0, 0.9, 0.8]),  # Segment amplitudes
+    # Packet properties
+    'v_z0':           1600.0,      # m/s (axial velocity)
+    'mu':             1.0,         # A·m^2 (magnetic moment)
+    'L_spin':         0.01,        # A·m^2 (spin angular momentum)
+    # Numerical parameters
+    'rtol':           1e-8,
+    'atol':           1e-10,
+    'dt':             1e-6,        # s (time step)
+    'max_step':       1e-6,        # s (max step for simulate_multi_pass_accumulation)
+    't_start':        -0.001,      # s (start time)
+    't_end':          0.001,       # s (end time)
+    # Enable/disable features
+    'enable_precession': True,
+    'enable_mutual_inductance': False,
     'k_drag': 0.01,  # Eddy-current drag coefficient (N·s/m) - velocity-dependent
     'k_quad': 0.0,
-    'dt':     0.25e-6,             # timestep for convergence
-    'rtol':   1e-8,
-    'atol':   1e-10,
     # Mutual inductance parameters
     'enable_mutual_inductance': False,  # Enable mutual inductance coupling
     'mutual_coupling_coeff': 0.1,  # Average coupling coefficient between segments
@@ -58,10 +67,10 @@ P = {
 # Calculate inertia tensor based on geometry
 if P['geometry'] == 'prolate':
     # Prolate spheroid: I_ax = 2/5 * m * a², I_tr = 1/5 * m * (a² + c²)
-    P['I_ax'] = (2.0/5.0) * P['mass'] * P['a_axis']**2
-    P['I_tr'] = (1.0/5.0) * P['mass'] * (P['a_axis']**2 + P['c_axis']**2)
+    P['I_ax'] = (2.0/5.0) * P['mass'] * P['a']**2
+    P['I_tr'] = (1.0/5.0) * P['mass'] * (P['a']**2 + P['c']**2)
     P['I_moment'] = P['I_ax']  # Use axial moment for spin-axis calculation
-    P['radius'] = P['a_axis']  # Use transverse radius for rim speed
+    P['radius'] = P['a']  # Use transverse radius for rim speed
     P['stability_ratio'] = P['I_tr'] / P['I_ax']
 else:
     # Sphere proxy (legacy)
@@ -69,9 +78,10 @@ else:
     P['I_tr'] = P['I_moment']
     P['stability_ratio'] = 1.0
 
-P['L_spin']    = P['I_ax'] * P['omega']
-P['t_transit'] = P['array_length'] / P['v_z0']
-P['rim_speed'] = P['omega'] * P['radius']
+P['omega']       = 2 * np.pi * 833.33  # rad/s (spin frequency)
+P['L_spin']      = P['I_ax'] * P['omega']
+P['t_transit']   = P['array_length'] / P['v_z0']
+P['rim_speed']   = P['omega'] * P['radius']
 # Coordinate convention: centered on z=0. MATLAB ref uses z=0..9 (shifted by +4m) — physically equivalent
 P['seg_z'] = np.linspace(
     -P['array_length']/2 + P['array_length']/(2*P['n_segments']),
@@ -83,7 +93,7 @@ P['seg_z'] = np.linspace(
 print("=== SGMS V1 Parameters ===")
 print(f"Geometry:          {P['geometry']}")
 if P['geometry'] == 'prolate':
-    print(f"  Prolate spheroid: a={P['a_axis']*1000:.1f} mm, c={P['c_axis']*1000:.1f} mm")
+    print(f"  Prolate spheroid: a={P['a']*1000:.1f} mm, c={P['c']*1000:.1f} mm")
     print(f"  I_ax = {P['I_ax']*1e3:.3f}e-3 kg·m², I_tr = {P['I_tr']*1e3:.3f}e-3 kg·m²")
     print(f"  Stability ratio I_tr/I_ax = {P['stability_ratio']:.3f}")
 else:
@@ -162,11 +172,13 @@ def Bx_field(z, t, P):
                         B_seg_plus += B_amp * p * q
                     else:
                         zi_j = P['seg_z'][j]
+                        ai_j = P['amp'][j]
                         di_j = P['delta'][j]
                         t_arr_j = segment_arrival_time(zi_j, P['v_z0'])
                         q_j = np.exp(-((z + dz - zi_j)**2) / (2 * P['segment_sigma']**2))
                         p_j = np.exp(-((t - t_arr_j - di_j)**2) / (2 * P['pulse_sigma']**2))
-                        B_seg_plus += coupling * B_amp * p_j * q_j
+                        B_amp_j = ai_j * P['gradient'] * P['segment_sigma']
+                        B_seg_plus += coupling * B_amp_j * p_j * q_j
                 coupled_plus.append(B_seg_plus)
             Bx_plus = sum(coupled_plus)
         
@@ -308,7 +320,6 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
         - error_type: 'random_walk' or 'mean_reverting'
         - failed_passes: Number of failed integration attempts
     """
-    global P
     if params is None:
         params = P
     
@@ -341,13 +352,14 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
     # Simulate each pass
     for i in range(n_passes):
         try:
-            # Reset initial conditions for each pass
-            y0 = [0.0, 0.0, -params['array_length']/2, 0.0, 0.0, params['v_z0']]
+            # Reset initial conditions for each pass (9-element state vector)
+            y0 = [0.0, 0.0, -params['array_length']/2, 0.0, 0.0, params['v_z0'], 0.0, 0.0, 1.0]
             t_span = (0.0, params['array_length'] / params['v_z0'] * 1.5)
             t_eval = np.linspace(t_span[0], t_span[1], 1000)
             
             # Solve single pass
-            sol = solve_ivp(rhs, t_span, y0, t_eval=t_eval, 
+            sol = solve_ivp(lambda t, y: eom(t, y, params, include_precession=False),
+                           t_span, y0, t_eval=t_eval, 
                            rtol=params['rtol'], atol=params['atol'],
                            max_step=params['max_step'])
             
