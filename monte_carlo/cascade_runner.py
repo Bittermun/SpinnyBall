@@ -82,6 +82,14 @@ class RealizationResult:
     per_packet_latency: Optional[List[Tuple[int, float]]] = None  # [(packet_id, latency_ms), ...]
     nodes_affected: int = 0  # Number of nodes that experienced failure
     containment_successful: bool = True  # True if nodes_affected <= 2
+    
+    # NEW: Diagnostic counters - addresses Root Cause #6 and Trust Strategy #1
+    fault_events_injected: int = 0  # How many faults actually fired
+    thermal_violations_count: int = 0
+    quench_events: int = 0
+    capture_release_events: int = 0
+    max_temperature_reached: float = 0.0
+    cascade_generations: int = 0  # How many cascade propagation steps occurred
 
 
 @dataclass
@@ -101,6 +109,19 @@ class MonteCarloConfig:
     fault_rate: float = 1e-4  # Failure rate per hour (units: /hr)
     cascade_threshold: float = 1.05  # Stiffness reduction factor for cascade
     containment_threshold: int = 2  # Max nodes allowed for containment success
+    
+    # NEW: Fault injection mode - addresses Root Cause #1
+    fault_injection_mode: str = "rate"  # "rate", "guaranteed", or "poisson"
+    n_guaranteed_faults: int = 0  # Inject exactly N faults per realization (for "guaranteed" mode)
+    
+    # NEW: Cascade propagation - addresses Root Cause #2
+    enable_cascade_propagation: bool = False  # Enable neighbor load redistribution
+    cascade_propagation_factor: float = 0.1  # Fraction of failed load transferred to neighbors
+    max_cascade_generations: int = 5  # Maximum cascade propagation depth
+    
+    # NEW: Thermal/quench integration - addresses Root Cause #4
+    enable_thermal_quench: bool = False  # Enable thermal-quench coupling
+    quench_detection_enabled: bool = False  # Enable quench detector monitoring
 
     # Acceleration options
     use_gpu: bool = False  # Use GPU acceleration (requires JAX)
@@ -265,6 +286,24 @@ class CascadeRunner:
         failure_mode = None
         nodes_affected = set()  # Track which nodes experienced failure
         
+        # NEW: Diagnostic counters - Trust Strategy #1
+        fault_events_injected = 0
+        thermal_violations_count = 0
+        quench_events = 0
+        max_temperature_reached = 0.0
+        cascade_generations = 0
+        
+        # Initialize quench detector if enabled (Root Cause #4)
+        quench_detector = None
+        if self.config.quench_detection_enabled or self.config.enable_thermal_quench:
+            try:
+                from dynamics.quench_detector import QuenchDetector
+                quench_detector = QuenchDetector()
+            except ImportError:
+                logger.warning("QuenchDetector not available, disabling quench detection")
+                self.config.quench_detection_enabled = False
+                self.config.enable_thermal_quench = False
+        
         # Apply perturbations probabilistically
         for perturbation in self.config.perturbations:
             if np.random.random() < perturbation.probability:
@@ -318,6 +357,24 @@ class CascadeRunner:
 
         # fault_rate is per hour, convert to per-step probability
         fault_prob_per_step = self.config.fault_rate * self.config.dt / 3600.0
+        
+        # NEW: Guaranteed fault injection (Root Cause #1)
+        guaranteed_fault_times = []
+        guaranteed_fault_nodes = []
+        if self.config.fault_injection_mode == "guaranteed" and self.config.n_guaranteed_faults > 0:
+            # Pre-sample N fault times uniformly in [0, time_horizon]
+            guaranteed_fault_times = np.random.uniform(0, self.config.time_horizon, self.config.n_guaranteed_faults)
+            # Pre-sample N node IDs uniformly from [0, n_nodes)
+            n_nodes_available = len(stream.nodes) if stream.nodes else 1
+            guaranteed_fault_nodes = np.random.randint(0, n_nodes_available, self.config.n_guaranteed_faults)
+            logger.info(f"Guaranteed fault injection: {self.config.n_guaranteed_faults} faults at times {guaranteed_fault_times}")
+        
+        # NEW: Poisson fault injection (Root Cause #1 alternative)
+        poisson_n_faults = 0
+        if self.config.fault_injection_mode == "poisson":
+            lambda_rate = self.config.fault_rate * self.config.time_horizon * len(stream.nodes) / 3600.0 if stream.nodes else 0.0
+            poisson_n_faults = np.random.poisson(lambda_rate)
+            logger.info(f"Poisson fault injection: lambda={lambda_rate:.4f}, sampled n_faults={poisson_n_faults}")
 
         logger.info(f"Latency injection: {latency_events} events, max_latency={max_latency_ms:.1f} ms")
 
@@ -339,7 +396,7 @@ class CascadeRunner:
                             active_buffer.append((release_time, delayed_state))
                     packet.latency_buffer = active_buffer
 
-            # Apply fault injection at each step (continuous)
+            # Apply fault injection at each step (continuous rate-based)
             if fault_prob_per_step > 0 and stream.nodes:
                 for node in stream.nodes:
                     if np.random.random() < fault_prob_per_step:
@@ -347,7 +404,57 @@ class CascadeRunner:
                             original_k = node.k_fp
                             node.k_fp /= self.config.cascade_threshold
                             nodes_affected.add(node.id)
+                            fault_events_injected += 1
                             logger.debug(f"Step {step}: Node {node.id} failed: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
+                            
+                            # NEW: Cascade propagation (Root Cause #2)
+                            if self.config.enable_cascade_propagation:
+                                cascade_generations = self._propagate_cascade(
+                                    stream, node, nodes_affected, current_time
+                                )
+
+            # NEW: Guaranteed fault injection (Root Cause #1)
+            if self.config.fault_injection_mode == "guaranteed" and len(guaranteed_fault_times) > 0:
+                for i, (fault_time, fault_node_idx) in enumerate(zip(guaranteed_fault_times, guaranteed_fault_nodes)):
+                    # Check if this fault should fire at this step
+                    step_time = current_time + self.config.dt  # Will be time after this integration
+                    if fault_time <= step_time and fault_time > current_time:
+                        if stream.nodes and fault_node_idx < len(stream.nodes):
+                            node = stream.nodes[fault_node_idx]
+                            if hasattr(node, 'k_fp'):
+                                original_k = node.k_fp
+                                node.k_fp /= self.config.cascade_threshold
+                                nodes_affected.add(node.id)
+                                fault_events_injected += 1
+                                logger.debug(f"Guaranteed fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
+                                
+                                # Cascade propagation for guaranteed faults
+                                if self.config.enable_cascade_propagation:
+                                    gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
+                                    cascade_generations = max(cascade_generations, gen)
+
+            # NEW: Poisson fault injection (Root Cause #1)
+            if self.config.fault_injection_mode == "poisson" and poisson_n_faults > 0:
+                # Sample fault times and nodes for Poisson mode
+                poisson_fault_times = np.random.uniform(0, self.config.time_horizon, poisson_n_faults)
+                n_nodes_available = len(stream.nodes) if stream.nodes else 1
+                poisson_fault_nodes = np.random.randint(0, n_nodes_available, poisson_n_faults)
+                
+                for i, (fault_time, fault_node_idx) in enumerate(zip(poisson_fault_times, poisson_fault_nodes)):
+                    step_time = current_time + self.config.dt
+                    if fault_time <= step_time and fault_time > current_time:
+                        if stream.nodes and fault_node_idx < len(stream.nodes):
+                            node = stream.nodes[fault_node_idx]
+                            if hasattr(node, 'k_fp'):
+                                original_k = node.k_fp
+                                node.k_fp /= self.config.cascade_threshold
+                                nodes_affected.add(node.id)
+                                fault_events_injected += 1
+                                logger.debug(f"Poisson fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s")
+                                
+                                if self.config.enable_cascade_propagation:
+                                    gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
+                                    cascade_generations = max(cascade_generations, gen)
 
             result = stream.integrate(
                 self.config.dt,
@@ -356,6 +463,41 @@ class CascadeRunner:
                 use_zero_torque_numba=use_zero_torque_numba,
             )
             current_time += self.config.dt
+            
+            # NEW: Thermal/quench monitoring (Root Cause #4)
+            if quench_detector is not None or self.config.enable_thermal_quench:
+                for packet in stream.packets:
+                    # Track max temperature
+                    max_temperature_reached = max(max_temperature_reached, packet.temperature)
+                    
+                    # Check for thermal violations
+                    if hasattr(packet, 'temperature') and hasattr(packet, 'material'):
+                        try:
+                            critical_temp = packet.material.properties.Tc
+                            if packet.temperature >= critical_temp:
+                                thermal_violations_count += 1
+                                logger.debug(f"Thermal violation: packet {packet.id} T={packet.temperature:.1f}K >= Tc={critical_temp:.1f}K")
+                                
+                                # Trigger quench event
+                                quench_events += 1
+                                
+                                # If quench detector enabled, check for emergency shutdown
+                                if quench_detector is not None:
+                                    quench_detected = quench_detector.check_quench(
+                                        packet.temperature, 
+                                        critical_temp,
+                                        current_time
+                                    )
+                                    if quench_detected:
+                                        logger.warning(f"Quench detected for packet {packet.id}!")
+                                        # Reduce k_fp of nearby nodes to simulate loss of superconducting pinning
+                                        for node in stream.nodes:
+                                            if hasattr(node, 'k_fp'):
+                                                node.k_fp *= 0.01  # Near-zero stiffness during quench
+                                                nodes_affected.add(node.id)
+                                                fault_events_injected += 1
+                        except (AttributeError, TypeError):
+                            pass  # Material properties not available
 
             # Check metrics at each step
             for packet in stream.packets:
@@ -434,6 +576,12 @@ class CascadeRunner:
             per_packet_latency=per_packet_latency if self.config.track_per_packet_latency else None,
             nodes_affected=len(nodes_affected),
             containment_successful=containment_successful,
+            # NEW: Diagnostic counters - Trust Strategy #1
+            fault_events_injected=fault_events_injected,
+            thermal_violations_count=thermal_violations_count,
+            quench_events=quench_events,
+            max_temperature_reached=max_temperature_reached,
+            cascade_generations=cascade_generations,
         )
     
     def _run_realization_worker(self, args: Tuple) -> RealizationResult:
@@ -441,6 +589,81 @@ class CascadeRunner:
         stream_factory, realization_id = args
         stream = stream_factory()
         return self.run_realization(stream, realization_id)
+    
+    def _propagate_cascade(
+        self, 
+        stream: MultiBodyStream, 
+        failed_node, 
+        nodes_affected: set,
+        current_time: float,
+        generation: int = 0
+    ) -> int:
+        """
+        Propagate cascade failure to neighboring nodes (Root Cause #2).
+        
+        When a node fails, transfer load to adjacent nodes, increasing their
+        failure probability. This creates the positive feedback loop that
+        defines a true cascade.
+        
+        Args:
+            stream: Multi-body stream containing nodes
+            failed_node: The node that just failed
+            nodes_affected: Set of already-affected node IDs (modified in place)
+            current_time: Current simulation time
+            generation: Current cascade generation depth
+            
+        Returns:
+            Maximum cascade generation reached
+        """
+        if generation >= self.config.max_cascade_generations:
+            return generation
+        
+        if not stream.nodes:
+            return generation
+        
+        # Find neighbors (simple distance-based adjacency)
+        failed_pos = failed_node.position
+        neighbors = []
+        for node in stream.nodes:
+            if node.id != failed_node.id and node.id not in nodes_affected:
+                distance = np.linalg.norm(node.position - failed_pos)
+                # Consider nodes within 20m as neighbors (adjustable)
+                if distance < 20.0:
+                    neighbors.append(node)
+        
+        if not neighbors:
+            return generation
+        
+        # Transfer load to neighbors
+        load_factor = 1.0 + self.config.cascade_propagation_factor / len(neighbors)
+        
+        for neighbor in neighbors:
+            if hasattr(neighbor, 'k_fp'):
+                # Reduce neighbor's stiffness to model increased stress
+                original_k = neighbor.k_fp
+                neighbor.k_fp /= load_factor
+                
+                # Check if neighbor also fails (cascades further)
+                # Use a simplified criterion: if k_fp drops below threshold, it fails too
+                k_fp_threshold = self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
+                if neighbor.k_fp < k_fp_threshold * 0.5:  # 50% of minimum required
+                    nodes_affected.add(neighbor.id)
+                    logger.debug(
+                        f"Cascade gen {generation+1}: Node {neighbor.id} failed due to load transfer: "
+                        f"k_fp {original_k:.1f} -> {neighbor.k_fp:.1f}"
+                    )
+                    
+                    # Recursively propagate
+                    sub_gen = self._propagate_cascade(
+                        stream, neighbor, nodes_affected, current_time, generation + 1
+                    )
+                    generation = max(generation, sub_gen)
+                else:
+                    logger.debug(
+                        f"Load transferred to Node {neighbor.id}: k_fp {original_k:.1f} -> {neighbor.k_fp:.1f}"
+                    )
+        
+        return generation
 
     def _run_jax_batch(self, stream_factory: Callable[[], MultiBodyStream], start_idx: int, batch_size: int) -> List[RealizationResult]:
         """
@@ -564,6 +787,32 @@ class CascadeRunner:
             sem = np.std(values, ddof=1) / np.sqrt(len(values)) if len(values) > 1 else 0.0
             return (mean - z * sem, mean + z * sem)
 
+        # NEW: Diagnostic counter aggregation - Trust Strategy #1 & #4
+        fault_events_total = sum(r.fault_events_injected for r in results)
+        thermal_violations_total = sum(r.thermal_violations_count for r in results)
+        quench_events_total = sum(r.quench_events for r in results)
+        max_temperature_global = max(r.max_temperature_reached for r in results) if results else 0.0
+        cascade_generations_max = max(r.cascade_generations for r in results) if results else 0
+        
+        # Provenance metadata - Trust Strategy #4
+        provenance = {
+            "expected_faults_per_realization": (
+                self.config.fault_rate * self.config.time_horizon * len(stream_factory().nodes) / 3600.0 
+                if stream_factory().nodes and self.config.fault_injection_mode == "rate"
+                else (self.config.n_guaranteed_faults if self.config.fault_injection_mode == "guaranteed" else 0)
+            ),
+            "actual_faults_total": fault_events_total,
+            "actual_faults_per_realization_mean": fault_events_total / n if n > 0 else 0.0,
+            "thermal_model_active": any(hasattr(stream_factory().packets[0], 'temperature') for _ in range(1)) if stream_factory().packets else False,
+            "quench_detector_active": self.config.quench_detection_enabled,
+            "mpc_controller_active": False,  # Not used in MC loop
+            "n_packets": len(stream_factory().packets) if stream_factory().packets else 0,
+            "n_nodes": len(stream_factory().nodes) if stream_factory().nodes else 0,
+            "stream_topology": "linear",  # Default topology
+            "fault_injection_mode": self.config.fault_injection_mode,
+            "cascade_propagation_enabled": self.config.enable_cascade_propagation,
+        }
+
         return {
             "n_realizations": n,
             "n_success": success_count,
@@ -595,6 +844,22 @@ class CascadeRunner:
             "containment_rate": containment_rate,
             "containment_rate_ci": self._wilson_ci(sum(containment_successful_values), n),
             "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
+            
+            # NEW: Diagnostic counters - Trust Strategy #1
+            "fault_events_total": fault_events_total,
+            "fault_events_per_realization_mean": fault_events_total / n if n > 0 else 0.0,
+            "thermal_violations_total": thermal_violations_total,
+            "quench_events_total": quench_events_total,
+            "max_temperature_global": max_temperature_global,
+            "cascade_generations_max": cascade_generations_max,
+            
+            # NEW: Provenance metadata - Trust Strategy #4
+            "provenance": provenance,
+            
+            # NEW: Sanity flag - Trust Strategy #2
+            "sanity_check_passed": fault_events_total > 0 or self.config.fault_rate == 0 or self.config.fault_injection_mode != "rate",
+            "sanity_warning": "" if (fault_events_total > 0 or self.config.fault_rate == 0 or self.config.fault_injection_mode != "rate") 
+                              else "NO FAULTS INJECTED - results may not reflect cascade behavior",
         }
 
 

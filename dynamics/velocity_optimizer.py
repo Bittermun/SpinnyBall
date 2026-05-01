@@ -67,13 +67,19 @@ class VelocityOptimizer:
     """
     Optimizes stream velocity to minimize infrastructure cost.
     N ~ 1/v² for constant momentum capacity
+    
+    Note: Stream length should be set based on orbital altitude:
+        L = 2 * π * (R_earth + altitude)
+    For a 550 km orbit: L ≈ 43,480 km (not 4.8 m!)
     """
 
     DEFAULT_BALL_MASS = 35.0
     DEFAULT_CAPTURE_EFFICIENCY = 0.85
     DEFAULT_STREAM_DENSITY = 0.5
     DEFAULT_TARGET_FORCE = 10000.0
-    DEFAULT_STREAM_LENGTH = 4.8  # meters
+    R_EARTH = 6371e3  # meters
+    DEFAULT_ALTITUDE = 550e3  # 550 km in meters
+    DEFAULT_STREAM_LENGTH = 2 * np.pi * (R_EARTH + DEFAULT_ALTITUDE)  # ~43,480 km
 
     def __init__(
         self,
@@ -81,15 +87,26 @@ class VelocityOptimizer:
         capture_efficiency: float = DEFAULT_CAPTURE_EFFICIENCY,
         stream_density: float = DEFAULT_STREAM_DENSITY,
         target_force: float = DEFAULT_TARGET_FORCE,
-        stream_length: float = DEFAULT_STREAM_LENGTH,
+        stream_length: float | None = None,  # Auto-calculated from altitude if None
+        altitude: float | None = None,  # Altitude in meters (optional)
         use_slingshot: bool = True,
         use_flux_gyro: bool = True
     ):
+        # Auto-calculate stream length from altitude if not provided
+        if stream_length is None:
+            if altitude is not None:
+                # Use provided altitude
+                self.stream_length = 2 * np.pi * (self.R_EARTH + altitude)
+            else:
+                # Use default altitude (550 km)
+                self.stream_length = self.DEFAULT_STREAM_LENGTH
+        else:
+            self.stream_length = stream_length
+            
         self.ball_mass = ball_mass
         self.capture_efficiency = capture_efficiency
         self.stream_density = stream_density
         self.target_force = target_force
-        self.stream_length = stream_length
         self.use_slingshot = use_slingshot
         self.use_flux_gyro = use_flux_gyro
         self._setup_default_constraints()

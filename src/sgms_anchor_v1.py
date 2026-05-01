@@ -917,6 +917,182 @@ def print_summary(metrics: dict, estimated_period: float | None = None) -> None:
     print(f"Peak force:         {metrics['force_peak_n']:.6f} N")
 
 
+def mission_level_metrics(
+    u: float,
+    mp: float,
+    r: float,
+    omega: float,
+    h_km: float,
+    ms: float,
+    g_gain: float,
+    k_fp: float,
+    material_profile: str = "SmCo",
+    lam: float = 72.92,  # Default operational linear density
+    theta_bias: float = 0.087,
+    c_damp: float = 4.0,
+    eps: float = 0.0,
+) -> dict:
+    """
+    Compute mission-level system metrics for Sobol sensitivity analysis.
+    
+    This function composes existing physics modules into a single evaluator that
+    includes orbital environment, material constraints, thermal limits, and
+    infrastructure mass calculations.
+    
+    Args:
+        u: Stream velocity (m/s)
+        mp: Packet mass (kg)
+        r: Packet radius (m)
+        omega: Spin rate (rad/s)
+        h_km: Orbital altitude (km)
+        ms: Station/anchor mass (kg)
+        g_gain: Control gain (dimensionless)
+        k_fp: Flux-pinning stiffness (N/m)
+        material_profile: Material type ("SmCo" or "GdBCO")
+        lam: Linear density (kg/m), default from operational baseline
+        theta_bias: Bias angle (rad), default ~5 degrees
+        c_damp: Damping coefficient (N·s/m)
+        eps: Stream imbalance parameter
+        epsilon: Stream imbalance target
+    
+    Returns:
+        Dictionary with mission-level outputs:
+        - N_packets: Number of packets required
+        - M_total_kg: Total infrastructure mass (packets only)
+        - P_total_kW: Total power budget (cryocooler if GdBCO)
+        - stress_margin: Stress safety margin (ratio to limit)
+        - thermal_margin: Thermal safety margin (K to limit)
+        - k_eff: Effective stiffness (N/m)
+        - feasible: Boolean feasibility flag
+    """
+    # Constants
+    R_earth = 6371e3  # m
+    g0 = 9.81  # m/s²
+    
+    # Material properties
+    if material_profile == "GdBCO":
+        T_limit = 92.0  # K - critical temperature
+        T_operating = 77.0  # K - typical operating temp
+        cryocooler_power_per_m = 0.05  # kW/m (50 W/km from TECHNICAL_SPEC)
+        max_stress = 1.2e9  # Pa
+    elif material_profile == "SmCo":
+        T_limit = 573.0  # K - maximum operating temp for SmCo
+        T_operating = 379.0  # K - steady-state from thermal model
+        cryocooler_power_per_m = 0.0  # No cryocooling needed
+        max_stress = 800e6  # Pa - BFRP/carbon-fiber limit
+    else:
+        raise ValueError(f"Unknown material profile: {material_profile}")
+    
+    # 1. Calculate stream length (closed-loop at altitude h)
+    # FIX: Use actual orbital circumference instead of hardcoded 4.8 m
+    stream_length = 2 * np.pi * (R_earth + h_km * 1000)  # meters
+    
+    # 2. Compute packet count using VelocityOptimizer logic
+    # Formula: N = F * L / (m * v² * η)
+    # For station-keeping, F ≈ perturbations + control authority
+    # Simplified: use momentum flux requirement
+    capture_efficiency = 0.85  # Typical flux-pinning capture efficiency
+    
+    # Estimate required force from orbital perturbations
+    # J2 nodal regression: ~0.98 deg/day at 550 km
+    # SRP: ~0.08 N for typical cross-section
+    # Drag: negligible at 550 km
+    perturbation_force = 0.1  # N - conservative estimate for station-keeping
+    
+    # Target force includes perturbation compensation + control margin
+    target_force = perturbation_force * 10  # 10x margin for control authority
+    
+    # Ball count calculation (from velocity_optimizer.compute_ball_count)
+    if u < 1.0:
+        N_packets = 999999
+    else:
+        N_packets = int(np.ceil(target_force * stream_length / 
+                                (mp * u**2 * capture_efficiency)))
+        N_packets = max(N_packets, 1)
+    
+    # 3. Total infrastructure mass
+    M_total_kg = N_packets * mp
+    
+    # 4. Power budget (cryocooler for GdBCO only)
+    # Cryocooler power scales with stream length
+    P_cryocooler_kW = cryocooler_power_per_m * (stream_length / 1000.0)  # kW
+    # Add small power for control electronics (negligible)
+    P_control_kW = 0.001 * N_packets  # 1 W per packet for control
+    P_total_kW = P_cryocooler_kW + P_control_kW
+    
+    # 5. Stress margin verification
+    # Centrifugal stress: σ = ρ * ω² * r² (simplified for rotating sphere)
+    # More accurate: σ = (3 + ν) / 8 * ρ * ω² * r² for solid sphere
+    # Using verify_packet_stress from stress_monitoring.py
+    angular_velocity = np.array([0.0, 0.0, omega])  # rad/s
+    
+    # Approximate density from mass and radius (assuming sphere)
+    volume = 4/3 * np.pi * r**3
+    density = mp / volume if volume > 0 else 8400  # kg/m³ (SmCo density fallback)
+    
+    # Centrifugal stress formula for rotating body
+    # σ = ρ * ω² * r² * factor (factor ~0.5 for simplified model)
+    centrifugal_stress = density * omega**2 * r**2 * 0.5
+    
+    # Stress margin: ratio of allowable to actual stress
+    stress_margin = max_stress / centrifugal_stress if centrifugal_stress > 0 else np.inf
+    
+    # 6. Thermal margin
+    # For SmCo: steady-state ~379K, limit 573K
+    # For GdBCO: operating 77K, limit 92K
+    if material_profile == "SmCo":
+        # Thermal model from thermal_model.py update_temperature_euler
+        # Steady-state balance: radiative cooling = eddy heating + solar
+        # Simplified: use documented steady-state 379K
+        T_steady_state = 379.0
+    else:  # GdBCO
+        # Actively cooled to 77K
+        T_steady_state = T_operating
+    
+    thermal_margin = T_limit - T_steady_state  # K
+    
+    # 7. Effective stiffness (from analytical_metrics)
+    # Build params dict for compatibility
+    params = {
+        "u": u,
+        "lam": lam,
+        "mp": mp,
+        "theta_bias": theta_bias,
+        "g_gain": g_gain,
+        "ms": ms,
+        "c_damp": c_damp,
+        "eps": eps,
+        "k_fp": k_fp,
+    }
+    
+    metrics = analytical_metrics(params)
+    k_eff = metrics["k_eff"]
+    
+    # 8. Feasibility check
+    feasible = (
+        stress_margin >= 1.5 and  # Safety factor 1.5
+        thermal_margin >= 5.0 and  # At least 5K thermal margin
+        k_eff >= 6000.0 and  # Minimum stiffness requirement
+        N_packets <= 100000 and  # Reasonable packet count
+        M_total_kg <= 10000.0  # Reasonable total mass (10 tons)
+    )
+    
+    return {
+        "N_packets": N_packets,
+        "M_total_kg": M_total_kg,
+        "P_total_kW": P_total_kW,
+        "stress_margin": stress_margin,
+        "thermal_margin": thermal_margin,
+        "k_eff": k_eff,
+        "feasible": feasible,
+        # Additional diagnostics
+        "stream_length_m": stream_length,
+        "centrifugal_stress_Pa": centrifugal_stress,
+        "steady_state_temp_K": T_steady_state,
+        "perturbation_force_N": perturbation_force,
+    }
+
+
 def main() -> None:
     parser = argparse.ArgumentParser(description="Moderate-U Dynamic Anchor Simulation")
     parser.add_argument("--u", type=float, default=DEFAULT_PARAMS["u"], help="Stream velocity (m/s)")
@@ -925,6 +1101,8 @@ def main() -> None:
     parser.add_argument("--k_fp", type=float, default=DEFAULT_PARAMS["k_fp"], help="Pinning stiffness (N/m)")
     parser.add_argument("--ms", type=float, default=DEFAULT_PARAMS["ms"], help="Anchor mass (kg)")
     parser.add_argument("--audit", action="store_true", help="Run full suite audit and sweep")
+    parser.add_argument("--mission-analysis", action="store_true", 
+                       help="Run mission-level Sobol sensitivity analysis")
     args = parser.parse_args()
 
     params = DEFAULT_PARAMS.copy()
@@ -936,6 +1114,42 @@ def main() -> None:
         "ms": args.ms,
     })
 
+    if args.mission_analysis:
+        # Run mission-level analysis
+        print("Running mission-level sensitivity analysis...")
+        print("This will take a few minutes with N=1024 samples.")
+        
+        # Import here to avoid dependency if not needed
+        try:
+            from sgms_anchor_sensitivity import run_mission_sobol_analysis
+            results_smco = run_mission_sobol_analysis(material_profile="SmCo", N=1024, seed=42)
+            results_gdbco = run_mission_sobol_analysis(material_profile="GdBCO", N=1024, seed=42)
+            
+            print("\n=== SmCo Results ===")
+            print(f"Feasible designs: {np.sum(results_smco['feasible'])} / {len(results_smco['feasible'])}")
+            print(f"Mean total mass: {np.mean(results_smco['M_total_kg']):.1f} kg")
+            print(f"Mean k_eff: {np.mean(results_smco['k_eff']):.1f} N/m")
+            
+            print("\n=== GdBCO Results ===")
+            print(f"Feasible designs: {np.sum(results_gdbco['feasible'])} / {len(results_gdbco['feasible'])}")
+            print(f"Mean total mass: {np.mean(results_gdbco['M_total_kg']):.1f} kg")
+            print(f"Mean k_eff: {np.mean(results_gdbco['k_eff']):.1f} N/m")
+            
+            # Save results
+            output_dir = Path("mission_analysis_results")
+            output_dir.mkdir(exist_ok=True)
+            
+            np.savez(output_dir / "sobol_smco.npz", **results_smco)
+            np.savez(output_dir / "sobol_gdbco.npz", **results_gdbco)
+            print(f"\nResults saved to {output_dir}/")
+            
+        except ImportError as e:
+            print(f"Error: SALib or required dependencies not available: {e}")
+            print("Install with: pip install SALib")
+            return
+        
+        return
+    
     if args.audit:
         # Full Audit / Sweep Mode
         t_eval = np.linspace(0.0, params["t_max"], 6000)

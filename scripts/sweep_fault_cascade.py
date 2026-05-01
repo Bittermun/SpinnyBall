@@ -59,6 +59,9 @@ def run_t3_sweep(
     n_nodes: int = 10,
     n_realizations_per_point: int = 100,
     time_horizon: float = 10.0,
+    enable_cascade_propagation: bool = False,  # NEW: Enable cascade propagation
+    fault_injection_mode: str = "rate",  # NEW: Fault injection mode
+    n_guaranteed_faults: int = 0,  # NEW: Guaranteed faults
 ) -> Dict:
     """
     Run T3 sweep: fault rate vs cascade/containment metrics.
@@ -71,6 +74,9 @@ def run_t3_sweep(
         n_nodes: Number of nodes in the lattice
         n_realizations_per_point: Monte-Carlo runs per fault rate
         time_horizon: Simulation time horizon (s)
+        enable_cascade_propagation: Enable neighbor load redistribution (Root Cause #2)
+        fault_injection_mode: "rate", "guaranteed", or "poisson" (Root Cause #1)
+        n_guaranteed_faults: Number of guaranteed faults per realization
 
     Returns:
         Dictionary with sweep results
@@ -83,9 +89,21 @@ def run_t3_sweep(
     nodes_affected_std = []
     containment_rate = []
     success_rate = []
+    
+    # NEW: Diagnostic tracking - Trust Strategy #1
+    fault_events_total_per_point = []
+    sanity_warnings = []
 
     logger.info(f"Starting T3 sweep: {n_fault_rate_points} fault rate points, {n_realizations_per_point} runs each")
     logger.info(f"Total Monte-Carlo runs: {n_fault_rate_points * n_realizations_per_point}")
+    
+    # NEW: Pre-flight sanity check - Trust Strategy #2
+    expected_faults_min = fault_rates[0] * time_horizon * n_nodes / 3600.0
+    if expected_faults_min < 0.01 and fault_injection_mode == "rate":
+        logger.warning(
+            f"Pre-flight check: Expected faults at lowest rate = {expected_faults_min:.4f} per realization. "
+            f"This is very low - consider using fault_injection_mode='guaranteed' or increasing time_horizon."
+        )
 
     for fault_rate in fault_rates:
         logger.info(f"Fault rate: {fault_rate:.2e} /hr")
@@ -98,6 +116,10 @@ def run_t3_sweep(
             fault_rate=fault_rate,
             cascade_threshold=cascade_threshold,
             containment_threshold=containment_threshold,
+            # NEW: Root Cause fixes
+            enable_cascade_propagation=enable_cascade_propagation,
+            fault_injection_mode=fault_injection_mode,
+            n_guaranteed_faults=n_guaranteed_faults,
             pass_fail_gates={
                 "eta_ind": (0.82, ">="),
                 "stress": (1.2e9, "<="),
@@ -131,6 +153,20 @@ def run_t3_sweep(
         # Calculate containment rate
         containment_count = sum(1 for r in individual_results if r.containment_successful)
         containment_rate.append(containment_count / n_realizations_per_point)
+        
+        # NEW: Track diagnostic counters - Trust Strategy #1
+        faults_at_this_point = sum(r.fault_events_injected for r in individual_results)
+        fault_events_total_per_point.append(faults_at_this_point)
+        
+        # Check sanity - Trust Strategy #2
+        if faults_at_this_point == 0 and fault_rate > 0 and fault_injection_mode == "rate":
+            sanity_warning = f"NO FAULTS INJECTED at fault_rate={fault_rate:.2e}/hr"
+            sanity_warnings.append(sanity_warning)
+            logger.warning(sanity_warning)
+        else:
+            sanity_warnings.append("")
+        
+        logger.info(f"  Faults injected: {faults_at_this_point}, Mean per realization: {faults_at_this_point/n_realizations_per_point:.2f}")
 
     return {
         'fault_rates': fault_rates,
@@ -142,6 +178,9 @@ def run_t3_sweep(
         'cascade_threshold': cascade_threshold,
         'containment_threshold': containment_threshold,
         'n_nodes': n_nodes,
+        # NEW: Diagnostic tracking - Trust Strategy #1 & #4
+        'fault_events_total_per_point': fault_events_total_per_point,
+        'sanity_warnings': sanity_warnings,
     }
 
 

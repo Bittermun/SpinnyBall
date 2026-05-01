@@ -1,49 +1,41 @@
 ```gitignore
 # Python cache files
 __pycache__/
-```
-# Python
-__pycache__/
 *.pyc
 *.pyo
 *.pyd
 
-# Compiled Python files
-*.cpython-*.pyc
 # Dependencies
 .venv/
 venv/
 env/
+.env
+.env.local
+.env.*
 
-# Logs and temp files
+# Logs and temporary files
 *.log
 *.tmp
 *.swp
+*.swo
 
-# Environment files
-.env
-.env.local
-*.env.*
-
-# Environment
-.env
-.env.local
-*.env.*
-
-# IDE specific files
+# IDE specific
 .vscode/
 .idea/
 *.swp
 *.swo
 
-# OS specific files
-.DS_Store
-Thumbs.db
-# Editors
-.vscode/
-.idea/
+# Build and distribution
+dist/
+build/
+target/
 
-# OS
+# Testing
+.pytest_cache/
+.coverage
+coverage/
+
+# System files
 .DS_Store
 Thumbs.db
 ```
