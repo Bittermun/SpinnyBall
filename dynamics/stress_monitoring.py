@@ -128,8 +128,9 @@ def verify_packet_stress(
     mass: float,
     radius: float,
     angular_velocity: np.ndarray,
-    max_stress: float = 1.2e9,
-    safety_factor: float = 1.5,
+    jacket_material: str = 'BFRP',  # NEW: 'BFRP', 'CFRP', 'CNT_yarn'
+    max_stress: Optional[float] = None,  # Override, or looked up from material
+    safety_factor: Optional[float] = None,
     scaling_config: Optional[HeritageScalingConfig] = None,
 ) -> StressMetrics:
     """
@@ -139,15 +140,51 @@ def verify_packet_stress(
         mass: Packet mass (kg). For SmCo packets, density is high (~8400 kg/m^3).
         radius: Packet radius (m)
         angular_velocity: Angular velocity vector (rad/s)
-        max_stress: Maximum allowable stress (Pa). Defaults to 1.2 GPa (with safety_factor=1.5 -> 800 MPa limit),
-                    representing the yield strength of the BFRP/Carbon-Fiber structural jacket enclosing the 
+        jacket_material: Jacket material name. One of 'BFRP', 'CFRP', 'CNT_yarn'.
+                         Looks up allowable stress from canonical registry.
+        max_stress: Maximum allowable stress (Pa). If None, looked up from jacket_material.
+                    Defaults to 1.2 GPa for BFRP (with safety_factor=1.5 -> 800 MPa limit),
+                    representing the yield strength of the structural jacket enclosing the 
                     brittle magnetic core (e.g. SmCo).
-        safety_factor: Safety factor
+        safety_factor: Safety factor. If None, looked up from jacket_material (default 1.5).
         scaling_config: Heritage scaling configuration (optional)
     
     Returns:
         StressMetrics object with scaling info
     """
+    # Look up material properties from canonical registry if max_stress not provided
+    if max_stress is None or safety_factor is None:
+        from params.canonical_values import MATERIAL_PROPERTIES
+        
+        if jacket_material not in MATERIAL_PROPERTIES:
+            raise ValueError(f"Unknown jacket material: {jacket_material}. "
+                           f"Available: {list(MATERIAL_PROPERTIES.keys())}")
+        
+        mat_props = MATERIAL_PROPERTIES[jacket_material]
+        
+        # Get allowable stress from material properties
+        if max_stress is None:
+            if 'allowable_stress' in mat_props:
+                max_stress = mat_props['allowable_stress']['value']
+            elif 'tensile_strength' in mat_props:
+                # Use tensile strength as fallback
+                max_stress = mat_props['tensile_strength']['value']
+            else:
+                # Default to BFRP value for backwards compatibility
+                max_stress = 1.2e9
+        
+        # Get safety factor from material properties
+        if safety_factor is None:
+            if 'safety_factor' in mat_props:
+                safety_factor = mat_props['safety_factor']['value']
+            elif 'tensile_strength' in mat_props and 'allowable_stress' in mat_props:
+                # Compute from ratio
+                ts = mat_props['tensile_strength']['value']
+                allow = mat_props['allowable_stress']['value']
+                safety_factor = ts / allow
+            else:
+                safety_factor = 1.5  # Default
+    
     stress = calculate_centrifugal_stress(mass, radius, angular_velocity, scaling_config)
     return verify_stress_constraint(stress, max_stress, safety_factor, scaling_config)
 

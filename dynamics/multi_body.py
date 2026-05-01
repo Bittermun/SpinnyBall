@@ -218,6 +218,8 @@ class MultiBodyStream:
         nodes: List of S-Node objects
         stream_velocity: Target stream velocity (m/s)
         B_field: Magnetic field vector [Bx, By, Bz] (T) for flux-pinning calculations
+        topology: Stream topology ('linear', 'ring', 'orbital_ring')
+        counter_propagating: Whether two streams propagate in opposite directions
     """
     
     def __init__(
@@ -235,6 +237,8 @@ class MultiBodyStream:
         drag_coefficient: float = 2.2,
         cross_sectional_area: float = 1.0,
         srp_coefficient: float = 1.8,
+        topology: str = 'linear',  # 'linear', 'ring', 'orbital_ring'
+        counter_propagating: bool = True,  # Two streams in opposite directions
     ):
         """
         Initialize multi-body stream.
@@ -254,6 +258,11 @@ class MultiBodyStream:
             drag_coefficient: Drag coefficient for atmospheric drag
             cross_sectional_area: Cross-sectional area (m²) for drag/SRP
             srp_coefficient: Reflectivity coefficient for SRP
+            topology: Stream topology. One of:
+                - 'linear': Linear array (original behavior)
+                - 'ring': Closed ring where node[N-1] is adjacent to node[0]
+                - 'orbital_ring': Ring with orbital mechanics (stream_length = 2*pi*(R_earth + altitude))
+            counter_propagating: If True, two streams propagate in opposite directions
         """
         self.packets = packets
         self.nodes = nodes
@@ -261,6 +270,8 @@ class MultiBodyStream:
         self.event_queue = EventQueue()
         self.time: float = 0.0
         self.enable_orbital_dynamics = enable_orbital_dynamics
+        self.topology = topology
+        self.counter_propagating = counter_propagating
         
         # Magnetic field for flux-pinning (default 100 mT axial)
         if B_field is None:
@@ -269,6 +280,9 @@ class MultiBodyStream:
         
         # Build node lookup by ID
         self.node_map = {node.id: node for node in nodes}
+        
+        # Configure topology-specific parameters
+        self._configure_topology(initial_altitude)
         
         # Orbital perturbation settings
         self.enable_j2_perturbation = enable_j2_perturbation
@@ -296,6 +310,56 @@ class MultiBodyStream:
                 material = GdBCOMaterial(props)
                 geometry = {"thickness": 1e-6, "width": 0.012, "length": 0.01}
                 packet.body.flux_model = BeanLondonModel(material, geometry)
+    
+    def _configure_topology(self, initial_altitude: float):
+        """Configure topology-specific parameters.
+        
+        Args:
+            initial_altitude: Orbital altitude (km) for orbital_ring topology
+        """
+        n_nodes = len(self.nodes)
+        
+        if self.topology == 'linear':
+            # Original linear array behavior
+            self.stream_length = None  # Not applicable
+            self.node_spacing = None
+            self.is_closed_loop = False
+            
+        elif self.topology == 'ring':
+            # Closed ring - node[N-1] is adjacent to node[0]
+            # Estimate stream length from node positions
+            if n_nodes > 1:
+                # Sum distances between consecutive nodes
+                total_length = 0.0
+                for i in range(n_nodes):
+                    next_i = (i + 1) % n_nodes  # Wrap around
+                    pos_curr = self.nodes[i].position
+                    pos_next = self.nodes[next_i].position
+                    total_length += np.linalg.norm(pos_next - pos_curr)
+                self.stream_length = total_length
+                self.node_spacing = total_length / n_nodes
+            else:
+                self.stream_length = 0.0
+                self.node_spacing = 0.0
+            self.is_closed_loop = True
+            
+        elif self.topology == 'orbital_ring':
+            # Orbital ring - stream follows circular orbit
+            R_earth = 6371.0  # km
+            orbital_radius_km = R_earth + initial_altitude
+            self.stream_length = 2 * np.pi * orbital_radius_km * 1000  # Convert to meters
+            self.node_spacing = self.stream_length / n_nodes if n_nodes > 0 else 0.0
+            self.is_closed_loop = True
+            
+            # For orbital_ring, counter-propagating doubles packet count
+            if self.counter_propagating:
+                # Two streams in opposite directions
+                self.n_effective_packets = len(self.packets) * 2
+            else:
+                self.n_effective_packets = len(self.packets)
+        else:
+            raise ValueError(f"Unknown topology: {self.topology}. "
+                           f"Available: 'linear', 'ring', 'orbital_ring'")
     
     def _initialize_orbital_states(self, altitude: float, inclination: float):
         """Initialize orbital states for all packets.

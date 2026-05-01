@@ -115,13 +115,24 @@ def calculate_inelastic_hitch(
     
     # Apply coefficient of restitution (energy recovery factor)
     # Higher e means less energy dissipation
-    # Physics: In COM frame, KE_final/KE_initial = e², so v_final = v_initial * e
+    # Physics: In COM frame, only relative velocity is affected by COR
     if config.coefficient_of_restitution < 1.0:
-        # Adjust final velocity magnitude by COR factor
-        # This recovers energy proportional to e²
-        v_final_mag = np.linalg.norm(final_velocity)
-        v_final_adjusted_mag = v_final_mag * config.coefficient_of_restitution
-        final_velocity = final_velocity * (v_final_adjusted_mag / v_final_mag) if v_final_mag > 0 else final_velocity
+        # Center-of-mass velocity (invariant in collision)
+        v_cm = (packet_mass * packet_velocity + payload_mass * payload_velocity) / total_mass
+        
+        # Relative velocity in CoM frame
+        v_rel_cm = packet_velocity - payload_velocity
+        
+        # Apply COR to relative velocity only (correct physics)
+        v_rel_cm_final = -config.coefficient_of_restitution * v_rel_cm
+        
+        # Reconstruct lab-frame velocities from CoM frame
+        packet_velocity_final = v_cm + (payload_mass / total_mass) * v_rel_cm_final
+        payload_velocity_final = v_cm - (packet_mass / total_mass) * v_rel_cm_final
+        
+        # For hitch, we assume payload is captured, so use combined mass moving at v_cm
+        # plus the corrected relative motion contribution
+        final_velocity = v_cm  # Captured system moves at CoM velocity
         
         # Recalculate energy with adjusted velocity
         KE_final = 0.5 * total_mass * np.linalg.norm(final_velocity)**2

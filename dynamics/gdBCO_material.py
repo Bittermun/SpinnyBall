@@ -22,9 +22,9 @@ class GdBCOProperties:
     alpha: float = 0.5  # Field dependence exponent
     
     # Physical properties
-    density: float = 6300.0  # kg/m³
-    specific_heat: float = 500.0  # J/kg/K at 77K
-    thermal_conductivity: float = 10.0  # W/m/K at 77K
+    density: float = 6380.0  # kg/m³
+    specific_heat: float = 180.0  # J/kg/K at 77K (NOT room temperature)
+    thermal_conductivity: float = 3.0  # W/m/K at 77K
     
     # Geometry (for coated conductor)
     thickness: float = 1e-6  # m (1 μm superconducting layer)
