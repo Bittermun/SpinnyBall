@@ -2,29 +2,42 @@
   "material_profiles": {
     "baseline_gdbco": {
       "name": "Standard GdBCO (Melt-Texture)",
-      "k_fp_range": [80000, 120000],
+      "k_fp_range": [
+        80000,
+        120000
+      ],
       "damping_ratio": 0.05,
       "source": "REBCO Standard (2023)",
-      "description": "Historical baseline using top-seeded melt-texture growth."
+      "description": "Historical baseline using top-seeded melt-texture growth.",
+      "geometry_scaling_note": "Catalog k_fp values assume bulk sample geometry (10mm x 10mm x 1mm). Simulation uses thin-film tape geometry (1\u03bcm x 12mm x 1m). Scale factor: k_fp_sim \u2248 k_fp_catalog \u00d7 (V_tape / V_bulk) = k_fp_catalog \u00d7 (1e-6\u00d70.012\u00d71.0)/(0.01\u00d70.01\u00d70.001) = k_fp_catalog \u00d7 0.12. For accurate Bean-London stiffness, use Jc0-based calculation with actual tape dimensions."
     },
     "apc_doped_bzo": {
       "name": "GdBCO + 8% BZO Nanopillars",
-      "k_fp_range": [150000, 220000],
+      "k_fp_range": [
+        150000,
+        220000
+      ],
       "damping_ratio": 0.08,
       "source": "arXiv:2501.0432 (2025)",
-      "description": "High-pinning efficiency using artificial pinning centers (BZO nanorods)."
+      "description": "High-pinning efficiency using artificial pinning centers (BZO nanorods).",
+      "geometry_scaling_note": "Catalog k_fp values assume bulk sample geometry (10mm x 10mm x 1mm). Simulation uses thin-film tape geometry (1\u03bcm x 12mm x 1m). Scale factor: k_fp_sim \u2248 k_fp_catalog \u00d7 (V_tape / V_bulk) = k_fp_catalog \u00d7 (1e-6\u00d70.012\u00d71.0)/(0.01\u00d70.01\u00d70.001) = k_fp_catalog \u00d7 0.12. For accurate Bean-London stiffness, use Jc0-based calculation with actual tape dimensions."
     },
     "nanostructured_y211": {
       "name": "Nanostructured Y2BaCuO5 (Y211)",
-      "k_fp_range": [130000, 180000],
+      "k_fp_range": [
+        130000,
+        180000
+      ],
       "damping_ratio": 0.06,
       "source": "IJOURNALS Vol 14 (2026)",
-      "description": "Enhanced high-field stability via multi-scale defect distribution."
+      "description": "Enhanced high-field stability via multi-scale defect distribution.",
+      "geometry_scaling_note": "Catalog k_fp values assume bulk sample geometry (10mm x 10mm x 1mm). Simulation uses thin-film tape geometry (1\u03bcm x 12mm x 1m). Scale factor: k_fp_sim \u2248 k_fp_catalog \u00d7 (V_tape / V_bulk) = k_fp_catalog \u00d7 (1e-6\u00d70.012\u00d71.0)/(0.01\u00d70.01\u00d70.001) = k_fp_catalog \u00d7 0.12. For accurate Bean-London stiffness, use Jc0-based calculation with actual tape dimensions."
     }
   },
   "calibration_metadata": {
     "units": "N/m",
     "timestamp": "2026-04-04 22:38:00",
-    "status": "Ready"
+    "status": "Ready",
+    "geometry_note": "All k_fp_range values in this catalog are measured from bulk samples. To compute effective stiffness for thin-film tape geometry, either: (1) apply volume scaling k_fp_sim = k_fp_catalog \u00d7 (thickness_sim/thickness_bulk) \u00d7 (width_sim/width_bulk) \u00d7 (length_sim/length_bulk), or (2) use Bean-London model with material-specific Jc0 values and actual tape cross-section."
   }
 }
