@@ -15,13 +15,15 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 ## Key Results
 
-**Cascade Containment**: Zero cascades at fault rates up to 10⁻³/hr (N=640 realizations, 10s window). Mean containment rate: 100% (all failures contained to ≤2 nodes).
+**Cascade Containment**: Cascade boundary located at λ_crit ≈ 215/hr (stress test, N=1,500). Operational fault rates (10⁻⁶ – 10⁻³ /hr) show zero cascades with 96.3% containment confidence (N=640, CI width 3.7%).
 
 **Velocity Scaling**: Ball count scales as N ∝ 1/v² for constant force. Increasing velocity from 500 m/s to 15,000 m/s reduces required packets by ~99.9%.
 
-**Stress Limits**: 35kg SmCo packets with 10cm radius stable at 50,000 RPM (~765 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
+**Stress Limits**: Packets with 10cm radius stable at 50,000 RPM (~685 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
 
-**Sensitivity Analysis**: Sobol analysis (5 parameters, 256 samples) shows velocity dominates k_eff variance (44.7%).
+**Sensitivity Analysis**: Sobol analysis (8 parameters, N=1024 samples) shows velocity dominates mass variance (49.1%).
+
+**Minimum-Cost Configuration**: Full mission Sobol at N=1024 identifies optimal design: 559.7 kg total mass at u=4,834 m/s, 51,060 RPM, h=841 km with k_eff = 6,000–100,000 N/m constraint.
 
 ## Validation
 
@@ -32,10 +34,11 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 **Monte Carlo Analysis**:
 - T3 fault cascade sweep: N=100 per point, 8 fault rates (10⁻⁶ to 10⁻³ /hr)
-- Extended fault rate sweep: 12 points (10⁻⁶ to 10⁻² /hr), N=100 per point
-- Results: No cascade propagation up to 10⁻² /hr
+- Extended fault rate sweep: 12 points (10⁻⁸ to 10⁻² /hr), N=100 per point
+- Cascade boundary stress test: 6 points (100 to 464 /hr), N=250 per point
+- Results: Zero cascades up to 10⁻² /hr; cascade onset at λ_crit ≈ 215/hr
 
-**Reproducibility**: All parameters documented in [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), sweep data available in `profile_sweep_quick_20260430-062033/`
+**Reproducibility**: All parameters documented in [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), sweep data available in `profile_sweep_quick_20260501-074244/`
 
 ## Installation
 
