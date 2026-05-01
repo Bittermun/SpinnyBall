@@ -1073,9 +1073,25 @@ def mission_level_metrics(
                                 (mp * u**2 * capture_efficiency)))
         N_packets = max(N_packets, 1)
     
-    # 3. Total infrastructure mass (doubled for counter-propagating streams)
+    # 3. Packet budget (includes pipeline, spares, slingshot)
+    from dynamics.packet_budget import compute_packet_budget
+    from dynamics.stream_energy_model import compute_stream_energy_budget, analytical_lunar_slingshot_dv
+    
     n_streams = 2 if counter_propagating else 1
-    M_total_kg = N_packets * mp * n_streams
+    
+    # Typical fault rate: 1e-6 failures per packet per hour
+    fault_rate = 1e-6
+    
+    # Compute packet budget with slingshot enabled at high velocities
+    slingshot_enabled = u >= 5000  # Only viable at high velocities
+    budget = compute_packet_budget(
+        N_stream=N_packets * n_streams,  # Total active packets across both streams
+        mp=mp,
+        u=u,
+        fault_rate_per_hr=fault_rate,
+        slingshot_enabled=slingshot_enabled,
+    )
+    M_total_kg = budget.M_total_kg
     
     # 4. Power budget (cryocooler for GdBCO only)
     # Cryocooler power scales with stream length
@@ -1229,6 +1245,38 @@ def mission_level_metrics(
     # Total power includes cryocooler, control, and injection
     P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
     
+    # Stream energy sustainability analysis
+    slingshot_dv = analytical_lunar_slingshot_dv() if slingshot_enabled else 0.0
+    
+    # Compute eddy heating power per packet for energy budget
+    P_eddy_per_packet = 0.0
+    if magnet_material == "SmCo":
+        try:
+            from dynamics.thermal_model import eddy_heating_power
+            # Eddy heating depends on B-field, velocity, and packet geometry
+            # Approximate B-field at packet surface from remanence
+            B_surface = B_r * 0.5  # Rough approximation
+            # k_drag is an eddy-current drag coefficient, not stream velocity
+            # Estimate from B²·σ·volume scaling
+            sigma_electrical = 1e6  # Typical for magnetic materials (S/m)
+            packet_volume = 4/3 * np.pi * r**3
+            k_eddy = B_surface**2 * sigma_electrical * packet_volume * 1e-6  # Simplified estimate
+            P_eddy_per_packet = eddy_heating_power(velocity=u, k_drag=k_eddy, radius=r)
+        except (ImportError, Exception):
+            P_eddy_per_packet = 0.0
+    
+    energy_budget = compute_stream_energy_budget(
+        N_packets=N_packets * n_streams,
+        mp=mp,
+        u=u,
+        theta_bias=theta_bias,
+        F_station=perturbation_force * 10,  # target_force
+        n_stations=1,
+        eddy_power_per_packet_W=P_eddy_per_packet,
+        slingshot_dv_per_cycle=slingshot_dv,
+        n_slingshot_packets=budget.N_slingshot_pipeline,
+    )
+    
     # 7b. Debris risk assessment (from debris_risk module)
     try:
         from dynamics.debris_risk import comprehensive_debris_risk_assessment
@@ -1279,7 +1327,8 @@ def mission_level_metrics(
         thermal_margin >= 5.0 and  # At least 5K thermal margin
         k_eff >= 6000.0 and  # Minimum stiffness requirement
         N_packets <= 100000 and  # Reasonable packet count
-        M_total_kg <= 10000.0  # Reasonable total mass (10 tons)
+        budget.M_total_kg <= 10000.0 and  # Use budget total, not just stream (10 tons)
+        energy_budget.service_lifetime_hours >= 8760  # At least 1 year service life
     )
     
     return {
@@ -1313,6 +1362,20 @@ def mission_level_metrics(
         # Force direction analysis
         "F_max_per_axis_N": F_max_per_axis,
         "force_authority_ratio": force_authority_ratio,
+        # Packet budget diagnostics
+        "N_stream": N_packets * n_streams,
+        "N_total_inventory": budget.N_total,
+        "mass_multiplier": budget.mass_multiplier,
+        "N_slingshot_pipeline": budget.N_slingshot_pipeline,
+        "N_spares": budget.N_spares,
+        # Energy sustainability
+        "stream_power_drain_W": energy_budget.power_drain_station_W,
+        "stream_power_eddy_W": energy_budget.power_drain_eddy_W,
+        "slingshot_power_W": energy_budget.power_replenishment_slingshot_W,
+        "stream_net_power_W": energy_budget.net_power_W,
+        "service_lifetime_hr": energy_budget.service_lifetime_hours,
+        "stream_self_sustaining": energy_budget.net_power_W >= 0,
+        "slingshot_dv_m_s": slingshot_dv,
     }
 
 

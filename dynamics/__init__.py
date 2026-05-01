@@ -29,6 +29,31 @@ from .stiffness_verification import (
     get_stiffness_alert_level,
     sweep_stiffness_velocity,
 )
+from .stream_energy_model import (
+    StreamEnergyBudget,
+    compute_stream_energy_budget,
+    analytical_lunar_slingshot_dv,
+    compute_multi_cycle_slingshot_dv,
+)
+from .packet_budget import (
+    PacketBudget,
+    compute_packet_budget,
+    compute_replacement_schedule,
+    estimate_slingshot_pipeline_capacity,
+)
+from .mobile_station import (
+    MobileStationState,
+    MobileStationConfig,
+    compute_mobile_station_force,
+    simulate_mobile_station_trajectory,
+    compute_energy_exchange,
+)
+from .alternatives_comparison import (
+    StationKeepingSystem,
+    compare_alternatives,
+    format_comparison_table,
+    generate_comparison_report,
+)
 
 try:
     from .coil_switching import (
@@ -93,6 +118,25 @@ __all__ = [
     "StiffnessMetrics",
     "get_stiffness_alert_level",
     "sweep_stiffness_velocity",
+    # Stream sustainability models
+    "StreamEnergyBudget",
+    "compute_stream_energy_budget",
+    "analytical_lunar_slingshot_dv",
+    "compute_multi_cycle_slingshot_dv",
+    "PacketBudget",
+    "compute_packet_budget",
+    "compute_replacement_schedule",
+    "estimate_slingshot_pipeline_capacity",
+    "MobileStationState",
+    "MobileStationConfig",
+    "compute_mobile_station_force",
+    "simulate_mobile_station_trajectory",
+    "compute_energy_exchange",
+    "StationKeepingSystem",
+    "compare_alternatives",
+    "format_comparison_table",
+    "generate_comparison_report",
+    # Optional modules
     "JAXThermalModel",
     "CoilSpecs",
     "SwitchingEvent",
