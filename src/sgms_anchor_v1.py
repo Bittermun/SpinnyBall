@@ -934,6 +934,7 @@ def mission_level_metrics(
     c_damp: float = 4.0,
     eps: float = 0.0,
     pm_geometry: Optional[Dict[str, float]] = None,  # For SmCo PM model
+    counter_propagating: bool = True,  # NEW: Double stream for bidirectional station-keeping
 ) -> dict:
     """
     Compute mission-level system metrics for Sobol sensitivity analysis.
@@ -1072,14 +1073,15 @@ def mission_level_metrics(
                                 (mp * u**2 * capture_efficiency)))
         N_packets = max(N_packets, 1)
     
-    # 3. Total infrastructure mass
-    M_total_kg = N_packets * mp
+    # 3. Total infrastructure mass (doubled for counter-propagating streams)
+    n_streams = 2 if counter_propagating else 1
+    M_total_kg = N_packets * mp * n_streams
     
     # 4. Power budget (cryocooler for GdBCO only)
     # Cryocooler power scales with stream length
-    P_cryocooler_kW = cryocooler_power_per_m * (stream_length / 1000.0)  # kW
+    P_cryocooler_kW = cryocooler_power_per_m * (stream_length / 1000.0) * n_streams  # kW
     # Add small power for control electronics (negligible)
-    P_control_kW = 0.001 * N_packets  # 1 W per packet for control
+    P_control_kW = 0.001 * N_packets * n_streams  # 1 W per packet for control
     P_total_kW = P_cryocooler_kW + P_control_kW
     
     # 5. Stress margin verification
@@ -1092,9 +1094,18 @@ def mission_level_metrics(
     volume = 4/3 * np.pi * r**3
     density = mp / volume if volume > 0 else 8400  # kg/m³ (SmCo density fallback)
     
-    # Centrifugal stress formula for rotating body
-    # σ = ρ * ω² * r² * factor (factor ~0.5 for simplified model)
-    centrifugal_stress = density * omega**2 * r**2 * 0.5
+    # Use validated centrifugal stress formula from stress_monitoring.py
+    try:
+        from dynamics.stress_monitoring import calculate_centrifugal_stress
+        angular_velocity_vec = np.array([0.0, 0.0, omega])  # rad/s
+        centrifugal_stress = calculate_centrifugal_stress(
+            mass=mp,
+            radius=r,
+            angular_velocity=angular_velocity_vec
+        )
+    except ImportError:
+        # Fallback: simplified formula σ = ρ * ω² * r² * 0.5
+        centrifugal_stress = density * omega**2 * r**2 * 0.5
     
     # Stress margin: ratio of allowable to actual stress
     stress_margin = max_stress / centrifugal_stress if centrifugal_stress > 0 else np.inf
@@ -1165,9 +1176,9 @@ def mission_level_metrics(
                 ambient_temp=3.0
             )
             
-            # Clamp to reasonable range (won't exceed T_limit in normal operation)
-            T_steady_state = min(T_steady_state, T_limit - 5)
-            T_steady_state = max(T_steady_state, 293.0)  # At least ambient
+            # Keep only lower bound clamp (cosmic background temperature)
+            # Do NOT clamp to T_limit - let thermal_margin go negative for infeasible designs
+            T_steady_state = max(T_steady_state, 3.0)  # Can't be below CMB
             
             # Now compute actual PM stiffness at this temperature
             k_eff_pm = pm_model.compute_stiffness(0.0, T_steady_state)
@@ -1218,7 +1229,31 @@ def mission_level_metrics(
     # Total power includes cryocooler, control, and injection
     P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
     
-    # 8. Effective stiffness - use PM model for SmCo, Bean-London for GdBCO (PHYSICS FIX #3)
+    # 7b. Debris risk assessment (from debris_risk module)
+    try:
+        from dynamics.debris_risk import comprehensive_debris_risk_assessment
+        debris = comprehensive_debris_risk_assessment(
+            n_packets=N_packets * n_streams,
+            mp=mp, u=u, r=r,
+            altitude_km=h_km,
+            escape_probability_per_packet_per_year=1e-6,
+            mission_duration_years=15.0
+        )
+        debris_risk_score = debris['overall_risk_score']
+        kessler_ratio = debris['kessler_risk']['kessler_ratio']
+    except ImportError:
+        debris_risk_score = 0.0
+        kessler_ratio = 0.0
+    
+    # 8. Force direction decomposition (for station-keeping authority analysis)
+    # Stream force F = λu²sin(θ) acts along deflection direction
+    # Decompose into radial, along-track, and cross-track components
+    F_max_per_axis = lam * u**2 * np.sin(theta_bias)  # Max force in any single axis
+    # J2 is primarily cross-track for SSO (~70% of J2 force is cross-track)
+    F_J2_cross_track = F_J2 * 0.7
+    force_authority_ratio = F_max_per_axis / perturbation_force if perturbation_force > 0 else np.inf
+    
+    # 9. Effective stiffness - use PM model for SmCo, Bean-London for GdBCO (PHYSICS FIX #3)
     if magnet_material == "SmCo" and k_eff_pm is not None:
         # For SmCo, use the permanent magnet model stiffness (temperature-dependent)
         k_eff = k_eff_pm
@@ -1249,6 +1284,7 @@ def mission_level_metrics(
     
     return {
         "N_packets": N_packets,
+        "N_packets_total": N_packets * n_streams,
         "M_total_kg": M_total_kg,
         "P_total_kW": P_total_kW,
         "P_cryocooler_kW": P_cryocooler_kW,
@@ -1269,6 +1305,14 @@ def mission_level_metrics(
         "F_J2_N": F_J2,
         "F_SRP_N": F_SRP,
         "F_drag_N": F_drag,
+        # Counter-propagating streams
+        "n_streams": n_streams,
+        # Debris risk
+        "debris_risk_score": debris_risk_score,
+        "kessler_ratio": kessler_ratio,
+        # Force direction analysis
+        "F_max_per_axis_N": F_max_per_axis,
+        "force_authority_ratio": force_authority_ratio,
     }
 
 

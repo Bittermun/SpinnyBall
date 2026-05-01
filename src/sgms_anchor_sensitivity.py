@@ -44,10 +44,10 @@ DEFAULT_OUTPUTS = (
     "packet_rate_hz",
 )
 
-# Mission-level problem definition with 8 parameters
+# Mission-level problem definition with 9 parameters (including spacing)
 MISSION_PROBLEM = {
-    "num_vars": 8,
-    "names": ["u", "mp", "r", "omega", "h_km", "ms", "g_gain", "k_fp"],
+    "num_vars": 9,
+    "names": ["u", "mp", "r", "omega", "h_km", "ms", "g_gain", "k_fp", "spacing"],
     "bounds": [
         [500.0, 15000.0],     # u (m/s) - operational velocity range
         [1.0, 50.0],          # mp (kg) - packet mass
@@ -57,6 +57,7 @@ MISSION_PROBLEM = {
         [100.0, 10000.0],     # ms (kg) - station mass
         [1e-4, 1e-2],         # g_gain - control gain
         [1000.0, 15000.0],    # k_fp (N/m) - flux-pinning stiffness
+        [0.1, 1000.0],        # spacing (m) - 0.1m to 1km
     ],
 }
 
@@ -68,6 +69,8 @@ MISSION_OUTPUTS = (
     "thermal_margin",
     "k_eff",
     "feasible",
+    "debris_risk_score",
+    "kessler_ratio",
 )
 
 
@@ -208,14 +211,14 @@ def evaluate_mission_vector(
     Evaluate mission-level metrics for a single parameter vector.
     
     Args:
-        vector: 8-element array [u, mp, r, omega, h_km, ms, g_gain, k_fp]
+        vector: 9-element array [u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing]
         magnet_material: "SmCo" or "GdBCO"
         jacket_material: "BFRP", "CFRP", or "CNT_yarn"
     
     Returns:
         Dictionary with mission outputs
     """
-    u, mp, r, omega, h_km, ms, g_gain, k_fp = [float(v) for v in vector]
+    u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing = [float(v) for v in vector]
     
     return mission_level_metrics(
         u=u,
@@ -228,6 +231,7 @@ def evaluate_mission_vector(
         k_fp=k_fp,
         magnet_material=magnet_material,
         jacket_material=jacket_material,
+        spacing=spacing,
     )
 
 
