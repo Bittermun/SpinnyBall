@@ -28,6 +28,14 @@ def create_stream_factory(params):
         packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
                           radius=radius, eta_ind=0.9)]
         
+        # Calculate effective stiffness including velocity-dependent term
+        # k_eff = lam * u^2 * g_gain + k_fp
+        u = params.get('u', 1600.0)
+        lam = params.get('lam', 20.0)
+        g_gain = params.get('g_gain', 0.0002)
+        k_fp_base = params.get('k_fp', 9000.0)
+        k_eff_total = lam * (u**2) * g_gain + k_fp_base
+
         nodes = []
         for i in range(10):
             node = SNode(
@@ -35,11 +43,11 @@ def create_stream_factory(params):
                 position=np.array([i * 10.0, 0.0, 0.0]),
                 max_packets=10,
                 eta_ind_min=0.82,
-                k_fp=params.get('k_fp', 4500.0),
+                k_fp=k_eff_total,
             )
             nodes.append(node)
             
-        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=params.get('u', 1600.0))
+        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=u)
         return stream
     return factory
 

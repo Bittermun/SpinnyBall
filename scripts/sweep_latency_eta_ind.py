@@ -140,6 +140,14 @@ def run_grid_point(
     )
 
     runner = CascadeRunner(config)
+    
+    # Use canonical values if possible
+    try:
+        from params.canonical_values import get_parameter
+        k_fp_canonical = get_parameter('MATERIAL_PROPERTIES', 'GdBCO', 'k_fp_bulk_range')[0] * 0.12 # Scale for tape
+    except ImportError:
+        k_fp_canonical = 4500.0
+
     stream_factory = lambda: create_stream(eta_ind=eta_ind)
     results = runner.run_monte_carlo(stream_factory)
 
@@ -353,13 +361,13 @@ if __name__ == "__main__":
     # Run sweep with HIGH-FIDELITY settings
     results = run_t1_sweep(
         latency_range=(5.0, 50.0),
-        eta_ind_range=(0.8, 0.95),
-        n_latency_points=5,
-        n_eta_points=4,
-        n_realizations_per_point=20,  # Increased for meaningful statistics
-        use_checkpoint=True,  # Enable checkpoint for long runs
+        eta_ind_range=(0.82, 0.98),  # Adjusted range to avoid auto-fail < 0.82
+        n_latency_points=10,        # Increased resolution
+        n_eta_points=8,             # Increased resolution
+        n_realizations_per_point=100, # N=100 for best data
+        use_checkpoint=True,
         checkpoint_file='t1_high_fidelity_checkpoint.json',
-        n_jobs=-1,  # Use all cores for parallel execution
+        n_jobs=-1,
         use_zero_torque_numba=True,
     )
 

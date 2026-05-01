@@ -378,22 +378,18 @@ class CascadeRunner:
             if cascade_occurred:
                 break
         
+        # Compute k_eff_min from the minimum stiffness reached during the run
+        if stream.nodes:
+            # Each node's actual stiffness at the end is its initial_k_fp reduced by the failures.
+            # We compute this BEFORE restoring the nodes.
+            k_eff_min = min(n.k_fp for n in stream.nodes if hasattr(n, 'k_fp'))
+        else:
+            k_eff_min = 6000.0  # fallback if no nodes
+
         # Restore node stiffnesses to initial values (undo in-place fault mutations)
         for node in stream.nodes:
             if node.id in initial_k_fp:
                 node.k_fp = initial_k_fp[node.id]
-
-        # Compute k_eff_min from the minimum stiffness reached during the run
-        # Apply degradation only to affected nodes, not globally
-        if stream.nodes:
-            k_eff_min = min(
-                initial_k_fp.get(n.id, 6000.0) / (self.config.cascade_threshold ** len(nodes_affected))
-                if n.id in nodes_affected
-                else initial_k_fp.get(n.id, 6000.0)
-                for n in stream.nodes
-            )
-        else:
-            k_eff_min = 6000.0  # fallback if no nodes
         k_eff_within_limit = k_eff_min >= self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
         
         # Determine containment success and cascade from node failures
