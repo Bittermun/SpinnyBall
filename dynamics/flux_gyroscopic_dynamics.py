@@ -394,15 +394,17 @@ class FluxGyroscopicCoupledSystem:
   q = q / np.linalg.norm(q)
   
   # Reconstruct state object
-  # Note: temperature and B_field are treated as fixed parameters during ODE integration
-  # They are not part of the state vector y and do not evolve during simulation
+  # Use stored initial temperature and B_field from _simulate_adaptive
+  temperature = getattr(self, '_initial_temperature', self.config.T_critical * 0.83)
+  B_field = getattr(self, '_initial_B_field', np.array([0., 0., 1.0]))
+  
   state = FluxGyroState(
    position=r,
    velocity=v,
    quaternion=q,
    angular_velocity=omega,
-   temperature=self.config.T_critical * 0.83,  # Fixed at 83% Tc during integration
-   B_field=np.array([0., 0., 1.0])  # Fixed axial field during integration
+   temperature=temperature,
+   B_field=B_field
   )
   
   # Compute flux-pinning forces/torques
@@ -526,6 +528,10 @@ class FluxGyroscopicCoupledSystem:
    initial_state.quaternion,
    initial_state.angular_velocity
   ])
+  
+  # Store initial temperature and B_field for ODE integration
+  self._initial_temperature = initial_state.temperature
+  self._initial_B_field = initial_state.B_field.copy()
   
   # Time points for dense output
   t_eval = np.arange(0, duration, dt)

@@ -1,15 +1,25 @@
 ```gitignore
 # Python cache files
 __pycache__/
+```
+# Compiled Python files
 *.pyc
-*.pyo
-*.pyd
+__pycache__/
 
 # Compiled Python files
 *.cpython-*.pyc
+# Dependencies
+.venv/
+venv/
+env/
+.env
+.env.local
+*.env*
 
-# Logs and temporary files
+# Logs
 *.log
+
+# Temporary files
 *.tmp
 *.swp
 
@@ -20,8 +30,8 @@ __pycache__/
 
 # Coverage reports
 .coverage
-htmlcov/
 coverage/
+htmlcov/
 
 # IDE specific files
 .vscode/
@@ -32,4 +42,22 @@ coverage/
 # OS specific files
 .DS_Store
 Thumbs.db
+# Editors
+.vscode/
+.idea/
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+target/
+.gradle/
+
+# Testing
+.pytest_cache/
+.mypy_cache/
 ```

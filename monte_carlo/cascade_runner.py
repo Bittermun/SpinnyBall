@@ -388,7 +388,7 @@ class CascadeRunner:
         if stream.nodes:
             k_eff_min = min(
                 initial_k_fp.get(n.id, 6000.0) / (self.config.cascade_threshold ** len(nodes_affected))
-                if n.id in [affected.id for affected in nodes_affected]
+                if n.id in nodes_affected
                 else initial_k_fp.get(n.id, 6000.0)
                 for n in stream.nodes
             )
@@ -404,10 +404,10 @@ class CascadeRunner:
             cascade_occurred = True
             failure_mode = "cascade_propagation"
 
-        # Check pass/fail gates
-        eta_ind_pass = eta_ind_min >= self.config.pass_fail_gates["eta_ind"][0]
-        stress_pass = stress_max <= self.config.pass_fail_gates["stress"][0]
-        k_eff_pass = k_eff_min >= self.config.pass_fail_gates["k_eff"][0]
+        # Check pass/fail gates with safe defaults
+        eta_ind_pass = eta_ind_min >= self.config.pass_fail_gates.get("eta_ind", (0.82,))[0]
+        stress_pass = stress_max <= self.config.pass_fail_gates.get("stress", (1.2e9,))[0]
+        k_eff_pass = k_eff_min >= self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
 
         success = eta_ind_pass and stress_pass and k_eff_pass and not cascade_occurred
 
