@@ -197,9 +197,11 @@ class GravitySlingshotOptimizer:
    v_inf_in[2]
   ])
   
-  # Delta-v magnitude (in heliocentric frame, this is the key result)
-  # For a slingshot, delta-v = 2*v_planet*sin(δ/2) for inner planets
-  delta_v = 2.0 * body.orbital_velocity * np.sin(turn_angle / 2.0)
+  # Delta-v magnitude in the parent body's frame (e.g., Earth-centered for lunar flyby)
+  # Correct formula: Δv = 2*v_inf*sin(δ/2), where v_inf is approach velocity
+  # NOT the body's orbital velocity (which is for heliocentric planetary flybys)
+  # Reference: Bate, Mueller, White Eq. 8.3-14
+  delta_v = 2.0 * v_inf_mag * np.sin(turn_angle / 2.0)
   
   return HyperbolicApproach(
    v_infinity_in=v_inf_in,

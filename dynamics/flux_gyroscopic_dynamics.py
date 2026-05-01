@@ -76,12 +76,10 @@ class FluxGyroConfig:
  spin_rate: float  # Nominal spin rate (rad/s)
  spin_axis: np.ndarray  # Principal spin axis [x, y, z]
  mass: float = 1.0  # Rotor mass (kg)
- 
- # Flux-pinning parameters
- k_fp_base: float  # Base flux-pinning stiffness (N/m)
- Jc_critical: float  # Critical current density (A/m²)
- B_critical: float  # Critical magnetic field (T)
- T_critical: float  # Critical temperature (K)
+ k_fp_base: float = 1000.0  # Base flux-pinning stiffness (N/m)
+ Jc_critical: float = 1e10  # Critical current density (A/m²)
+ B_critical: float = 10.0  # Critical magnetic field (T)
+ T_critical: float = 90.0  # Critical temperature (K)
  
  # Coupling parameters
  gyro_flux_coupling: float = 0.5  # Coupling strength (0-1)
