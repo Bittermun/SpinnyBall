@@ -351,10 +351,10 @@ def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_th
     if orbital_state is not None and ORBITAL_PERTURBATIONS_AVAILABLE:
         if params.get("include_j2", False) or params.get("include_srp", False) or params.get("include_drag", False):
             try:
-                from dynamics.orbital_coupling import OrbitalPropagator
-                propagator = OrbitalPropagator(altitude_km=params.get("altitude_km", 400.0), inclination_deg=params.get("inclination_deg", 51.6))
-                updated_state = propagator.propagate(orbital_state, t)
-                f_orbital = get_orbital_perturbation_force(params, updated_state, t, packet_mass=params["ms"])
+                # Compute perturbation force directly from current orbital state
+                # (state already propagated correctly in rhs closure)
+                f_orbital = get_orbital_perturbation_force(params, orbital_state, t, packet_mass=params["ms"])
+                # Scale factor 0.01 to couple orbital perturbations appropriately to anchor dynamics
                 f_total += f_orbital[0] * 0.01
             except Exception as e:
                 import logging
@@ -406,6 +406,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     # Initialize orbital state if perturbations enabled or thermal dynamics with eclipse
     orbital_state = None
     orbital_propagator = None  # Create once to avoid recreation on every RK45 step
+    _orbital_initial_state = None  # Cache initial state for pure-function propagation
     enable_orbital = (
         params.get("include_j2", False) or 
         params.get("include_srp", False) or 
@@ -415,18 +416,34 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     if ORBITAL_PERTURBATIONS_AVAILABLE and enable_orbital:
         try:
             orbital_state = create_orbital_state_from_params(params)
+            _orbital_initial_state = orbital_state  # Cache for pure-function propagation
             # Create propagator once for reuse in rhs closure
             from dynamics.orbital_coupling import OrbitalPropagator
-            orbital_propagator = OrbitalPropagator(
-                altitude_km=params.get("altitude_km", 400.0),
-                inclination_deg=params.get("inclination_deg", 51.6)
-            )
+            orbital_propagator = OrbitalPropagator()
+            # Initialize propagator with state vector using correct API
+            orbital_propagator.from_state_vector(orbital_state)
+            # Add perturbations if requested
+            if params.get("include_j2", False):
+                orbital_propagator.add_j2_perturbation()
+            if params.get("include_drag", False):
+                orbital_propagator.add_drag_perturbation(
+                    C_d=params.get("cd", 2.2),
+                    A=params.get("cross_sectional_area", 1.0),
+                    m=params.get("ms", 1000.0)
+                )
+            if params.get("include_srp", False):
+                orbital_propagator.add_srp_perturbation(
+                    C_r=params.get("C_r", 1.8),
+                    A=params.get("sr_area", 1.0),
+                    m=params.get("ms", 1000.0)
+                )
         except Exception as e:
             import logging
             logger = logging.getLogger(__name__)
             logger.warning(f"Orbital state initialization failed: {e}")
             orbital_state = None
             orbital_propagator = None
+            _orbital_initial_state = None
 
     dt_noise = params["disturbance_hold_s"]
     noise_steps = max(2, int(math.ceil(t_eval[-1] / dt_noise)) + 2)
@@ -438,16 +455,23 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
 
     def rhs(t: float, y: np.ndarray) -> list[float]:
         x, vx = y
-        nonlocal orbital_state
         
-        # Propagate orbital state if enabled (use pre-created propagator)
-        if orbital_state is not None and orbital_propagator is not None:
+        # Propagate orbital state if enabled using pure function of absolute time
+        # This avoids non-monotonic time issues with RK45 intermediate stages
+        current_orbital_state = None
+        if _orbital_initial_state is not None and orbital_propagator is not None:
             try:
-                orbital_state = orbital_propagator.propagate(orbital_state, t)
+                # Propagate from initial state by absolute time t (pure function)
+                # Reset propagator to initial state each time for correctness
+                orbital_propagator.from_state_vector(_orbital_initial_state)
+                current_orbital_state = orbital_propagator.propagate(t)
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
                 logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
+                current_orbital_state = _orbital_initial_state
+        else:
+            current_orbital_state = orbital_state
         
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
@@ -478,7 +502,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
                 # Fall back to default g_gain on error
                 sim_params["g_gain"] = params["g_gain"]
         
-        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=orbital_state)
+        force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=current_orbital_state)
         return [vx, force / params["ms"]]
 
     sol = solve_ivp(
@@ -511,6 +535,8 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     else:
         epsilon_history = np.full_like(sol.t, dynamic_epsilon)
 
+    # Post-process: compute forces and temperature at solution points
+    # Need to propagate orbital state for each output time
     for i, t in enumerate(sol.t):
         disturbance[i] = noise_at(float(t))
         sim_params = params.copy()
@@ -519,11 +545,22 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
         force[i] = fp + fm + fpin + fd
         
+        # Propagate orbital state for this output time (for thermal/eclipse)
+        post_orbital_state = None
+        if _orbital_initial_state is not None and orbital_propagator is not None:
+            try:
+                orbital_propagator.from_state_vector(_orbital_initial_state)
+                post_orbital_state = orbital_propagator.propagate(t)
+            except Exception:
+                post_orbital_state = _orbital_initial_state
+        else:
+            post_orbital_state = orbital_state
+        
         # Update temperature if thermal dynamics enabled
         if params.get("enable_thermal_dynamics", False):
             try:
                 from dynamics.thermal_model import update_temperature_euler
-                position_eci = orbital_state.r if orbital_state is not None else None
+                position_eci = post_orbital_state.r if post_orbital_state is not None else None
                 temperature[i] = update_temperature_euler(
                     temperature=temperature[i-1] if i > 0 else params["temperature"],
                     mass=params["ms"],
