@@ -2,9 +2,11 @@
 # Python cache files
 __pycache__/
 ```
-# Compiled Python files
-*.pyc
+# Python
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
 
 # Compiled Python files
 *.cpython-*.pyc
@@ -12,14 +14,9 @@ __pycache__/
 .venv/
 venv/
 env/
-.env
-.env.local
-*.env*
 
-# Logs
+# Logs and temp files
 *.log
-
-# Temporary files
 *.tmp
 *.swp
 
@@ -28,10 +25,10 @@ env/
 .env.local
 *.env.*
 
-# Coverage reports
-.coverage
-coverage/
-htmlcov/
+# Environment
+.env
+.env.local
+*.env.*
 
 # IDE specific files
 .vscode/
@@ -46,18 +43,7 @@ Thumbs.db
 .vscode/
 .idea/
 
-# OS generated files
+# OS
 .DS_Store
 Thumbs.db
-
-# Build artifacts
-build/
-dist/
-*.egg-info/
-target/
-.gradle/
-
-# Testing
-.pytest_cache/
-.mypy_cache/
 ```

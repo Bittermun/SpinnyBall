@@ -73,15 +73,15 @@ k_eff = 8,145.21 N/m
 
 Analysis of 256 samples across 5 parameters using Saltelli sampling scheme.
 
-| Parameter | Sobol Index (S1) | Variance Explained | Impact Level |
-|-----------|------------------|-------------------|--------------|
-| u (velocity) | 0.447 | 44.7% | **HIGHEST** |
-| lam (linear density) | 0.146 | 14.6% | Moderate |
-| g_gain (control gain) | 0.113 | 11.3% | Moderate |
-| mp (mass) | 0.000 | 0.0% | None (ROM feature) |
-| eps (epsilon) | 0.000 | 0.0% | None |
+| Parameter | First-Order (S1) | Total-Order (ST) | Variance Explained | Impact Level |
+|-----------|------------------|------------------|-------------------|--------------|
+| u (velocity) | 0.423 | 0.650 | 65.0% (with interactions) | **HIGHEST** |
+| lam (linear density) | 0.191 | 0.380 | 38.0% (with interactions) | Moderate |
+| g_gain (control gain) | 0.118 | 0.267 | 26.7% (with interactions) | Moderate |
+| mp (mass) | 0.000 | 0.000 | 0.0% | None (ROM feature) |
+| eps (epsilon) | 0.000 | 0.000 | 0.0% | None |
 
-**Key Finding:** Velocity dominates k_eff due to u² scaling in momentum flux formula. Mass has no impact on k_eff in reduced-order model (affects inertia but not stiffness).
+**Key Finding:** Velocity dominates k_eff due to u² scaling in momentum flux formula. Mass has no impact on k_eff in reduced-order model (affects inertia but not stiffness). Total-order indices (ST) confirm significant parameter interactions, with velocity accounting for 65% of variance when interactions are included (vs 42% from first-order alone), indicating that 23% of velocity's variance contribution comes from interactions with other parameters.
 
 ### Optimal Parameter Ranges
 

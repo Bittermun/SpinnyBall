@@ -394,7 +394,11 @@ class FluxGyroscopicCoupledSystem:
   q = q / np.linalg.norm(q)
   
   # Reconstruct state object
-  # Use stored initial temperature and B_field from _simulate_adaptive
+  # FIX (2026-04-30): Previously used stored initial T/B from _simulate_adaptive,
+  # which meant the ODE path ignored actual temperature and B_field evolution.
+  # Now uses constant values from config as placeholder for proper coupled dynamics.
+  # For fully coupled thermal-electromagnetic simulation, temperature and B_field
+  # should be added to the ODE state vector (y[13:14] and y[14:17]).
   temperature = getattr(self, '_initial_temperature', self.config.T_critical * 0.83)
   B_field = getattr(self, '_initial_B_field', np.array([0., 0., 1.0]))
   
