@@ -1,8 +1,13 @@
+```gitignore
+# Python cache files
+__pycache__/
 ```
 # Compiled Python files
 *.pyc
 __pycache__/
 
+# Compiled Python files
+*.cpython-*.pyc
 # Dependencies
 .venv/
 venv/
@@ -17,13 +22,26 @@ env/
 # Temporary files
 *.tmp
 *.swp
-*.swo
+
+# Environment files
+.env
+.env.local
+*.env.*
 
 # Coverage reports
 .coverage
 coverage/
 htmlcov/
 
+# IDE specific files
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS specific files
+.DS_Store
+Thumbs.db
 # Editors
 .vscode/
 .idea/
