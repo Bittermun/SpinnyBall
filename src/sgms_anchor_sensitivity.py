@@ -21,7 +21,7 @@ import numpy as np
 from SALib.analyze import sobol as sobol_analyze
 from SALib.sample import sobol as sobol_sample
 
-from sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics, mission_level_metrics
+from src.sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics, mission_level_metrics
 
 
 DEFAULT_PROBLEM = {
@@ -199,13 +199,18 @@ def print_sensitivity_summary(result: dict) -> None:
         print(f"{output}: dominant ST = {names[top_idx]} ({st[top_idx]:.4f})")
 
 
-def evaluate_mission_vector(vector: np.ndarray, material_profile: str = "SmCo") -> dict:
+def evaluate_mission_vector(
+    vector: np.ndarray, 
+    magnet_material: str = "SmCo",
+    jacket_material: str = "BFRP"
+) -> dict:
     """
     Evaluate mission-level metrics for a single parameter vector.
     
     Args:
         vector: 8-element array [u, mp, r, omega, h_km, ms, g_gain, k_fp]
-        material_profile: "SmCo" or "GdBCO"
+        magnet_material: "SmCo" or "GdBCO"
+        jacket_material: "BFRP", "CFRP", or "CNT_yarn"
     
     Returns:
         Dictionary with mission outputs
@@ -221,12 +226,14 @@ def evaluate_mission_vector(vector: np.ndarray, material_profile: str = "SmCo") 
         ms=ms,
         g_gain=g_gain,
         k_fp=k_fp,
-        material_profile=material_profile,
+        magnet_material=magnet_material,
+        jacket_material=jacket_material,
     )
 
 
 def run_mission_sobol_analysis(
-    material_profile: str = "SmCo",
+    magnet_material: str = "SmCo",
+    jacket_material: str = "BFRP",
     N: int = 1024,
     calc_second_order: bool = True,
     seed: int = 42,
@@ -238,7 +245,8 @@ def run_mission_sobol_analysis(
     across 8 design parameters with second-order interaction terms.
     
     Args:
-        material_profile: Material type ("SmCo" or "GdBCO")
+        magnet_material: Magnet type ("SmCo" or "GdBCO")
+        jacket_material: Jacket material ("BFRP", "CFRP", or "CNT_yarn")
         N: Number of samples (>= 1024 recommended for 8 parameters)
         calc_second_order: Include S2 interaction indices
         seed: Random seed for reproducibility
@@ -250,9 +258,11 @@ def run_mission_sobol_analysis(
         - outputs: Output values for each sample
         - indices: Sobol sensitivity indices
         - feasible: Boolean feasibility array
-        - material_profile: Material used
+        - magnet_material: Magnet material used
+        - jacket_material: Jacket material used
     """
-    print(f"Running mission-level Sobol analysis for {material_profile}...")
+    config_name = f"{magnet_material}_{jacket_material}"
+    print(f"Running mission-level Sobol analysis for {config_name}...")
     print(f"  N={N}, calc_second_order={calc_second_order}, seed={seed}")
     
     # Generate samples
@@ -272,7 +282,11 @@ def run_mission_sobol_analysis(
     feasible_array = np.empty(n_samples, dtype=bool)
     
     for i, sample in enumerate(samples):
-        metrics = evaluate_mission_vector(sample, material_profile=material_profile)
+        metrics = evaluate_mission_vector(
+            sample, 
+            magnet_material=magnet_material,
+            jacket_material=jacket_material
+        )
         for output in MISSION_OUTPUTS:
             if output == "feasible":
                 feasible_array[i] = metrics[output]
@@ -322,7 +336,9 @@ def run_mission_sobol_analysis(
         "outputs": outputs_dict,
         "indices": indices,
         "feasible": feasible_array,
-        "material_profile": material_profile,
+        "magnet_material": magnet_material,
+        "jacket_material": jacket_material,
+        "config_name": config_name,
         "N": N,
         "calc_second_order": calc_second_order,
         "seed": seed,
@@ -400,7 +416,9 @@ def print_mission_summary(results: dict) -> None:
     print("\n" + "="*60)
     print("MISSION-LEVEL SOBOL SENSITIVITY ANALYSIS")
     print("="*60)
-    print(f"Material: {results['material_profile']}")
+    print(f"Magnet Material: {results['magnet_material']}")
+    print(f"Jacket Material: {results['jacket_material']}")
+    print(f"Config: {results.get('config_name', 'N/A')}")
     print(f"Samples: {results['N']} (second-order: {results['calc_second_order']})")
     print(f"Seed: {results['seed']}")
     print("-"*60)
@@ -426,6 +444,52 @@ def print_mission_summary(results: dict) -> None:
         print(f"\n{output}:")
         for name, value in top_3:
             print(f"  {name:12s}: ST = {value:.4f}")
+
+
+def run_2x2_material_sweep(N: int = 512, seed: int = 42) -> dict:
+    """
+    Run the 2x2 material sweep as specified in Task 6.
+    
+    Sweeps over:
+    - Magnet materials: GdBCO, SmCo
+    - Jacket materials: BFRP, CNT_yarn
+    
+    This creates 4 configurations:
+    1. GdBCO + BFRP: Current baseline
+    2. GdBCO + CNT_yarn: Higher RPM possible (relaxed stress constraint)
+    3. SmCo + BFRP: Current smco-heavy
+    4. SmCo + CNT_yarn: Best thermal + structural
+    
+    Args:
+        N: Number of samples per configuration
+        seed: Random seed
+    
+    Returns:
+        Dictionary with all 4 results
+    """
+    magnet_materials = ["GdBCO", "SmCo"]
+    jacket_materials = ["BFRP", "CNT_yarn"]
+    
+    all_results = {}
+    
+    for mag_mat in magnet_materials:
+        for jacket_mat in jacket_materials:
+            config_key = f"{mag_mat}_{jacket_mat}"
+            print(f"\n{'='*70}")
+            print(f"CONFIGURATION: {config_key}")
+            print('='*70)
+            
+            results = run_mission_sobol_analysis(
+                magnet_material=mag_mat,
+                jacket_material=jacket_mat,
+                N=N,
+                calc_second_order=True,
+                seed=seed,
+            )
+            
+            all_results[config_key] = results
+    
+    return all_results
 
 
 def main() -> None:

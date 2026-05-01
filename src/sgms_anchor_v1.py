@@ -926,7 +926,8 @@ def mission_level_metrics(
     ms: float,
     g_gain: float,
     k_fp: float,
-    material_profile: str = "SmCo",
+    magnet_material: str = "SmCo",  # NEW: "SmCo" or "GdBCO"
+    jacket_material: str = "BFRP",   # NEW: "BFRP", "CFRP", "CNT_yarn"
     lam: float = 72.92,  # Default operational linear density
     theta_bias: float = 0.087,
     c_damp: float = 4.0,
@@ -947,8 +948,9 @@ def mission_level_metrics(
         h_km: Orbital altitude (km)
         ms: Station/anchor mass (kg)
         g_gain: Control gain (dimensionless)
-        k_fp: Flux-pinning stiffness (N/m)
-        material_profile: Material type ("SmCo" or "GdBCO")
+        k_fp: Flux-pinning stiffness (N/m) - only used for GdBCO
+        magnet_material: Magnet type ("SmCo" or "GdBCO")
+        jacket_material: Structural jacket material ("BFRP", "CFRP", "CNT_yarn")
         lam: Linear density (kg/m), default from operational baseline
         theta_bias: Bias angle (rad), default ~5 degrees
         c_damp: Damping coefficient (N·s/m)
@@ -959,29 +961,55 @@ def mission_level_metrics(
         Dictionary with mission-level outputs:
         - N_packets: Number of packets required
         - M_total_kg: Total infrastructure mass (packets only)
-        - P_total_kW: Total power budget (cryocooler if GdBCO)
+        - P_total_kW: Total power budget (cryocooler if GdBCO + injection power)
         - stress_margin: Stress safety margin (ratio to limit)
         - thermal_margin: Thermal safety margin (K to limit)
         - k_eff: Effective stiffness (N/m)
         - feasible: Boolean feasibility flag
+        - P_injection_kW: Power for packet injection/replacement
     """
     # Constants
     R_earth = 6371e3  # m
     g0 = 9.81  # m/s²
     
-    # Material properties
-    if material_profile == "GdBCO":
+    # Import material properties from canonical registry
+    from params.canonical_values import MATERIAL_PROPERTIES
+    
+    # Get jacket material properties
+    if jacket_material not in MATERIAL_PROPERTIES:
+        raise ValueError(f"Unknown jacket material: {jacket_material}. "
+                        f"Available: {list(MATERIAL_PROPERTIES.keys())}")
+    
+    jacket_props = MATERIAL_PROPERTIES[jacket_material]
+    
+    # Get allowable stress from jacket material
+    if 'allowable_stress' in jacket_props:
+        max_stress = jacket_props['allowable_stress']['value']
+    elif 'tensile_strength' in jacket_props:
+        # Apply default safety factor of 1.5
+        max_stress = jacket_props['tensile_strength']['value'] / 1.5
+    else:
+        # Fallback to BFRP value
+        max_stress = 800e6  # Pa
+    
+    # Get magnet material properties
+    if magnet_material == "GdBCO":
         T_limit = 92.0  # K - critical temperature
         T_operating = 77.0  # K - typical operating temp
         cryocooler_power_per_m = 0.05  # kW/m (50 W/km from TECHNICAL_SPEC)
-        max_stress = 1.2e9  # Pa
-    elif material_profile == "SmCo":
-        T_limit = 573.0  # K - maximum operating temp for SmCo
+        # For GdBCO, k_fp is provided as parameter (from Bean-London model)
+    elif magnet_material == "SmCo":
+        # Get SmCo properties from registry if available
+        if 'SmCo' in MATERIAL_PROPERTIES:
+            smco_props = MATERIAL_PROPERTIES['SmCo']
+            T_limit = smco_props.get('max_operating_temp', {}).get('value', 573.0)
+        else:
+            T_limit = 573.0  # K - maximum operating temp for SmCo
         T_operating = 379.0  # K - steady-state from thermal model
         cryocooler_power_per_m = 0.0  # No cryocooling needed
-        max_stress = 800e6  # Pa - BFRP/carbon-fiber limit
+        # For SmCo, k_fp should come from permanent magnet model (not Bean-London)
     else:
-        raise ValueError(f"Unknown material profile: {material_profile}")
+        raise ValueError(f"Unknown magnet material: {magnet_material}")
     
     # 1. Calculate stream length (closed-loop at altitude h)
     # FIX: Use actual orbital circumference instead of hardcoded 4.8 m
@@ -1040,7 +1068,7 @@ def mission_level_metrics(
     # 6. Thermal margin
     # For SmCo: steady-state ~379K, limit 573K
     # For GdBCO: operating 77K, limit 92K
-    if material_profile == "SmCo":
+    if magnet_material == "SmCo":
         # Thermal model from thermal_model.py update_temperature_euler
         # Steady-state balance: radiative cooling = eddy heating + solar
         # Simplified: use documented steady-state 379K
@@ -1051,7 +1079,38 @@ def mission_level_metrics(
     
     thermal_margin = T_limit - T_steady_state  # K
     
-    # 7. Effective stiffness (from analytical_metrics)
+    # 7. Energy injection power (from energy_injection module)
+    # This is the dominant cost driver for packet replacement
+    try:
+        from dynamics.energy_injection import compute_injection_power_budget
+        
+        # Typical fault rate: 1e-6 failures per packet per hour
+        fault_rate = 1e-6
+        
+        # Estimate angular velocity for injection (same as spin rate)
+        omega_inj = omega
+        
+        # Packet radius for injection calculation
+        r_inj = r
+        
+        injection_budget = compute_injection_power_budget(
+            mp=mp,
+            u=u,
+            omega=omega_inj,
+            r=r_inj,
+            fault_rate=fault_rate,
+            n_packets=N_packets,
+            method='electromagnetic'
+        )
+        P_injection_kW = injection_budget['steady_state_power_kW']
+    except ImportError:
+        # Fallback if energy_injection module not available
+        P_injection_kW = 0.0
+    
+    # Total power includes cryocooler, control, and injection
+    P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
+    
+    # 8. Effective stiffness (from analytical_metrics)
     # Build params dict for compatibility
     params = {
         "u": u,
@@ -1068,7 +1127,7 @@ def mission_level_metrics(
     metrics = analytical_metrics(params)
     k_eff = metrics["k_eff"]
     
-    # 8. Feasibility check
+    # 9. Feasibility check
     feasible = (
         stress_margin >= 1.5 and  # Safety factor 1.5
         thermal_margin >= 5.0 and  # At least 5K thermal margin
@@ -1081,6 +1140,8 @@ def mission_level_metrics(
         "N_packets": N_packets,
         "M_total_kg": M_total_kg,
         "P_total_kW": P_total_kW,
+        "P_cryocooler_kW": P_cryocooler_kW,
+        "P_injection_kW": P_injection_kW,
         "stress_margin": stress_margin,
         "thermal_margin": thermal_margin,
         "k_eff": k_eff,
@@ -1090,6 +1151,7 @@ def mission_level_metrics(
         "centrifugal_stress_Pa": centrifugal_stress,
         "steady_state_temp_K": T_steady_state,
         "perturbation_force_N": perturbation_force,
+        "fault_rate": fault_rate,
     }
 
 

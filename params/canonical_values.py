@@ -114,6 +114,71 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'uncertainty': 0.1,
             'source': 'Kim-Anderson model',
         },
+        
+        # Physical properties
+        'density': {
+            'value': 6380,  # kg/m³
+            'source': 'REBCO material data',
+        },
+        'specific_heat': {
+            'value': 180,  # J/kg/K at 77K (NOT room temperature)
+            'source': 'Low-temperature specific heat data',
+            'note': 'At 77K, NOT room temperature. Room temp value is ~500 J/kg/K.',
+        },
+        'thermal_conductivity': {
+            'value': 3.0,  # W/m/K at 77K
+            'source': 'Low-temperature thermal conductivity data',
+            'note': 'At 77K',
+        },
+    },
+    
+    'YBCO': {
+        # Critical temperature
+        'Tc': {
+            'value': 92.0,  # K
+            'source': 'Standard REBCO',
+        },
+        
+        # Critical current density at 0K, 0T
+        'Jc0': {
+            'value': 3e10,  # A/m²
+            'source': 'Comparable to GdBCO',
+        },
+        
+        # n-exponent for E-J power law
+        'n_exponent': {
+            'value': 1.5,
+        },
+        
+        # Characteristic magnetic field (lower irreversibility field than GdBCO)
+        'B0': {
+            'value': 3.0,  # T
+            'note': 'Lower irreversibility field than GdBCO',
+        },
+        
+        # Field dependence exponent
+        'alpha': {
+            'value': 0.5,
+        },
+        
+        # Physical properties
+        'density': {
+            'value': 6380,  # kg/m³
+        },
+        'specific_heat': {
+            'value': 180,  # J/kg/K at 77K
+            'note': 'At 77K, NOT room temperature',
+        },
+        'thermal_conductivity': {
+            'value': 3.0,  # W/m/K at 77K
+            'note': 'At 77K',
+        },
+        
+        # Flux pinning stiffness range (bulk samples) - lower than GdBCO
+        'k_fp_bulk_range': {
+            'value': [30000, 60000],  # N/m
+            'note': 'Lower than GdBCO',
+        },
     },
     
     'BFRP': {
@@ -141,12 +206,145 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
         },
     },
     
+    'CFRP': {
+        # Density
+        'density': {
+            'value': 1580,  # kg/m³
+        },
+        
+        # Tensile strength (T700 grade)
+        'tensile_strength': {
+            'value': 3.0e9,  # Pa (3.0 GPa)
+            'note': 'T700 grade',
+        },
+        
+        # Safety factor
+        'safety_factor': {
+            'value': 1.5,
+        },
+        
+        # Allowable stress
+        'allowable_stress': {
+            'value': 2.0e9,  # Pa (2.0 GPa)
+        },
+        
+        # Thermal emissivity
+        'emissivity': {
+            'value': 0.88,
+        },
+        
+        # Maximum operating temperature (epoxy limited)
+        'max_operating_temp': {
+            'value': 423,  # K (150C)
+            'note': 'K (150C, epoxy limited)',
+        },
+    },
+    
+    'CNT_yarn': {
+        # Density
+        'density': {
+            'value': 1400,  # kg/m³
+        },
+        
+        # Tensile strength (state-of-art CNT yarn)
+        'tensile_strength': {
+            'value': 5.0e9,  # Pa (5.0 GPa)
+            'note': 'State-of-art CNT yarn',
+        },
+        
+        # Safety factor (higher for less mature technology)
+        'safety_factor': {
+            'value': 2.0,
+        },
+        
+        # Allowable stress
+        'allowable_stress': {
+            'value': 2.5e9,  # Pa (2.5 GPa)
+        },
+        
+        # Thermal emissivity (near-blackbody)
+        'emissivity': {
+            'value': 0.98,
+            'note': 'Near-blackbody',
+        },
+        
+        # Maximum operating temperature
+        'max_operating_temp': {
+            'value': 873,  # K (600C in vacuum)
+            'note': 'K (600C in vacuum)',
+        },
+    },
+    
+    'NdFeB': {
+        # Remanence (N52 grade)
+        'remanence': {
+            'value': 1.45,  # T
+            'source': 'N52 grade',
+        },
+        
+        # Coercivity
+        'coercivity': {
+            'value': 875e3,  # A/m
+            'note': 'A/m',
+        },
+        
+        # Maximum operating temperature
+        'max_operating_temp': {
+            'value': 353,  # K (80C for N52)
+            'note': 'K (80C for N52)',
+        },
+        
+        # Curie temperature
+        'curie_temp': {
+            'value': 583,  # K
+            'note': 'K',
+        },
+        
+        # Density
+        'density': {
+            'value': 7500,  # kg/m³
+        },
+    },
+    
     'SmCo': {
         # Note: SmCo is an alternative magnet material (not superconductor)
         # See TECHNICAL_SPEC.md lines 116-120 for qualitative trade study
+        
+        # Remanence
         'remanence': {
             'value': 1.1,  # T
             'source': 'Magnet manufacturer catalog',
+        },
+        
+        # Coercivity
+        'coercivity': {
+            'value': 700e3,  # A/m
+            'source': 'Magnet manufacturer catalog',
+        },
+        
+        # Maximum operating temperature
+        'max_operating_temp': {
+            'value': 573,  # K (300C)
+            'source': 'SmCo thermal stability data',
+        },
+        
+        # Curie temperature
+        'curie_temp': {
+            'value': 1023,  # K (750C)
+            'source': 'SmCo thermal stability data',
+        },
+        
+        # Density
+        'density': {
+            'value': 8400,  # kg/m³
+            'source': 'Permanent magnet material data',
+        },
+        
+        # Thermal coefficient of remanence (very stable)
+        'alpha_Br': {
+            'value': -0.0003,  # /K (-0.03%/K)
+            'source': 'SmCo thermal stability data',
+            'note': 'Very stable, 4x better than NdFeB',
         },
     },
 }
