@@ -371,16 +371,21 @@ class EarthMoonPumpingSimulator:
         v_rel = state.v - v_moon
         v_inf = np.linalg.norm(v_rel)
         
-        # Use slingshot optimizer
-        v_inertial = np.array([v_inf, 0.0, 0.0])
-        trajectory = self.slingshot.design_slingshot("moon", v_inertial)
+        if v_inf < 100.0:
+            # Too slow for effective slingshot - skip
+            return 0.0
         
-        # Apply velocity change in inertial frame
-        # Simple model: add delta-v in direction of Moon's velocity
-        dv_vec = trajectory.approach.delta_v * v_moon / np.linalg.norm(v_moon)
+        # Use slingshot optimizer with actual approach velocity vector
+        trajectory = self.slingshot.design_slingshot("moon", v_rel)
         
+        # Compute outgoing velocity in Earth-centered frame correctly
+        # v_out_earth = v_moon + v_inf_out (vector addition)
+        v_inf_out = trajectory.approach.v_infinity_out
+        v_out = v_moon + v_inf_out
+        
+        # Apply the corrected outgoing velocity
         v_before = np.linalg.norm(state.v)
-        state.v += dv_vec
+        state.v = v_out
         v_after = np.linalg.norm(state.v)
         
         actual_dv = v_after - v_before
