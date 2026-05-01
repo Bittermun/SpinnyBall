@@ -304,6 +304,13 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
         'density': {
             'value': 7500,  # kg/m³
         },
+        
+        # Thermal coefficient of remanence (4x more sensitive than SmCo)
+        'alpha_Br': {
+            'value': -0.0012,  # /K (-0.12%/K)
+            'source': 'N52 grade NdFeB thermal data',
+            'note': '4x more sensitive than SmCo (-0.03%/K)',
+        },
     },
     
     'SmCo': {
