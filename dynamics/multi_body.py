@@ -157,7 +157,7 @@ class Packet:
         return self.body.angular_velocity
 
 
-@dataclass
+@dataclass(order=True)
 class CaptureEvent:
     """Event for magnetic capture at S-Node."""
     time: float
@@ -166,13 +166,13 @@ class CaptureEvent:
     eta_ind: float
 
 
-@dataclass
+@dataclass(order=True)
 class ReleaseEvent:
     """Event for magnetic release from S-Node."""
     time: float
     packet_id: int
     node_id: int
-    target_velocity: np.ndarray
+    target_velocity: np.ndarray = field(compare=False)
 
 
 class EventQueue:

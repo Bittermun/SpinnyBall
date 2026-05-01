@@ -19,6 +19,7 @@ from __future__ import annotations
 import csv
 import math
 import argparse
+import warnings
 from pathlib import Path
 
 import matplotlib
@@ -470,9 +471,9 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             try:
                 # MPC computes optimal control inputs
                 # For reduced-order model, adjust g_gain based on MPC output
-                mpc_output = mpc_controller.compute_control(x, vx, t)
-                # Apply MPC adjustment to control gain
-                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output)
+                mpc_output = mpc_controller.solve(x0=np.array([x, vx]), x_target=np.array([0.0, 0.0]))
+                # Apply MPC adjustment to control gain (use first control input)
+                sim_params["g_gain"] = params["g_gain"] * (1.0 + 0.1 * mpc_output[0] if hasattr(mpc_output, '__getitem__') else 1.0 + 0.1 * mpc_output)
             except Exception:
                 # Fall back to default g_gain on error
                 sim_params["g_gain"] = params["g_gain"]
