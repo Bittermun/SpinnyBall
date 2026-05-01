@@ -1161,18 +1161,22 @@ def mission_level_metrics(
             k_pm_ref = pm_model.compute_stiffness(0.0, 293.0)
             
             # Estimate eddy heating from velocity and magnetic field
-            # Use eddy_heating_power from thermal_model if available
+            # Use eddy_heating_power from thermal_model with correct signature:
+            # eddy_heating_power(velocity, k_drag, radius)
+            # where k_drag is the eddy-current drag coefficient (N·s/m)
             try:
-                # Eddy heating: P_eddy ∝ B² * v² * geometry factors
-                # For SmCo packet with typical geometry
-                B_field = B_r  # Approximate surface field
-                sigma_electrical = 1e6  # Electrical conductivity (S/m) for SmCo
+                # Eddy drag coefficient: k_drag ≈ B² * σ * volume / geometry_factor
+                # For SmCo: B_r ≈ 1.1 T, σ ≈ 1e6 S/m (electrical conductivity)
+                sigma_electrical = 1e6  # S/m - typical for rare-earth magnets
                 volume = 4/3 * np.pi * r**3
-                P_eddy = eddy_heating_power(B_field, u, r, sigma_electrical)
-            except (TypeError, KeyError):
+                # Simplified eddy drag model: k_drag ∝ B² * σ * V
+                # The exact factor depends on geometry; use conservative estimate
+                k_eddy = (B_r**2) * sigma_electrical * volume * 1e-9  # Scale factor for realistic values
+                P_eddy = eddy_heating_power(u, k_eddy, r)
+            except (TypeError, KeyError, ValueError):
                 # Fallback scaling if function signature doesn't match
-                k_eddy = 1e-6  # W/(m/s)² scaling factor
-                P_eddy = k_eddy * u**2
+                k_eddy_fallback = 1e-9  # W/(m/s)² scaling factor
+                P_eddy = k_eddy_fallback * u**2
             
             # Solar heating
             solar_flux = 1361  # W/m² at 1 AU
