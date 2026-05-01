@@ -5,7 +5,7 @@ Models the critical state where current density equals J_c everywhere
 in the superconductor, creating a magnetization that opposes field changes.
 """
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 import numpy as np
 from typing import Optional
 
@@ -16,6 +16,8 @@ from dynamics.gdBCO_material import GdBCOMaterial
 class BeanLondonState:
     """State for Bean-London model."""
     penetration_depth: float  # Current flux penetration depth
+    magnetization: np.ndarray = field(default_factory=lambda: np.array([0.0]))
+    previous_field: np.ndarray = field(default_factory=lambda: np.array([0.0]))
 
 
 class BeanLondonModel:
@@ -153,3 +155,25 @@ class BeanLondonModel:
             stiffness = a * (tanh_bx + b * x * sech_bx**2)
         
         return stiffness
+
+    def update_magnetization(self, B_field: float, temperature: float) -> None:
+        """Update magnetization history for hysteresis tracking.
+        
+        Args:
+            B_field: Current magnetic field magnitude (T)
+            temperature: Temperature (K)
+        """
+        # Compute magnetization from Bean-London model
+        # M = -J_c * penetration_depth (simplified)
+        Jc = self.material.critical_current_density(B_field, temperature)
+        penetration = self.state.penetration_depth
+        magnetization = -Jc * penetration
+        
+        # Update history (keep last 100 entries)
+        self.state.magnetization = np.append(self.state.magnetization, magnetization)
+        self.state.previous_field = np.append(self.state.previous_field, B_field)
+        
+        # Limit history size
+        if len(self.state.magnetization) > 100:
+            self.state.magnetization = self.state.magnetization[-100:]
+            self.state.previous_field = self.state.previous_field[-100:]
