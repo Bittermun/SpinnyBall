@@ -5,9 +5,6 @@ __pycache__/
 *.pyo
 *.pyd
 
-# Test cache
-.pytest_cache/
-
 # Logs
 *.log
 
@@ -17,58 +14,25 @@ __pycache__/
 *.env.*
 
 # Dependencies
-venv/
 .venv/
-.env/
+venv/
+node_modules/
 
 # Build artifacts
-build/
 dist/
+build/
 target/
 
 # Coverage reports
 .coverage
-htmlcov/
 coverage/
+htmlcov/
 
-# IDE files
+# Editors
 .vscode/
 .idea/
-*.swp
-*.swo
-*.tmp
 
 # System files
 .DS_Store
 Thumbs.db
-
-# MyPy cache
-.mypy_cache/
-
-# Gradle
-.gradle/
-
-# Compressed files
-*.zip
-*.gz
-*.tar
-*.tgz
-*.bz2
-*.xz
-*.7z
-*.rar
-*.zst
-*.lz4
-*.lzh
-*.cab
-*.arj
-*.rpm
-*.deb
-*.Z
-*.lz
-*.lzo
-*.tar.gz
-*.tar.bz2
-*.tar.xz
-*.tar.zst
 ```
