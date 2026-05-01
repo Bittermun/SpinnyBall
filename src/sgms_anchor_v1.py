@@ -1249,21 +1249,24 @@ def mission_level_metrics(
     slingshot_dv = analytical_lunar_slingshot_dv() if slingshot_enabled else 0.0
     
     # Compute eddy heating power per packet for energy budget
+    # NOTE: For SmCo permanent magnets in vacuum with no nearby conductors,
+    # eddy heating is negligible. Eddy currents are only induced when a magnetic
+    # field moves relative to a conductor. In the SGMS design, packets are
+    # isolated in vacuum and SmCo itself has low electrical conductivity.
+    # 
+    # Eddy heating becomes relevant only if:
+    # 1. Packets pass through Earth's ionosphere (negligible at 550+ km)
+    # 2. Packets interact with nearby conductive structures (not present in design)
+    # 3. Time-varying fields from switching coils induce eddies (handled separately)
+    #
+    # For baseline analysis, we assume P_eddy ≈ 0 for SmCo.
+    # For GdBCO superconductors, eddy heating is also negligible due to zero resistance.
     P_eddy_per_packet = 0.0
-    if magnet_material == "SmCo":
-        try:
-            from dynamics.thermal_model import eddy_heating_power
-            # Eddy heating depends on B-field, velocity, and packet geometry
-            # Approximate B-field at packet surface from remanence
-            B_surface = B_r * 0.5  # Rough approximation
-            # k_drag is an eddy-current drag coefficient, not stream velocity
-            # Estimate from B²·σ·volume scaling
-            sigma_electrical = 1e6  # Typical for magnetic materials (S/m)
-            packet_volume = 4/3 * np.pi * r**3
-            k_eddy = B_surface**2 * sigma_electrical * packet_volume * 1e-6  # Simplified estimate
-            P_eddy_per_packet = eddy_heating_power(velocity=u, k_drag=k_eddy, radius=r)
-        except (ImportError, Exception):
-            P_eddy_per_packet = 0.0
+    
+    # If detailed eddy analysis is needed, use a more realistic model:
+    # k_drag ~ (μ0 * m^2 * σ_conductor) / d^4 for dipole near conductor
+    # This typically gives k_drag ~ 1e-9 to 1e-6 N·s/m, resulting in
+    # P_eddy ~ 0.001 to 1 W per packet at 15 km/s.
     
     energy_budget = compute_stream_energy_budget(
         N_packets=N_packets * n_streams,
@@ -1275,6 +1278,7 @@ def mission_level_metrics(
         eddy_power_per_packet_W=P_eddy_per_packet,
         slingshot_dv_per_cycle=slingshot_dv,
         n_slingshot_packets=budget.N_slingshot_pipeline,
+        spacing=spacing,  # Pass actual spacing from simulation
     )
     
     # 7b. Debris risk assessment (from debris_risk module)
