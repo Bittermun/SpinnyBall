@@ -1082,14 +1082,29 @@ def mission_level_metrics(
     # Typical fault rate: 1e-6 failures per packet per hour
     fault_rate = 1e-6
     
-    # Compute packet budget with slingshot enabled at high velocities
+    # Compute packet budget per single stream, then scale by n_streams.
+    # This ensures counter_propagating=True gives exactly 2× the mass of
+    # counter_propagating=False (the ceiling/floor operations inside
+    # compute_packet_budget would break the 2× invariant if we passed
+    # N_packets * n_streams as a single N_stream).
     slingshot_enabled = u >= 5000  # Only viable at high velocities
-    budget = compute_packet_budget(
-        N_stream=N_packets * n_streams,  # Total active packets across both streams
+    budget_per_stream = compute_packet_budget(
+        N_stream=N_packets,
         mp=mp,
         u=u,
         fault_rate_per_hr=fault_rate,
         slingshot_enabled=slingshot_enabled,
+    )
+    # Build a combined budget for reporting purposes
+    from dynamics.packet_budget import PacketBudget as _PB
+    budget = _PB(
+        N_stream=budget_per_stream.N_stream * n_streams,
+        N_slingshot_pipeline=budget_per_stream.N_slingshot_pipeline * n_streams,
+        N_spares=budget_per_stream.N_spares * n_streams,
+        N_injection_queue=budget_per_stream.N_injection_queue * n_streams,
+        N_total=budget_per_stream.N_total * n_streams,
+        M_total_kg=budget_per_stream.M_total_kg * n_streams,
+        mass_multiplier=budget_per_stream.mass_multiplier,
     )
     M_total_kg = budget.M_total_kg
     

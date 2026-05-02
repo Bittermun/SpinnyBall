@@ -45,6 +45,25 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+    torch = None
+    F = None
+    # Provide a dummy base class so class definitions don't fail at import time
+    class nn:  # type: ignore[no-redef]
+        class Module:
+            pass
+        class ModuleList(list):
+            pass
+        class Linear:
+            pass
+        class BatchNorm1d:
+            pass
+        class Dropout:
+            pass
+        class ReLU:
+            pass
+        @staticmethod
+        def Sequential(*args):
+            pass
 
 
 @dataclass

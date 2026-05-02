@@ -42,6 +42,10 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
+    # Provide a dummy base class so class definitions don't fail at import time
+    class nn:  # type: ignore[no-redef]
+        class Module:
+            pass
 
 
 @dataclass
