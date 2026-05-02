@@ -528,7 +528,7 @@ def main() -> None:
             print('='*60)
             
             results = run_mission_sobol_analysis(
-                material_profile=mat,
+                magnet_material=mat,
                 N=args.N,
                 calc_second_order=not args.no_second_order,
                 seed=args.seed,

@@ -1143,6 +1143,7 @@ def mission_level_metrics(
     # 6. Thermal margin (PHYSICS FIX #3)
     # For SmCo: compute steady-state temperature from eddy heating (v² dependent)
     # For GdBCO: operating 77K, limit 92K
+    P_eddy = 0.0  # Default initialization for all materials
     if magnet_material == "SmCo":
         # PHYSICS FIX #2: Compute SmCo steady-state temperature from thermal model
         # Eddy heating scales with v², so T_steady depends on velocity
@@ -1279,7 +1280,11 @@ def mission_level_metrics(
     #
     # For baseline analysis, we assume P_eddy ≈ 0 for SmCo.
     # For GdBCO superconductors, eddy heating is also negligible due to zero resistance.
-    P_eddy_per_packet = 0.0
+    # However, for consistency with the thermal model above (lines 1177-1193),
+    # we pass through the computed P_eddy value so the energy budget matches
+    # the thermal energy deposition. If eddy heating raises temperature, it must
+    # also drain stream energy.
+    P_eddy_per_packet = P_eddy  # Use value computed in thermal model section
     
     # If detailed eddy analysis is needed, use a more realistic model:
     # k_drag ~ (μ0 * m^2 * σ_conductor) / d^4 for dipole near conductor
