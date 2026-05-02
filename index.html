@@ -771,7 +771,7 @@ function simulate(P) {
   const Tc = 92.0; // Critical temperature (K)
   const pinningActive = P.temperature < Tc;
   const tempFactor = pinningActive ? Math.pow(1 - P.temperature / Tc, 1.5) : 0;
-  const fieldFactor = 1 / (1 + Math.pow(P.bfield / 0.1, 0.5));
+  const fieldFactor = 1 / (1 + Math.pow(P.bfield / 5.0, 0.5));
   const pinningStiffness = tempFactor * fieldFactor * P.bfield * 1000; // N/m (simplified)
 
   while (t <= t_end) {

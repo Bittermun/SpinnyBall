@@ -434,6 +434,11 @@ class CascadeRunner:
                                 nodes_affected.add(node.id)
                                 fault_events_injected += 1
                                 logger.debug(f"Guaranteed fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
+                                
+                                # Cascade propagation for guaranteed faults
+                                if self.config.enable_cascade_propagation:
+                                    gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
+                                    cascade_generations = max(cascade_generations, gen)
 
             # NEW: Poisson fault injection (Root Cause #1)
             if self.config.fault_injection_mode == "poisson" and poisson_n_faults > 0:

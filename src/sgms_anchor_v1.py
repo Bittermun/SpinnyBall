@@ -20,6 +20,7 @@ import csv
 import math
 import argparse
 import warnings
+import logging
 from pathlib import Path
 from typing import Optional, Dict
 
@@ -28,6 +29,10 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
+
+# Configure logging
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
 from scipy.integrate import solve_ivp
 
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
@@ -42,6 +47,7 @@ except ImportError:
     STREAM_BALANCE_AVAILABLE = False
     StreamBalanceController = None
     StreamBalanceConfig = None
+    logger.warning("Stream balance controller not available - stream balance features disabled")
 
 # Optional MPC controller
 try:
@@ -51,6 +57,7 @@ except ImportError:
     MPC_AVAILABLE = False
     MPCController = None
     ConfigurationMode = None
+    logger.warning("MPC controller not available - MPC features disabled")
 
 # Optional orbital perturbations
 try:
@@ -60,6 +67,7 @@ except ImportError:
     ORBITAL_PERTURBATIONS_AVAILABLE = False
     get_orbital_perturbation_force = None
     create_orbital_state_from_params = None
+    logger.warning("Orbital perturbations module not available - simplified orbital model used")
 
 
 # Default Bean-London model configuration (for backward compatibility)
@@ -280,18 +288,33 @@ def simulate_anchor_with_flux_pinning(
         # Calculate dynamic flux-pinning stiffness
         k_fp = flux_model.get_stiffness(x, B, T)
 
-        # Effective stiffness
+        # Effective stiffness (flux-pinning + structural)
         k_eff = k_fp + params["k_structural"] if "k_structural" in params else k_fp
 
+        # Calculate stream force (momentum flux restoring force)
+        # This was missing - causing identical results across parameter variations
+        lam_u2 = params["lam"] * params["u"] ** 2
+        theta_cmd = params["g_gain"] * x
+        theta_plus = params["theta_bias"] - 0.5 * theta_cmd
+        theta_minus = params["theta_bias"] + 0.5 * theta_cmd
+        f_stream = (1.0 + params["eps"]) * lam_u2 * theta_plus - (1.0 - params["eps"]) * lam_u2 * theta_minus
+
         # Velocity Verlet integration
-        # m_s * x_ddot + c_damp * x_dot + k_eff * x = 0
-        a_old = -(params["c_damp"] * v + k_eff * x) / params["ms"]
+        # m_s * x_ddot + c_damp * x_dot + k_eff * x = f_stream
+        a_old = (f_stream - params["c_damp"] * v - k_eff * x) / params["ms"]
         x += v * dt + 0.5 * a_old * dt**2
 
-        # Recompute k_fp at new position for next acceleration
+        # Recompute forces at new position for next acceleration
         k_fp_new = flux_model.get_stiffness(x, B, T)
         k_eff_new = k_fp_new + params["k_structural"] if "k_structural" in params else k_fp_new
-        a_new = -(params["c_damp"] * (v + a_old * dt) + k_eff_new * x) / params["ms"]
+        
+        # Recalculate stream force at new position
+        theta_cmd_new = params["g_gain"] * x
+        theta_plus_new = params["theta_bias"] - 0.5 * theta_cmd_new
+        theta_minus_new = params["theta_bias"] + 0.5 * theta_cmd_new
+        f_stream_new = (1.0 + params["eps"]) * lam_u2 * theta_plus_new - (1.0 - params["eps"]) * lam_u2 * theta_minus_new
+        
+        a_new = (f_stream_new - params["c_damp"] * (v + a_old * dt) - k_eff_new * x) / params["ms"]
         v += 0.5 * (a_old + a_new) * dt
 
         k_fp = k_fp_new
@@ -1156,6 +1179,7 @@ def mission_level_metrics(
         )
     except ImportError:
         # Fallback: simplified formula σ = ρ * ω² * r² * 0.5
+        logger.warning("Stress monitoring module not available - using simplified stress formula")
         centrifugal_stress = density * omega**2 * r**2 * 0.5
     
     # Stress margin: ratio of allowable to actual stress
@@ -1239,9 +1263,10 @@ def mission_level_metrics(
             
             # Now compute actual PM stiffness at this temperature
             k_eff_pm = pm_model.compute_stiffness(0.0, T_steady_state)
-            
+
         except ImportError:
             # Fallback if thermal_model not available
+            logger.warning("Thermal model not available - using baseline temperature 379K")
             T_steady_state = 379.0  # Documented baseline
             # Use simplified PM stiffness model
             mu0 = 1.25663706212e-6
@@ -1281,6 +1306,7 @@ def mission_level_metrics(
         P_injection_kW = injection_budget['steady_state_power_kW']
     except ImportError:
         # Fallback if energy_injection module not available
+        logger.warning("Energy injection module not available - assuming zero injection power")
         P_injection_kW = 0.0
     
     # Total power includes cryocooler, control, and injection
@@ -1339,6 +1365,7 @@ def mission_level_metrics(
         debris_risk_score = debris['overall_risk_score']
         kessler_ratio = debris['kessler_risk']['kessler_ratio']
     except ImportError:
+        logger.warning("Debris risk module not available - assuming zero debris risk")
         debris_risk_score = 0.0
         kessler_ratio = 0.0
     
@@ -1477,8 +1504,9 @@ def main() -> None:
             np.savez(output_dir / "sobol_smco.npz", **results_smco)
             np.savez(output_dir / "sobol_gdbco.npz", **results_gdbco)
             print(f"\nResults saved to {output_dir}/")
-            
+
         except ImportError as e:
+            logger.error(f"SALib or required dependencies not available: {e}")
             print(f"Error: SALib or required dependencies not available: {e}")
             print("Install with: pip install SALib")
             return
