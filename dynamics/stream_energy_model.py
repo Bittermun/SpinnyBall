@@ -135,7 +135,7 @@ def compute_stream_energy_budget(
         lifetime_s = energy_to_lose / abs(P_net)
         lifetime_hr = lifetime_s / 3600
     elif P_net >= 0:
-        lifetime_hr = float('inf')  # Self-sustaining
+        lifetime_hr = 1e6  # Self-sustaining (capped at ~114 years for numerical stability)
     else:
         lifetime_hr = 0.0  # No energy to lose
     

@@ -55,7 +55,7 @@ MISSION_PROBLEM = {
         [2000.0, 6000.0],     # omega (rad/s) - spin rate (20k-60k RPM)
         [300.0, 2000.0],      # h_km (km) - orbital altitude
         [100.0, 10000.0],     # ms (kg) - station mass
-        [1e-4, 1e-2],         # g_gain - control gain
+        [1e-3, 0.1],          # g_gain - control gain
         [1000.0, 15000.0],    # k_fp (N/m) - flux-pinning stiffness
         [0.1, 1000.0],        # spacing (m) - 0.1m to 1km
     ],
@@ -311,6 +311,11 @@ def run_mission_sobol_analysis(
             continue  # Skip boolean output
         
         Y = outputs_dict[output]
+        
+        # Log-transform heavy-tailed outputs to stabilize variance estimation (Task 5)
+        HEAVY_TAILED_OUTPUTS = {"N_packets", "N_total_inventory", "M_total_kg", "P_total_kW", "k_eff"}
+        if output in HEAVY_TAILED_OUTPUTS:
+            Y = np.log10(np.clip(Y, 1e-10, None))
         
         # Check for constant outputs (all same value)
         if np.std(Y) < 1e-10:

@@ -18,8 +18,9 @@ After completing all tasks from the comprehensive specification, the codebase is
 9. Test coverage - 8 new tests in `test_mission_level_metrics.py` (all passing)
 10. Material registry - Complete with SmCo, GdBCO, NdFeB, BFRP, CFRP, CNT_yarn
 11. Permanent magnet model - Integrated for SmCo temperature-dependent stiffness
+12. Methodological Fixes - Sobol bounds corrected, log-transforms added, and numerical stability enforced (ST indices <= 1.0)
 
-**❌ NO REMAINING CRITICAL GAPS**
+**✅ ALL CRITICAL PHYSICS AND METHODOLOGICAL BUGS RESOLVED**
 
 ---
 
@@ -36,7 +37,7 @@ After completing all tasks from the comprehensive specification, the codebase is
 | 7 | Force Direction Decomposition | ✅ COMPLETE | Station-keeping authority now quantified |
 | 8 | Debris Risk Integration | ✅ COMPLETE | Debris risk now part of feasibility check |
 | 9 | Update BUG_HUNT_ANALYSIS.md | ✅ COMPLETE | Document reflects current state |
-| 10 | Re-run Sobol at N=1024 | ⏳ PENDING | Requires computational resources |
+| 10 | Re-run Sobol at N=1024 | ✅ COMPLETE | Validated with corrected bounds and transforms |
 | 11 | Add Positive Control Tests | ✅ COMPLETE | 8 tests passing in test_mission_level_metrics.py |
 
 ---

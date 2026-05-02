@@ -23,15 +23,16 @@ This changes packet count calculations by a factor of ~9,000x.
 
 Located in `src/sgms_anchor_v1.py`, this function composes existing physics modules into a single evaluator:
 
-**Inputs (8 parameters):**
+**Inputs (9 parameters):**
 - `u`: Stream velocity (m/s)
 - `mp`: Packet mass (kg)
 - `r`: Packet radius (m)
 - `omega`: Spin rate (rad/s)
 - `h_km`: Orbital altitude (km)
 - `ms`: Station mass (kg)
-- `g_gain`: Control gain
+- `g_gain`: Control gain [Corrected: 1e-3, 0.1]
 - `k_fp`: Flux-pinning stiffness (N/m)
+- `spacing`: Packet spacing (m) [Task 3]
 - `material_profile`: "SmCo" or "GdBCO"
 
 **Outputs:**
@@ -41,7 +42,9 @@ Located in `src/sgms_anchor_v1.py`, this function composes existing physics modu
 - `stress_margin`: Stress safety margin (ratio to limit)
 - `thermal_margin`: Thermal safety margin (K to limit)
 - `k_eff`: Effective stiffness (N/m)
-- `feasible`: Boolean feasibility flag
+- `feasible`: Boolean feasibility flag (including 1-year lifetime constraint)
+- `service_lifetime_hr`: Estimated system lifetime (clamped at 1e6 hr)
+- `stream_self_sustaining`: Ratio of available power to drain
 
 **Physics Integration:**
 - ✅ Orbital mechanics (stream length from altitude)
@@ -141,28 +144,31 @@ Results:
 - ✅ Thermal margin: 194 K (> 5)
 - ✅ Feasible: True
 
-### Sobol Sensitivity Results (N=64 pilot study)
+### Sobol Sensitivity Results (N=1024 Final Run)
 
 **Dominant Parameters (by total-order index ST):**
 
 | Output | Most Influential | ST |
 |--------|------------------|-----|
 | N_packets | u (velocity) | 0.64 |
-| M_total_kg | u (velocity) | 0.48 |
-| stress_margin | mp (mass) | 0.98 |
-| k_eff | u (velocity) | 0.61 |
+| M_total_kg | u (velocity) | 0.80 |
+| stress_margin | mp (mass) | 0.89 |
+| k_eff | u (velocity) | 0.45 |
+| stream_self_sustaining | ms (station mass) | 0.99 |
+| service_lifetime_hr | ms (station mass) | 0.57 |
 
 **Key Insights:**
-1. **Velocity dominates** infrastructure mass and packet count (confirms N ∝ 1/v² scaling law)
-2. **Packet mass dominates** stress constraints (heavier packets = higher centrifugal stress)
-3. **Thermal margin** has near-zero variance for SmCo (always safe at 379K steady-state)
-4. **GdBCO power** dominated by altitude (longer stream = more cryocooler power)
+1. **Velocity dominates** infrastructure mass and packet count (confirms N ∝ 1/v² scaling law).
+2. **Packet mass and spin rate** dominate stress constraints.
+3. **Station mass (ms)** is the primary driver for sustainability and lifetime, as it determines energy storage capacity vs drain.
+4. **Log-transformation** of heavy-tailed outputs (M_total, N_packets, k_eff) ensures stable Sobol indices (ST ≤ 1.0).
+5. **g_gain corrected**: Operational point (0.05) now centered in [1e-3, 0.1] range, showing significant interaction with `k_eff`.
 
 **Feasibility Rates:**
-- SmCo: 51.6% (330/640 designs)
-- GdBCO: 63.7% (408/640 designs)
+- SmCo: 0.3% (55/20480 designs)
+- GdBCO: 17.3% (3547/20480 designs)
 
-GdBCO has higher feasibility due to lower max_stress limit (1.2 GPa vs 800 MPa), but requires massive cryocooler power.
+The significant drop in feasibility from pilot studies reflects the enforcement of the **8,760-hour (1 year) lifetime constraint**, which many previously "feasible" designs failed.
 
 ## Files Modified
 

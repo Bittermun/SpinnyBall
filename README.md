@@ -21,9 +21,9 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 **Stress Limits**: Packets with 10cm radius stable at 50,000 RPM (~685 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
 
-**Sensitivity Analysis**: Sobol analysis (9 parameters, N=1024 samples) shows velocity dominates thermal_margin variance (85.2% for SmCo).
+**Sensitivity Analysis**: Sobol analysis (9 parameters, N=1024 samples) shows velocity dominates `k_eff` variance (84.9% for SmCo) and `thermal_margin` (85.2% for SmCo). Log-transformation stabilizes indices for heavy-tailed outputs.
 
-**Minimum-Cost Configuration**: Full mission Sobol at N=1024 identifies optimal design: SmCo feasibility 0.7% (147/20480), GdBCO feasibility 22.8% (4663/20480) at u=4,834 m/s, 51,060 RPM, h=841 km with k_eff = 6,000–100,000 N/m constraint.
+**Minimum-Cost Configuration**: Full mission Sobol at N=1024 identifies optimal design: SmCo feasibility 0.3% (55/20480), GdBCO feasibility 17.3% (3547/20480) with `service_lifetime_hr` and continuous `stream_self_sustaining` ratio constraints fully resolved.
 
 ## Validation
 

@@ -999,25 +999,33 @@ def mission_level_metrics(
         max_stress = 800e6  # Pa
     
     # Get magnet material properties
-    if magnet_material == "GdBCO":
-        T_limit = 92.0  # K - critical temperature
+    if magnet_material in ["GdBCO", "YBCO"]:
+        # Get properties from registry
+        if magnet_material in MATERIAL_PROPERTIES:
+            props = MATERIAL_PROPERTIES[magnet_material]
+            T_limit = props.get('Tc', {}).get('value', 92.0)
+        else:
+            T_limit = 92.0  # K - critical temperature
+            
         T_operating = 77.0  # K - typical operating temp
         cryocooler_power_per_m = 0.05  # kW/m (50 W/km from TECHNICAL_SPEC)
-        # For GdBCO, k_fp is provided as parameter (from Bean-London model)
-        k_eff_pm = None  # Not used for GdBCO
-    elif magnet_material == "SmCo":
-        # Get SmCo properties from registry if available
-        if 'SmCo' in MATERIAL_PROPERTIES:
-            smco_props = MATERIAL_PROPERTIES['SmCo']
-            T_limit = smco_props.get('max_operating_temp', {}).get('value', 573.0)
-            B_r = smco_props.get('remanence', {}).get('value', 1.1)
-            alpha_Br = smco_props.get('alpha_Br', {}).get('value', -0.0003)
+        # For HTS, k_fp is provided as parameter (from Bean-London model)
+        k_eff_pm = None  # Not used for HTS
+    elif magnet_material in ["SmCo", "NdFeB"]:
+        # Get properties from registry if available
+        if magnet_material in MATERIAL_PROPERTIES:
+            props = MATERIAL_PROPERTIES[magnet_material]
+            T_limit = props.get('max_operating_temp', {}).get('value', 573.0 if magnet_material == "SmCo" else 353.0)
+            B_r = props.get('remanence', {}).get('value', 1.1 if magnet_material == "SmCo" else 1.45)
+            alpha_Br = props.get('alpha_Br', {}).get('value', -0.0003 if magnet_material == "SmCo" else -0.0012)
         else:
-            T_limit = 573.0  # K - maximum operating temp for SmCo
-            B_r = 1.1  # T
-            alpha_Br = -0.0003  # /K
+            # Fallbacks
+            if magnet_material == "SmCo":
+                T_limit = 573.0; B_r = 1.1; alpha_Br = -0.0003
+            else: # NdFeB
+                T_limit = 353.0; B_r = 1.45; alpha_Br = -0.0012
+        
         cryocooler_power_per_m = 0.0  # No cryocooling needed
-        # For SmCo, compute k_fp from permanent magnet model
         k_eff_pm = None  # Will be computed below with thermal model
     else:
         raise ValueError(f"Unknown magnet material: {magnet_material}")
@@ -1144,8 +1152,8 @@ def mission_level_metrics(
     # For SmCo: compute steady-state temperature from eddy heating (v² dependent)
     # For GdBCO: operating 77K, limit 92K
     P_eddy = 0.0  # Default initialization for all materials
-    if magnet_material == "SmCo":
-        # PHYSICS FIX #2: Compute SmCo steady-state temperature from thermal model
+    if magnet_material in ["SmCo", "NdFeB"]:
+        # PHYSICS FIX #2: Compute PM steady-state temperature from thermal model
         # Eddy heating scales with v², so T_steady depends on velocity
         try:
             from dynamics.thermal_model import steady_state_temperature, eddy_heating_power
@@ -1165,12 +1173,12 @@ def mission_level_metrics(
                 equilibrium_gap=pm_geometry['equilibrium_gap'],
                 config_type=pm_geometry.get('config_type', 'axial')
             )
-            smco_mat_props = {
+            pm_mat_props = {
                 'remanence': B_r,
                 'coercivity': 700e3,
                 'alpha_Br': alpha_Br
             }
-            pm_model = PermanentMagnetModel(smco_mat_props, pm_geom_obj)
+            pm_model = PermanentMagnetModel(pm_mat_props, pm_geom_obj)
             
             # Compute stiffness at reference temp for thermal calculation
             k_pm_ref = pm_model.compute_stiffness(0.0, 293.0)
@@ -1201,13 +1209,14 @@ def mission_level_metrics(
             P_total_heat = P_eddy + P_solar
             
             # Use steady_state_temperature from thermal_model
-            specific_heat_smco = 180  # J/kg/K (typical for SmCo)
+            # Specific heat: SmCo ~180, NdFeB ~440 J/kg/K
+            specific_heat_pm = 180 if magnet_material == "SmCo" else 440
             T_steady_state = steady_state_temperature(
                 power_in=P_total_heat,
                 mass=mp,
                 radius=r,
                 emissivity=emissivity,
-                specific_heat=specific_heat_smco,
+                specific_heat=specific_heat_pm,
                 ambient_temp=3.0
             )
             
@@ -1265,7 +1274,7 @@ def mission_level_metrics(
     P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
     
     # Stream energy sustainability analysis
-    slingshot_dv = analytical_lunar_slingshot_dv() if slingshot_enabled else 0.0
+    slingshot_dv = analytical_lunar_slingshot_dv(v_inf=u) if slingshot_enabled else 0.0
     
     # Compute eddy heating power per packet for energy budget
     # NOTE: For SmCo permanent magnets in vacuum with no nearby conductors,
@@ -1401,7 +1410,7 @@ def mission_level_metrics(
         "slingshot_power_W": energy_budget.power_replenishment_slingshot_W,
         "stream_net_power_W": energy_budget.net_power_W,
         "service_lifetime_hr": energy_budget.service_lifetime_hours,
-        "stream_self_sustaining": energy_budget.net_power_W >= 0,
+        "stream_self_sustaining": energy_budget.net_power_W / max(abs(energy_budget.power_drain_station_W + energy_budget.power_drain_eddy_W), 1e-10),
         "slingshot_dv_m_s": slingshot_dv,
     }
 
