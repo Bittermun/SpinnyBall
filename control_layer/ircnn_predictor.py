@@ -18,7 +18,25 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
     torch = None
-    nn = None
+    # Provide dummy stubs so class definitions don't fail at import time.
+    # All stub classes accept *args/**kwargs so instantiation with arguments
+    # (as real PyTorch layers require) raises ImportError rather than TypeError.
+    class nn:  # type: ignore[no-redef]
+        class Module:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class ModuleList:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class Linear:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class ReLU:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        @staticmethod
+        def Sequential(*args):
+            raise ImportError("PyTorch is required. Install with: pip install torch")
 
 logger = logging.getLogger(__name__)
 

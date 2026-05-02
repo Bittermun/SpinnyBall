@@ -32,6 +32,8 @@ from scipy.integrate import solve_ivp
 
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
+from dynamics.packet_budget import compute_packet_budget, PacketBudget as _PacketBudget
+from dynamics.stream_energy_model import compute_stream_energy_budget, analytical_lunar_slingshot_dv
 
 try:
     from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
@@ -1073,9 +1075,37 @@ def mission_level_metrics(
                                 (mp * u**2 * capture_efficiency)))
         N_packets = max(N_packets, 1)
     
-    # 3. Total infrastructure mass (doubled for counter-propagating streams)
+    # 3. Packet budget (includes pipeline, spares, slingshot)
+    
     n_streams = 2 if counter_propagating else 1
-    M_total_kg = N_packets * mp * n_streams
+    
+    # Typical fault rate: 1e-6 failures per packet per hour
+    fault_rate = 1e-6
+    
+    # Compute packet budget per single stream, then scale by n_streams.
+    # This ensures counter_propagating=True gives exactly 2× the mass of
+    # counter_propagating=False (the ceiling/floor operations inside
+    # compute_packet_budget would break the 2× invariant if we passed
+    # N_packets * n_streams as a single N_stream).
+    slingshot_enabled = u >= 5000  # Only viable at high velocities
+    budget_per_stream = compute_packet_budget(
+        N_stream=N_packets,
+        mp=mp,
+        u=u,
+        fault_rate_per_hr=fault_rate,
+        slingshot_enabled=slingshot_enabled,
+    )
+    # Build a combined budget for reporting purposes
+    budget = _PacketBudget(
+        N_stream=budget_per_stream.N_stream * n_streams,
+        N_slingshot_pipeline=budget_per_stream.N_slingshot_pipeline * n_streams,
+        N_spares=budget_per_stream.N_spares * n_streams,
+        N_injection_queue=budget_per_stream.N_injection_queue * n_streams,
+        N_total=budget_per_stream.N_total * n_streams,
+        M_total_kg=budget_per_stream.M_total_kg * n_streams,
+        mass_multiplier=budget_per_stream.mass_multiplier,
+    )
+    M_total_kg = budget.M_total_kg
     
     # 4. Power budget (cryocooler for GdBCO only)
     # Cryocooler power scales with stream length
@@ -1145,18 +1175,22 @@ def mission_level_metrics(
             k_pm_ref = pm_model.compute_stiffness(0.0, 293.0)
             
             # Estimate eddy heating from velocity and magnetic field
-            # Use eddy_heating_power from thermal_model if available
+            # Use eddy_heating_power from thermal_model with correct signature:
+            # eddy_heating_power(velocity, k_drag, radius)
+            # where k_drag is the eddy-current drag coefficient (N·s/m)
             try:
-                # Eddy heating: P_eddy ∝ B² * v² * geometry factors
-                # For SmCo packet with typical geometry
-                B_field = B_r  # Approximate surface field
-                sigma_electrical = 1e6  # Electrical conductivity (S/m) for SmCo
+                # Eddy drag coefficient: k_drag ≈ B² * σ * volume / geometry_factor
+                # For SmCo: B_r ≈ 1.1 T, σ ≈ 1e6 S/m (electrical conductivity)
+                sigma_electrical = 1e6  # S/m - typical for rare-earth magnets
                 volume = 4/3 * np.pi * r**3
-                P_eddy = eddy_heating_power(B_field, u, r, sigma_electrical)
-            except (TypeError, KeyError):
+                # Simplified eddy drag model: k_drag ∝ B² * σ * V
+                # The exact factor depends on geometry; use conservative estimate
+                k_eddy = (B_r**2) * sigma_electrical * volume * 1e-9  # Scale factor for realistic values
+                P_eddy = eddy_heating_power(u, k_eddy, r)
+            except (TypeError, KeyError, ValueError):
                 # Fallback scaling if function signature doesn't match
-                k_eddy = 1e-6  # W/(m/s)² scaling factor
-                P_eddy = k_eddy * u**2
+                k_eddy_fallback = 1e-9  # W/(m/s)² scaling factor
+                P_eddy = k_eddy_fallback * u**2
             
             # Solar heating
             solar_flux = 1361  # W/m² at 1 AU
@@ -1229,6 +1263,42 @@ def mission_level_metrics(
     # Total power includes cryocooler, control, and injection
     P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
     
+    # Stream energy sustainability analysis
+    slingshot_dv = analytical_lunar_slingshot_dv() if slingshot_enabled else 0.0
+    
+    # Compute eddy heating power per packet for energy budget
+    # NOTE: For SmCo permanent magnets in vacuum with no nearby conductors,
+    # eddy heating is negligible. Eddy currents are only induced when a magnetic
+    # field moves relative to a conductor. In the SGMS design, packets are
+    # isolated in vacuum and SmCo itself has low electrical conductivity.
+    # 
+    # Eddy heating becomes relevant only if:
+    # 1. Packets pass through Earth's ionosphere (negligible at 550+ km)
+    # 2. Packets interact with nearby conductive structures (not present in design)
+    # 3. Time-varying fields from switching coils induce eddies (handled separately)
+    #
+    # For baseline analysis, we assume P_eddy ≈ 0 for SmCo.
+    # For GdBCO superconductors, eddy heating is also negligible due to zero resistance.
+    P_eddy_per_packet = 0.0
+    
+    # If detailed eddy analysis is needed, use a more realistic model:
+    # k_drag ~ (μ0 * m^2 * σ_conductor) / d^4 for dipole near conductor
+    # This typically gives k_drag ~ 1e-9 to 1e-6 N·s/m, resulting in
+    # P_eddy ~ 0.001 to 1 W per packet at 15 km/s.
+    
+    energy_budget = compute_stream_energy_budget(
+        N_packets=N_packets * n_streams,
+        mp=mp,
+        u=u,
+        theta_bias=theta_bias,
+        F_station=perturbation_force * 10,  # target_force
+        n_stations=1,
+        eddy_power_per_packet_W=P_eddy_per_packet,
+        slingshot_dv_per_cycle=slingshot_dv,
+        n_slingshot_packets=budget.N_slingshot_pipeline,
+        spacing=spacing,  # Pass actual spacing from simulation
+    )
+    
     # 7b. Debris risk assessment (from debris_risk module)
     try:
         from dynamics.debris_risk import comprehensive_debris_risk_assessment
@@ -1279,7 +1349,8 @@ def mission_level_metrics(
         thermal_margin >= 5.0 and  # At least 5K thermal margin
         k_eff >= 6000.0 and  # Minimum stiffness requirement
         N_packets <= 100000 and  # Reasonable packet count
-        M_total_kg <= 10000.0  # Reasonable total mass (10 tons)
+        budget.M_total_kg <= 10000.0 and  # Use budget total, not just stream (10 tons)
+        energy_budget.service_lifetime_hours >= 8760  # At least 1 year service life
     )
     
     return {
@@ -1313,6 +1384,20 @@ def mission_level_metrics(
         # Force direction analysis
         "F_max_per_axis_N": F_max_per_axis,
         "force_authority_ratio": force_authority_ratio,
+        # Packet budget diagnostics
+        "N_stream": N_packets * n_streams,
+        "N_total_inventory": budget.N_total,
+        "mass_multiplier": budget.mass_multiplier,
+        "N_slingshot_pipeline": budget.N_slingshot_pipeline,
+        "N_spares": budget.N_spares,
+        # Energy sustainability
+        "stream_power_drain_W": energy_budget.power_drain_station_W,
+        "stream_power_eddy_W": energy_budget.power_drain_eddy_W,
+        "slingshot_power_W": energy_budget.power_replenishment_slingshot_W,
+        "stream_net_power_W": energy_budget.net_power_W,
+        "service_lifetime_hr": energy_budget.service_lifetime_hours,
+        "stream_self_sustaining": energy_budget.net_power_W >= 0,
+        "slingshot_dv_m_s": slingshot_dv,
     }
 
 

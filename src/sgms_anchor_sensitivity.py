@@ -63,7 +63,9 @@ MISSION_PROBLEM = {
 
 MISSION_OUTPUTS = (
     "N_packets",
+    "N_total_inventory",
     "M_total_kg",
+    "mass_multiplier",
     "P_total_kW",
     "stress_margin",
     "thermal_margin",
@@ -71,6 +73,9 @@ MISSION_OUTPUTS = (
     "feasible",
     "debris_risk_score",
     "kessler_ratio",
+    "stream_self_sustaining",
+    "service_lifetime_hr",
+    "slingshot_dv_m_s",
 )
 
 
