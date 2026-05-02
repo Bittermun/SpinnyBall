@@ -42,10 +42,19 @@ try:
     TORCH_AVAILABLE = True
 except ImportError:
     TORCH_AVAILABLE = False
-    # Provide a dummy base class so class definitions don't fail at import time
+    # Provide dummy stubs so class definitions don't fail at import time.
+    # The stub Module accepts *args/**kwargs so instantiation raises ImportError
+    # rather than a confusing TypeError.
     class nn:  # type: ignore[no-redef]
         class Module:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class Linear:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class ReLU:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
 
 
 @dataclass

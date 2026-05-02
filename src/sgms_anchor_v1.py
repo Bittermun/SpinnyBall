@@ -32,6 +32,8 @@ from scipy.integrate import solve_ivp
 
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
+from dynamics.packet_budget import compute_packet_budget, PacketBudget as _PacketBudget
+from dynamics.stream_energy_model import compute_stream_energy_budget, analytical_lunar_slingshot_dv
 
 try:
     from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
@@ -1074,8 +1076,6 @@ def mission_level_metrics(
         N_packets = max(N_packets, 1)
     
     # 3. Packet budget (includes pipeline, spares, slingshot)
-    from dynamics.packet_budget import compute_packet_budget
-    from dynamics.stream_energy_model import compute_stream_energy_budget, analytical_lunar_slingshot_dv
     
     n_streams = 2 if counter_propagating else 1
     
@@ -1096,8 +1096,7 @@ def mission_level_metrics(
         slingshot_enabled=slingshot_enabled,
     )
     # Build a combined budget for reporting purposes
-    from dynamics.packet_budget import PacketBudget as _PB
-    budget = _PB(
+    budget = _PacketBudget(
         N_stream=budget_per_stream.N_stream * n_streams,
         N_slingshot_pipeline=budget_per_stream.N_slingshot_pipeline * n_streams,
         N_spares=budget_per_stream.N_spares * n_streams,

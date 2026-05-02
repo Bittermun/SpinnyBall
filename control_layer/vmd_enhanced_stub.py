@@ -47,23 +47,33 @@ except ImportError:
     TORCH_AVAILABLE = False
     torch = None
     F = None
-    # Provide a dummy base class so class definitions don't fail at import time
+    # Provide dummy stubs so class definitions don't fail at import time.
+    # All stub classes accept *args/**kwargs to avoid TypeError on instantiation;
+    # they raise ImportError instead, which is a clearer error message.
+    # Note: ModuleList stub does NOT inherit from list — unlike nn.ModuleList,
+    # the real PyTorch class is not a plain list.
     class nn:  # type: ignore[no-redef]
         class Module:
-            pass
-        class ModuleList(list):
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
+        class ModuleList:
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
         class Linear:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
         class BatchNorm1d:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
         class Dropout:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
         class ReLU:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
         @staticmethod
         def Sequential(*args):
-            pass
+            raise ImportError("PyTorch is required. Install with: pip install torch")
 
 
 @dataclass

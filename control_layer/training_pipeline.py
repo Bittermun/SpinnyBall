@@ -24,10 +24,13 @@ try:
 except ImportError:
     TORCH_AVAILABLE = False
     torch = None
-    # Provide a dummy base class so class definitions don't fail at import time
+    # Provide a dummy stub so class definitions that extend nn.Module don't
+    # fail at import time. The stub raises ImportError on instantiation to
+    # give a clear error message.
     class nn:  # type: ignore[no-redef]
         class Module:
-            pass
+            def __init__(self, *args, **kwargs):
+                raise ImportError("PyTorch is required. Install with: pip install torch")
     Dataset = None
     DataLoader = None
 
