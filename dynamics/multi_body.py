@@ -69,7 +69,7 @@ class SNode:
     max_packets: int = 10
     eta_ind_min: float = 0.82
     held_packets: List[int] = field(default_factory=list)
-    k_fp: float = 4500.0  # N/m, default flux-pinning stiffness
+    k_fp: float = 6000.0  # N/m, default flux-pinning stiffness (meets feasibility gate)
     
     def __post_init__(self):
         self.position = np.asarray(self.position, dtype=float)

@@ -8,7 +8,6 @@ for flux-pinning stiffness calculations.
 from dataclasses import dataclass
 import numpy as np
 
-
 @dataclass
 class GdBCOProperties:
     """Material properties for GdBCO superconductor."""

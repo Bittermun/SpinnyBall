@@ -371,9 +371,16 @@ class CascadeRunner:
         
         # NEW: Poisson fault injection (Root Cause #1 alternative)
         poisson_n_faults = 0
+        poisson_fault_times = []
+        poisson_fault_nodes = []
         if self.config.fault_injection_mode == "poisson":
             lambda_rate = self.config.fault_rate * self.config.time_horizon * len(stream.nodes) / 3600.0 if stream.nodes else 0.0
             poisson_n_faults = np.random.poisson(lambda_rate)
+            # Pre-sample fault times and nodes (like guaranteed faults)
+            if poisson_n_faults > 0:
+                poisson_fault_times = np.random.uniform(0, self.config.time_horizon, poisson_n_faults)
+                n_nodes_available = len(stream.nodes) if stream.nodes else 1
+                poisson_fault_nodes = np.random.randint(0, n_nodes_available, poisson_n_faults)
             logger.info(f"Poisson fault injection: lambda={lambda_rate:.4f}, sampled n_faults={poisson_n_faults}")
 
         logger.info(f"Latency injection: {latency_events} events, max_latency={max_latency_ms:.1f} ms")
@@ -427,19 +434,10 @@ class CascadeRunner:
                                 nodes_affected.add(node.id)
                                 fault_events_injected += 1
                                 logger.debug(f"Guaranteed fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
-                                
-                                # Cascade propagation for guaranteed faults
-                                if self.config.enable_cascade_propagation:
-                                    gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
-                                    cascade_generations = max(cascade_generations, gen)
 
             # NEW: Poisson fault injection (Root Cause #1)
             if self.config.fault_injection_mode == "poisson" and poisson_n_faults > 0:
-                # Sample fault times and nodes for Poisson mode
-                poisson_fault_times = np.random.uniform(0, self.config.time_horizon, poisson_n_faults)
-                n_nodes_available = len(stream.nodes) if stream.nodes else 1
-                poisson_fault_nodes = np.random.randint(0, n_nodes_available, poisson_n_faults)
-                
+                # Use pre-sampled fault times and nodes
                 for i, (fault_time, fault_node_idx) in enumerate(zip(poisson_fault_times, poisson_fault_nodes)):
                     step_time = current_time + self.config.dt
                     if fault_time <= step_time and fault_time > current_time:

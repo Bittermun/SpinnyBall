@@ -35,6 +35,7 @@ try:
     )
     from dynamics.bean_london_model import BeanLondonModel
     from dynamics.gravity_slingshot import GravitySlingshotOptimizer, GravityBody
+    from params.canonical_values import get_parameter, MATERIAL_PROPERTIES
 except ImportError:
     from flux_gyroscopic_dynamics import (
         FluxGyroscopicCoupledSystem, FluxGyroState, FluxGyroConfig,
@@ -42,6 +43,7 @@ except ImportError:
     )
     from bean_london_model import BeanLondonModel
     from gravity_slingshot import GravitySlingshotOptimizer, GravityBody
+    from params.canonical_values import get_parameter, MATERIAL_PROPERTIES
 
 
 # Physical Constants
@@ -157,9 +159,9 @@ class EarthMoonPumpingSimulator:
         self,
         ball_mass: float = 35.0,
         superconductor_volume: float = 0.0001,  # 100 ml
-        Jc: float = 2e9,  # A/m^2 critical current (GdBCO)
+        Jc: float = None,  # A/m^2 critical current (GdBCO) - defaults to canonical 3e10
         B_field: float = 5.0,  # Tesla (strong field)
-        flux_coupling: float = 1.5e-5,  # Force coupling factor (realistic)
+        flux_coupling: float = 1.5e-6,  # Force coupling factor (adjusted for Jc=3e10)
         max_thrust_duration: float = 3600.0  # 1 hour max continuous burn
     ):
         """
@@ -173,6 +175,9 @@ class EarthMoonPumpingSimulator:
             flux_coupling: Force coupling factor (realistic ~1e-5)
             max_thrust_duration: Max continuous flux thrust (s)
         """
+        # Use canonical Jc0 value if not provided
+        if Jc is None:
+            Jc = get_parameter('MATERIAL_PROPERTIES', 'GdBCO', 'Jc0')
         self.ball_mass = ball_mass
         self.superconductor_volume = superconductor_volume
         self.Jc = Jc
@@ -182,7 +187,7 @@ class EarthMoonPumpingSimulator:
         
         # Compute flux-pinning force magnitude (realistic)
         # F = Jc × B × V × coupling (with realistic coupling factor)
-        # 2e9 A/m^2 * 5 T * 1e-4 m^3 * 1.5e-5 = 15 N
+        # 3e10 A/m^2 * 5 T * 1e-4 m^3 * 1.5e-6 = 22.5 N (adjusted coupling for higher Jc)
         self.max_flux_force = Jc * B_field * superconductor_volume * flux_coupling
         
         # Gyroscopic system - use factory function
@@ -679,9 +684,9 @@ def demo_pumping_mission():
     simulator = EarthMoonPumpingSimulator(
         ball_mass=35.0,
         superconductor_volume=0.0001,  # 100 ml superconductor
-        Jc=2e9,  # GdBCO critical current
+        Jc=None,  # Use canonical Jc0 = 3e10 A/m^2
         B_field=5.0,  # 5 Tesla field
-        flux_coupling=1.5e-5  # Realistic coupling for ~15 N force
+        flux_coupling=1.5e-6  # Adjusted coupling for realistic force with Jc=3e10
     )
     
     print(f"Computed flux force: {simulator.max_flux_force:.1f} N")
