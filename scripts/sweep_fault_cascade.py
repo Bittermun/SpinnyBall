@@ -32,7 +32,19 @@ def create_stream_factory_with_nodes(n_nodes: int = 10):
     def factory():
         mass = 0.05
         I = np.diag([0.0001, 0.00011, 0.00009])
-        packets = [Packet(id=0, body=RigidBody(mass, I), eta_ind=0.9)]
+        # Create multiple packets with spatial distribution
+        n_packets = 5
+        stream_vel = 100.0
+        spacing = 10.0
+        packets = []
+        for p_id in range(n_packets):
+            position = np.array([p_id * spacing, 0.0, 0.0])
+            velocity = np.array([stream_vel, 0.0, 0.0])
+            packets.append(Packet(
+                id=p_id,
+                body=RigidBody(mass, I, position=position, velocity=velocity),
+                eta_ind=0.9,
+            ))
 
         # Create nodes with stiffness
         nodes = []
@@ -42,11 +54,11 @@ def create_stream_factory_with_nodes(n_nodes: int = 10):
                 position=np.array([i * 10.0, 0.0, 0.0]),  # Spaced 10m apart
                 max_packets=10,
                 eta_ind_min=0.82,
-                k_fp=4500.0,  # Flux-pinning stiffness
+                k_fp=6000.0,  # Flux-pinning stiffness (>= feasibility gate)
             )
             nodes.append(node)
 
-        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=100.0)
+        stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=stream_vel)
         return stream
     return factory
 

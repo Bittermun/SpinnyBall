@@ -25,12 +25,23 @@ def create_stream_factory(params):
         # Nominal spin 50k RPM = 5236 rad/s
         omega = np.array([0.0, 0.0, 5236.0])
         I = np.diag([0.0001, 0.00011, 0.00009])
-        packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
-                          radius=radius, eta_ind=0.9)]
-        
+
+        # Create multiple packets with spatial distribution
+        n_packets = params.get('n_packets', 5)
+        u = params.get('u', 1600.0)
+        spacing = params.get('spacing', 10.0)
+        packets = []
+        for p_id in range(n_packets):
+            position = np.array([p_id * spacing, 0.0, 0.0])
+            velocity = np.array([u, 0.0, 0.0])
+            packets.append(Packet(
+                id=p_id,
+                body=RigidBody(mass, I, position=position, velocity=velocity, angular_velocity=omega),
+                radius=radius, eta_ind=0.9,
+            ))
+
         # Calculate effective stiffness including velocity-dependent term
         # k_eff = lam * u^2 * g_gain + k_fp
-        u = params.get('u', 1600.0)
         lam = params.get('lam', 20.0)
         g_gain = params.get('g_gain', 0.0002)
         k_fp_base = params.get('k_fp', 9000.0)
@@ -46,7 +57,7 @@ def create_stream_factory(params):
                 k_fp=k_eff_total,
             )
             nodes.append(node)
-            
+
         stream = MultiBodyStream(packets=packets, nodes=nodes, stream_velocity=u)
         return stream
     return factory

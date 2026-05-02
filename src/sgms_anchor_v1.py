@@ -63,16 +63,8 @@ except ImportError:
 
 
 # Default Bean-London model configuration (for backward compatibility)
-# Note: B0=0.1 T is appropriate for thin-film REBCO in self-field regime (1μm thickness)
-DEFAULT_GDBCO_PROPS = GdBCOProperties(
-    Tc=92.0,
-    Jc0=3e10,
-    n_exponent=1.5,
-    B0=0.1,  # Thin-film self-field regime (canonical value)
-    alpha=0.5,
-    thickness=1e-6,
-    width=0.012,
-)
+from dynamics.gdBCO_material import gdbco_props_from_canonical
+DEFAULT_GDBCO_PROPS = gdbco_props_from_canonical()
 DEFAULT_FLUX_PINNING_GEOMETRY = {
     "thickness": DEFAULT_GDBCO_PROPS.thickness,
     "width": DEFAULT_GDBCO_PROPS.width,
@@ -279,7 +271,7 @@ def simulate_anchor_with_flux_pinning(
         "B_field": [],
     }
 
-    # Simulation loop with RK4 integration for stability
+    # Simulation loop with velocity Verlet integration (2nd order, better energy conservation)
     for i, t in enumerate(t_eval):
         # Get current temperature and field
         T = temperature_profile[i]
@@ -291,30 +283,19 @@ def simulate_anchor_with_flux_pinning(
         # Effective stiffness
         k_eff = k_fp + params["k_structural"] if "k_structural" in params else k_fp
 
-        # RK4 integration for oscillatory system stability
+        # Velocity Verlet integration
         # m_s * x_ddot + c_damp * x_dot + k_eff * x = 0
-        def acceleration(x_val, v_val):
-            return -(params["c_damp"] * v_val + k_eff * x_val) / params["ms"]
+        a_old = -(params["c_damp"] * v + k_eff * x) / params["ms"]
+        x += v * dt + 0.5 * a_old * dt**2
 
-        # k1
-        k1_v = acceleration(x, v) * dt
-        k1_x = v * dt
+        # Recompute k_fp at new position for next acceleration
+        k_fp_new = flux_model.get_stiffness(x, B, T)
+        k_eff_new = k_fp_new + params["k_structural"] if "k_structural" in params else k_fp_new
+        a_new = -(params["c_damp"] * (v + a_old * dt) + k_eff_new * x) / params["ms"]
+        v += 0.5 * (a_old + a_new) * dt
 
-        # k2
-        k2_v = acceleration(x + 0.5 * k1_x, v + 0.5 * k1_v) * dt
-        k2_x = (v + 0.5 * k1_v) * dt
-
-        # k3
-        k3_v = acceleration(x + 0.5 * k2_x, v + 0.5 * k2_v) * dt
-        k3_x = (v + 0.5 * k2_v) * dt
-
-        # k4
-        k4_v = acceleration(x + k3_x, v + k3_v) * dt
-        k4_x = (v + k3_v) * dt
-
-        # Update state
-        x += (k1_x + 2 * k2_x + 2 * k3_x + k4_x) / 6.0
-        v += (k1_v + 2 * k2_v + 2 * k3_v + k4_v) / 6.0
+        k_fp = k_fp_new
+        k_eff = k_eff_new
 
         # Store results
         results["x"].append(x)
@@ -1024,9 +1005,21 @@ def mission_level_metrics(
         if magnet_material in MATERIAL_PROPERTIES:
             props = MATERIAL_PROPERTIES[magnet_material]
             T_limit = props.get('Tc', {}).get('value', 92.0)
+            # Use material-specific B0 for Bean-London field dependence
+            material_B0 = props.get('B0', {}).get('value', 5.0)
+            # Use material-specific k_fp range for stiffness bounds
+            k_fp_range = props.get('k_fp_bulk_range', {}).get('value', [80000, 120000])
+            geometry_scale = MATERIAL_PROPERTIES.get('GdBCO', {}).get(
+                'geometry_scaling_factor', {}).get('value', 0.12)
+            # Cap k_fp to material-specific maximum (bulk * geometry_scale)
+            k_fp_max = k_fp_range[1] * geometry_scale
+            if k_fp is not None and k_fp > k_fp_max:
+                k_fp = k_fp_max
         else:
-            T_limit = 92.0  # K - critical temperature
-            
+            T_limit = 92.0
+            material_B0 = 5.0
+            k_fp_max = None
+
         T_operating = 77.0  # K - typical operating temp
         cryocooler_power_per_m = 0.05  # kW/m (50 W/km from TECHNICAL_SPEC)
         # For HTS, k_fp is provided as parameter (from Bean-London model)

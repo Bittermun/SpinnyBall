@@ -2,7 +2,7 @@
 
 import sys
 import time
-sys.path.insert(0, 'c:\\Users\\msunw\\Desktop\\SpinnyBall')
+# Path added by conftest.py
 
 from sweep_latency_eta_ind import run_t1_sweep, plot_t1_results
 

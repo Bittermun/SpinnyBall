@@ -17,7 +17,7 @@ class GdBCOProperties:
     n_exponent: float = 1.5  # Temperature dependence exponent
     
     # Magnetic field dependence parameters
-    B0: float = 0.1  # T (characteristic field)
+    B0: float = 5.0  # T (characteristic field) — canonical value from params.canonical_values
     alpha: float = 0.5  # Field dependence exponent
     
     # Physical properties
@@ -162,7 +162,7 @@ class GdBCOMaterial:
         correction = np.exp(-distance_from_coil / characteristic_length)
         
         return B_field * correction
-    
+
     def compute_thermal_degradation_factor(self, temperature: float) -> float:
         """Compute thermal degradation factor for J_c due to temperature rise.
         
@@ -190,7 +190,7 @@ class GdBCOMaterial:
         
         degradation_factor = (T_margin / critical_margin)**2
         return max(0.0, min(1.0, degradation_factor))
-    
+
     def critical_current_with_thermal_feedback(
         self,
         B: float,
@@ -200,24 +200,24 @@ class GdBCOMaterial:
         dt: float = 0.01
     ) -> tuple[float, float, dict]:
         """Compute critical current with thermal feedback from switching losses.
-        
+
         Args:
             B: Magnetic flux density (T)
             T: Initial temperature (K)
             switching_power: Switching power dissipation (W)
             thermal_mass: Thermal mass (J/K)
             dt: Time step (s)
-        
+
         Returns:
             Tuple of (I_c, T_updated, feedback_dict)
         """
         # Base critical current
         I_c_base = self.critical_current(B, T)
-        
+
         # Apply thermal degradation
         degradation = self.compute_thermal_degradation_factor(T)
         I_c_degraded = I_c_base * degradation
-        
+
         # Update temperature due to switching losses
         if switching_power > 0 and thermal_mass > 0:
             dT = switching_power * dt / thermal_mass
@@ -240,3 +240,19 @@ class GdBCOMaterial:
         }
         
         return I_c_final, T_updated, feedback_dict
+
+
+def gdbco_props_from_canonical() -> GdBCOProperties:
+    """Create GdBCOProperties from the canonical parameter registry."""
+    from params.canonical_values import MATERIAL_PROPERTIES
+    mp = MATERIAL_PROPERTIES['GdBCO']
+    return GdBCOProperties(
+        Tc=mp['Tc']['value'],
+        Jc0=mp['Jc0']['value'],
+        n_exponent=mp['n_exponent']['value'],
+        B0=mp['B0']['value'],
+        alpha=mp['alpha']['value'],
+        density=mp['density']['value'],
+        specific_heat=mp['specific_heat']['value'],
+        thermal_conductivity=mp['thermal_conductivity']['value'],
+    )

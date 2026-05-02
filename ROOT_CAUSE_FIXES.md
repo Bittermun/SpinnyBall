@@ -166,23 +166,21 @@ config = MonteCarloConfig(
 
 ---
 
-## Root Cause #5: Stream Factory Creates Trivial Topology ⚠️ DOCUMENTED
+## Root Cause #5: Stream Factory Creates Trivial Topology ✅ FIXED
 
 ### Problem
 Stream factories create 1 packet and 10 nodes with no spatial relationship. Single packet starts at origin, nodes spaced 10m apart. No stream dynamics, no handoff events.
 
 ### Status
-**DOCUMENTED** - Sweep scripts need manual update. The infrastructure supports multi-packet streams; existing sweep scripts just don't use them.
+**FIXED** - All sweep script factories now create 5+ packets with spatial distribution.
 
-### Recommendation
-Update sweep script factories to create realistic topology:
-```python
-def create_realistic_stream():
-    # 5-10 packets distributed along stream path
-    packets = [Packet(...) for _ in range(n_packets)]
-    # Moving at stream_velocity
-    # With periodic capture/release events
-```
+### Solution Implemented
+Updated all sweep factories to create realistic topology:
+- `quick_profile_sweep.py`: Creates 5 packets with configurable spacing
+- `sweep_fault_cascade.py`: Creates 5 packets distributed along stream
+- `extended_velocity_sweep.py`: Creates 5+ packets with spatial positions
+- Added `n_packets`, `spacing`, and `stream_vel` parameters for control
+- Packets have initial positions and velocities matching stream dynamics
 
 ---
 

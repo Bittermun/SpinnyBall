@@ -35,7 +35,7 @@ RESEARCH_DIR = Path("research_data") / datetime.now().strftime("%Y%m%d-%H%M%S")
 RESEARCH_DIR.mkdir(parents=True, exist_ok=True)
 
 def create_stream_with_nodes(n_nodes: int = 10, packet_mass: float = 0.05,
-                             k_fp: float = 4500.0, stream_velocity: float = 100.0):
+                             k_fp: float = 6000.0, stream_velocity: float = 100.0):
     """Create stream with specified number of nodes.
     
     Args:

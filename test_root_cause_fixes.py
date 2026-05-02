@@ -57,7 +57,7 @@ def test_root_cause_1_guaranteed_faults():
     assert results['sanity_check_passed'], "Sanity check should pass"
     assert results['provenance']['fault_injection_mode'] == 'guaranteed'
     
-    print(f"✓ PASSED: {results['fault_events_total']} faults injected across {results['n_realizations']} realizations")
+    print(f"[PASS] {results['fault_events_total']} faults injected across {results['n_realizations']} realizations")
     print(f"  Mean faults per realization: {results['fault_events_per_realization_mean']:.2f}")
     return True
 
@@ -83,7 +83,7 @@ def test_root_cause_1_poisson_faults():
     assert results['sanity_check_passed'], "Sanity check should pass"
     assert results['provenance']['fault_injection_mode'] == 'poisson'
     
-    print(f"✓ PASSED: {results['fault_events_total']} faults injected (Poisson distributed)")
+    print(f"[PASS] {results['fault_events_total']} faults injected (Poisson distributed)")
     print(f"  Mean faults per realization: {results['fault_events_per_realization_mean']:.2f}")
     return True
 
@@ -112,7 +112,7 @@ def test_root_cause_2_cascade_propagation():
     assert results['fault_events_total'] >= 10, "Should have at least the guaranteed faults"
     assert results['provenance']['cascade_propagation_enabled']
     
-    print(f"✓ PASSED: Cascade propagation enabled")
+    print(f"[PASS] Cascade propagation enabled")
     print(f"  Initial faults: 10 (1 per realization)")
     print(f"  Total faults after propagation: {results['fault_events_total']}")
     print(f"  Max cascade generations: {results['cascade_generations_max']}")
@@ -146,7 +146,7 @@ def test_root_cause_4_thermal_quench():
     assert 'quench_events_total' in results
     assert 'max_temperature_global' in results
     
-    print(f"✓ PASSED: Thermal/quench infrastructure integrated")
+    print(f"[PASS] Thermal/quench infrastructure integrated")
     print(f"  Quench detection enabled: {config.quench_detection_enabled}")
     print(f"  Diagnostic counters present in results")
     return True
@@ -199,7 +199,7 @@ def test_root_cause_6_diagnostic_counters():
     assert 'sanity_check_passed' in results
     assert 'sanity_warning' in results
     
-    print(f"✓ PASSED: All diagnostic counters and provenance metadata present")
+    print(f"[PASS] All diagnostic counters and provenance metadata present")
     print(f"  Diagnostic counters: {len(required_counters)} fields")
     print(f"  Provenance fields: {len(provenance_fields)} fields")
     print(f"  Sanity check: {'PASSED' if results['sanity_check_passed'] else 'FAILED'}")
@@ -233,7 +233,7 @@ def test_trust_strategy_positive_control():
     # (cascade = more than containment_threshold nodes affected)
     assert results['fault_events_total'] > 0, "Positive control failed: no faults injected"
     
-    print(f"✓ PASSED: Positive control validated")
+    print(f"[PASS] Positive control validated")
     print(f"  Fault events: {results['fault_events_total']}")
     print(f"  Cascade probability: {cascade_prob:.2%}")
     print(f"  Max nodes affected: {nodes_affected_max}")
@@ -262,7 +262,7 @@ def run_all_tests():
             results.append((name, passed, None))
         except Exception as e:
             results.append((name, False, str(e)))
-            print(f"✗ FAILED: {name}")
+            print(f"[FAIL] {name}")
             print(f"  Error: {e}")
     
     print("\n" + "=" * 70)
@@ -273,7 +273,7 @@ def run_all_tests():
     total_count = len(results)
     
     for name, passed, error in results:
-        status = "✓ PASSED" if passed else "✗ FAILED"
+        status = "[PASS]" if passed else "[FAIL]"
         print(f"{status}: {name}")
         if error:
             print(f"  Error: {error}")
@@ -281,10 +281,10 @@ def run_all_tests():
     print(f"\nTotal: {passed_count}/{total_count} tests passed ({passed_count/total_count*100:.1f}%)")
     
     if passed_count == total_count:
-        print("\n🎉 ALL ROOT CAUSE FIXES VALIDATED!")
+        print("\n[OK] ALL ROOT CAUSE FIXES VALIDATED!")
         return 0
     else:
-        print(f"\n⚠️  {total_count - passed_count} test(s) failed")
+        print(f"\n[WARNING] {total_count - passed_count} test(s) failed")
         return 1
 
 

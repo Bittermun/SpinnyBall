@@ -85,6 +85,10 @@ jobs:
       run: |
         pytest tests/test_rigid_body.py::TestTorqueFreePrecession::test_angular_momentum_conservation -v
     
+    - name: Run parameter consistency gate
+      run: |
+        pytest tests/test_parameter_consistency.py -v
+    
     - name: Check angular momentum conservation tolerance
       run: |
         python -c "
@@ -112,6 +116,9 @@ jobs:
         print(f'Angular momentum conservation error: {relative_error:.2e}')
         
         if relative_error >= 1e-9:
+            raise AssertionError(f'Angular momentum not conserved to 1e-9: error={relative_error:.2e}')
+        print('Physics gate PASSED: angular momentum conserved to <1e-9')
+        "
             raise AssertionError(f'Angular momentum not conserved to 1e-9: error={relative_error:.2e}')
         print('Physics gate PASSED: angular momentum conserved to <1e-9')
         "

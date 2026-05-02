@@ -793,19 +793,21 @@ class CascadeRunner:
         cascade_generations_max = max(r.cascade_generations for r in results) if results else 0
         
         # Provenance metadata - Trust Strategy #4
+        # Create ONE reference stream for provenance inspection
+        _ref_stream = stream_factory()
         provenance = {
             "expected_faults_per_realization": (
-                self.config.fault_rate * self.config.time_horizon * len(stream_factory().nodes) / 3600.0 
-                if stream_factory().nodes and self.config.fault_injection_mode == "rate"
+                self.config.fault_rate * self.config.time_horizon * len(_ref_stream.nodes) / 3600.0
+                if _ref_stream.nodes and self.config.fault_injection_mode == "rate"
                 else (self.config.n_guaranteed_faults if self.config.fault_injection_mode == "guaranteed" else 0)
             ),
             "actual_faults_total": fault_events_total,
             "actual_faults_per_realization_mean": fault_events_total / n if n > 0 else 0.0,
-            "thermal_model_active": any(hasattr(stream_factory().packets[0], 'temperature') for _ in range(1)) if stream_factory().packets else False,
+            "thermal_model_active": bool(_ref_stream.packets and hasattr(_ref_stream.packets[0], 'temperature')),
             "quench_detector_active": self.config.quench_detection_enabled,
             "mpc_controller_active": False,  # Not used in MC loop
-            "n_packets": len(stream_factory().packets) if stream_factory().packets else 0,
-            "n_nodes": len(stream_factory().nodes) if stream_factory().nodes else 0,
+            "n_packets": len(_ref_stream.packets) if _ref_stream.packets else 0,
+            "n_nodes": len(_ref_stream.nodes) if _ref_stream.nodes else 0,
             "stream_topology": "linear",  # Default topology
             "fault_injection_mode": self.config.fault_injection_mode,
             "cascade_propagation_enabled": self.config.enable_cascade_propagation,

@@ -58,7 +58,7 @@ def _make_stream_factory(params: dict):
                 position=np.array([i * 10.0, 0.0, 0.0]),
                 max_packets=10,
                 eta_ind_min=0.82,
-                k_fp=params.get("k_fp", 4500.0),
+                k_fp=params.get("k_fp", 6000.0),
             )
             nodes.append(node)
         stream = MultiBodyStream(

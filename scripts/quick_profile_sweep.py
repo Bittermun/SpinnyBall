@@ -39,9 +39,21 @@ def _make_stream_factory(params: dict):
             I = geometry_profile_to_inertia(geometry_profile)
         else:
             I = np.diag([0.0001, 0.00011, 0.00009])
-        
-        packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
-                          radius=radius, eta_ind=0.9)]
+
+        # Create multiple packets with spatial distribution
+        n_packets = params.get("n_packets", 5)
+        stream_vel = params.get("u", 1600.0)
+        spacing = params.get("spacing", 10.0)
+        packets = []
+        for p_id in range(n_packets):
+            position = np.array([p_id * spacing, 0.0, 0.0])
+            velocity = np.array([stream_vel, 0.0, 0.0])
+            packets.append(Packet(
+                id=p_id,
+                body=RigidBody(mass, I, position=position, velocity=velocity, angular_velocity=omega),
+                radius=radius, eta_ind=0.9,
+            ))
+
         nodes = []
         for i in range(10):
             node = SNode(
@@ -49,7 +61,7 @@ def _make_stream_factory(params: dict):
                 position=np.array([i * 10.0, 0.0, 0.0]),
                 max_packets=10,
                 eta_ind_min=0.82,
-                k_fp=params.get("k_fp", 4500.0),
+                k_fp=params.get("k_fp", 6000.0),
             )
             nodes.append(node)
         stream = MultiBodyStream(
@@ -77,7 +89,7 @@ PROFILES = {
         "cryocooler_power": 5.0,
         "temperature": 77.0,
         "B_field": 1.0,
-        "k_fp": 4500.0,
+        "k_fp": 6000.0,
         "mp": 8.0,
         "radius": 0.1
     },

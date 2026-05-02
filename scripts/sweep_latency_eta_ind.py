@@ -146,7 +146,7 @@ def run_grid_point(
         from params.canonical_values import get_parameter
         k_fp_canonical = get_parameter('MATERIAL_PROPERTIES', 'GdBCO', 'k_fp_bulk_range')[0] * 0.12 # Scale for tape
     except ImportError:
-        k_fp_canonical = 4500.0
+        k_fp_canonical = 6000.0
 
     stream_factory = lambda: create_stream(eta_ind=eta_ind)
     results = runner.run_monte_carlo(stream_factory)

@@ -103,12 +103,9 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
         
         # Characteristic magnetic field
         'B0': {
-            'value': 0.1,  # T
-            'uncertainty': 0.05,
+            'value': 5.0,  # T
+            'uncertainty': 1.0,
             'source': 'Bean-London model parameter',
-            'note': 'RESOLVED: Changed from 5.0 T to 0.1 T. 0.1 T is appropriate for thin-film '
-                    'REBCO in self-field regime (1μm thickness). 5.0 T was for bulk samples '
-                    'in high applied field. Thin-film geometry (1μm) suggests B0=0.1 is correct.',
         },
         
         # Field dependence exponent

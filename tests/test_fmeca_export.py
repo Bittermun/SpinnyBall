@@ -3,7 +3,7 @@ Tests for FMECA JSON export functionality.
 """
 
 import pytest
-from sgms_anchor_pipeline import export_fmeca_json
+from src.sgms_anchor_pipeline import export_fmeca_json
 
 
 class TestFMECAExport:
