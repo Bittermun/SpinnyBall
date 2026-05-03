@@ -193,11 +193,11 @@ class MPCController:
         for k in range(self.horizon):
             # State error cost
             state_error = self.x[:, k] - self.x_target
-            cost += self.libration_weight * ca.sum_sq(state_error[4:])  # libration (omega)
-            cost += self.spacing_weight * ca.sum_sq(state_error[:3])  # spacing (position)
+            cost += self.libration_weight * ca.sumsqr(state_error[4:])  # libration (omega)
+            cost += self.spacing_weight * ca.sumsqr(state_error[:3])  # spacing (position)
             
             # Control effort cost
-            cost += self.control_weight * ca.sum_sq(self.u[:, k])
+            cost += self.control_weight * ca.sumsqr(self.u[:, k])
         
         self.opti.minimize(cost)
         
@@ -259,7 +259,7 @@ class MPCController:
         # Using safety factor of 1.5
         for k in range(self.horizon):
             omega_k = self.x[4:7, k]
-            omega_sq = ca.sum_sq(omega_k)
+            omega_sq = ca.sumsqr(omega_k)
             # Centrifugal stress for spherical packet
             stress = (self.packet_mass * omega_sq) / (np.pi * self.packet_radius)
             self.opti.subject_to(stress <= self.max_stress)

@@ -64,9 +64,9 @@ SWEEP_CONFIGS = {
         "output_prefix": "lob_scaling"
     },
     "sensitivity": {
-        "script": "sgms_anchor_sensitivity.py",
-        "args": [],
-        "description": "Sobol sensitivity analysis",
+        "script": "src/sgms_anchor_sensitivity.py",
+        "args": ["--mission"],
+        "description": "Sobol sensitivity analysis (Mission-level)",
         "output_prefix": "sensitivity"
     },
     "stream_balance": {
@@ -241,7 +241,8 @@ def run_parallel_sweeps():
     commands.append(("T1-Default", ["python", "scripts/sweep_latency_eta_ind.py"]))
     commands.append(("T3-Default", ["python", "scripts/sweep_fault_cascade.py"]))
     commands.append(("LOB-Scaling", ["python", "scripts/lob_scaling.py"]))
-    commands.append(("Sensitivity", ["python", "scripts/sgms_anchor_sensitivity.py"]))
+    commands.append(("Sensitivity", ["python", "src/sgms_anchor_sensitivity.py", "--mission"]))
+    commands.append(("Material-Sweep", ["python", "src/sgms_anchor_sensitivity.py", "--material-sweep", "--N", "256"]))
     
     # High-res sweeps (can run in parallel with defaults)
     commands.append(("T1-HighRes", ["python", t1_highres_script]))

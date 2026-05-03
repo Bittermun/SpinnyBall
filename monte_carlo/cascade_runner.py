@@ -43,6 +43,7 @@ except ImportError:
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.stress_monitoring import verify_packet_stress
 from dynamics.stiffness_verification import verify_anchor_stiffness
+from control_layer.mpc_controller import create_mpc_controller
 
 
 class PerturbationType(Enum):
@@ -138,6 +139,12 @@ class MonteCarloConfig:
     # Numba acceleration
     use_numba_rk4: bool = True  # Use Numba-compiled RK4 integrator
     use_zero_torque_numba: bool = False  # Use zero-torque Numba RK4 (fastest, no callback)
+
+    # NEW: Control integration - addresses Root Cause #5
+    enable_mpc: bool = False  # Enable MPC stabilization
+    mpc_horizon: int = 10
+    mpc_dt: float = 0.01
+    mpc_delay_steps: int = 0  # Latency compensation steps
 
 
 class CascadeRunner:
@@ -276,6 +283,21 @@ class CascadeRunner:
         Returns:
             RealizationResult object
         """
+        # Initialize MPC if enabled
+        mpc = None
+        if self.config.enable_mpc:
+            try:
+                mpc = create_mpc_controller(
+                    horizon=self.config.mpc_horizon,
+                    dt=self.config.mpc_dt,
+                    delay_steps=self.config.mpc_delay_steps,
+                    enable_delay_compensation=self.config.mpc_delay_steps > 0
+                )
+                logger.info(f"MPC enabled for realization {realization_id}")
+            except Exception as e:
+                logger.warning(f"Failed to initialize MPC: {e}. Falling back to zero control.")
+                mpc = None
+
         # Track metrics
         eta_ind_min = 1.0
         stress_max = 0.0
@@ -459,11 +481,29 @@ class CascadeRunner:
                                     gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
                                     cascade_generations = max(cascade_generations, gen)
 
+            # MPC Torque calculation
+            def mpc_torque(packet_id, t, state):
+                # Construct state vector for MPC: [qx, qy, qz, qw, ωx, ωy, ωz]
+                # MultiBody uses scalar-last quaternion [qx, qy, qz, qw]
+                # state is [qx, qy, qz, qw, ωx, ωy, ωz]
+                x0 = state
+                x_target = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+                
+                try:
+                    u_opt, info = mpc.solve(x0, x_target)
+                    tau = mpc.get_first_control(u_opt)
+                    return tau
+                except Exception as e:
+                    logger.debug(f"MPC solve failed for packet {packet_id} at t={t}: {e}")
+                    return np.zeros(3)
+
+            torque_func = mpc_torque if mpc is not None else zero_torque
+
             result = stream.integrate(
                 self.config.dt,
-                zero_torque,
-                use_numba_rk4=use_numba,
-                use_zero_torque_numba=use_zero_torque_numba,
+                torque_func,
+                use_numba_rk4=use_numba and mpc is None, # Numba RK4 doesn't support MPC callback well
+                use_zero_torque_numba=use_zero_torque_numba and mpc is None,
             )
             current_time += self.config.dt
             
@@ -719,6 +759,8 @@ class CascadeRunner:
             Dictionary with Monte-Carlo statistics
         """
         results = []
+        if self.config.random_seed is not None:
+            np.random.seed(self.config.random_seed)
 
         # Early termination: run in batches and check CI convergence
         if self.config.enable_early_termination and self.acceleration_mode != "multiprocessing":
@@ -798,6 +840,7 @@ class CascadeRunner:
         cascade_generations_max = max(r.cascade_generations for r in results) if results else 0
         
         # Provenance metadata - Trust Strategy #4
+
         # Create ONE reference stream for provenance inspection
         _ref_stream = stream_factory()
         provenance = {

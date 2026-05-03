@@ -128,7 +128,7 @@ def verify_packet_stress(
     mass: float,
     radius: float,
     angular_velocity: np.ndarray,
-    jacket_material: str = 'BFRP',  # NEW: 'BFRP', 'CFRP', 'CNT_yarn'
+    jacket_material: str = 'CFRP',  # NEW: 'BFRP', 'CFRP', 'CNT_yarn'
     max_stress: Optional[float] = None,  # Override, or looked up from material
     safety_factor: Optional[float] = None,
     scaling_config: Optional[HeritageScalingConfig] = None,
