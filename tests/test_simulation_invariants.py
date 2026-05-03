@@ -54,15 +54,48 @@ def test_velocity_verlet_energy_conservation():
     """Anchor simulation should conserve energy for undamped oscillator."""
     from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
     import numpy as np
-    params = {"ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0, "k_structural": 0.0}
-    t_eval = np.linspace(0, 10, 1000)
-    T_profile = np.full_like(t_eval, 77.0)
-    B_profile = np.full_like(t_eval, 1.0)
-    results = simulate_anchor_with_flux_pinning(params, t_eval, T_profile, B_profile)
+    
+    class MockFluxModel:
+        def get_stiffness(self, x, B, T): return 6000.0
+        def get_critical_current(self, T, B): return 100.0
+        
+    params = {
+        "ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0, 
+        "k_fp": 6000.0, "k_structural": 0.0, "lam": 1.0, "u": 100.0,
+        "g_gain": 0.0, "theta_bias": 0.0, "eps": 0.0
+    }
+    t_eval = np.linspace(0, 2, 2000) 
+    results = simulate_anchor_with_flux_pinning(params, t_eval, flux_model=MockFluxModel())
+    
     # Check energy: E = 0.5*m*v^2 + 0.5*k*x^2
     x_arr = np.array(results['x'])
     v_arr = np.array(results['v'])
     k_arr = np.array(results['k_eff'])
     E = 0.5 * params['ms'] * v_arr**2 + 0.5 * k_arr * x_arr**2
     E_drift = abs(E[-1] - E[0]) / E[0]
-    assert E_drift < 0.01, f"Energy drift {E_drift:.4f} > 1% — integrator is not symplectic"
+    # Tighten to 0.5% drift for symplectic RK4/Verlet
+    assert E_drift < 0.005, f"Energy drift {E_drift:.4f} > 0.5% — integrator is not symplectic"
+
+def test_energy_conservation_at_50k_rpm():
+    """Verify energy conservation holds even at 50,000 RPM (extreme centrifugal state)."""
+    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
+    import numpy as np
+    
+    class MockFluxModel:
+        def get_stiffness(self, x, B, T): return 9000.0
+        def get_critical_current(self, T, B): return 100.0
+
+    params = {
+        "ms": 1.0, "c_damp": 0.0, "x0": 0.01, "v0": 0.0, 
+        "k_fp": 9000.0, "omega": 5236.0, "r": 0.1,
+        "lam": 1.0, "u": 100.0, "g_gain": 0.0, "theta_bias": 0.0, "eps": 0.0
+    }
+    t_eval = np.linspace(0, 0.5, 2000)
+    results = simulate_anchor_with_flux_pinning(params, t_eval, flux_model=MockFluxModel())
+    
+    x_arr = np.array(results['x'])
+    v_arr = np.array(results['v'])
+    k_arr = np.array(results['k_eff'])
+    E = 0.5 * params['ms'] * v_arr**2 + 0.5 * k_arr * x_arr**2
+    E_drift = abs(E[-1] - E[0]) / E[0]
+    assert E_drift < 0.001, f"High-RPM energy drift {E_drift:.6f} > 0.1%"

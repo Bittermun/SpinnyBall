@@ -210,7 +210,7 @@ def print_sensitivity_summary(result: dict) -> None:
 def evaluate_mission_vector(
     vector: np.ndarray, 
     magnet_material: str = "SmCo",
-    jacket_material: str = "BFRP"
+    jacket_material: str = "CFRP"
 ) -> dict:
     """
     Evaluate mission-level metrics for a single parameter vector.
@@ -242,7 +242,7 @@ def evaluate_mission_vector(
 
 def run_mission_sobol_analysis(
     magnet_material: str = "SmCo",
-    jacket_material: str = "BFRP",
+    jacket_material: str = "CFRP",
     N: int = 1024,
     calc_second_order: bool = True,
     seed: int = 42,
@@ -482,7 +482,7 @@ def run_2x2_material_sweep(N: int = 512, seed: int = 42) -> dict:
         Dictionary with all 4 results
     """
     magnet_materials = ["GdBCO", "SmCo"]
-    jacket_materials = ["BFRP", "CNT_yarn"]
+    jacket_materials = ["BFRP", "CFRP", "CNT_yarn"]
     
     all_results = {}
     
@@ -521,6 +521,8 @@ def main() -> None:
                        help="Skip second-order interaction indices")
     parser.add_argument("--seed", type=int, default=42,
                        help="Random seed")
+    parser.add_argument("--material-sweep", action="store_true",
+                       help="Run 2x3 material sweep (Magnet x Jacket)")
     args = parser.parse_args()
     
     if args.mission:
@@ -571,6 +573,31 @@ def main() -> None:
             print_mission_summary(results)
         
         print(f"\nAll results saved to {output_dir}/")
+    
+    elif args.material_sweep:
+        # Run 2x3 material sweep
+        print(f"\n{'='*60}")
+        print("RUNNING 2x3 MATERIAL SWEEP (Magnet x Jacket)")
+        print('='*60)
+        
+        results = run_2x2_material_sweep(N=args.N, seed=args.seed)
+        
+        output_dir = Path("mission_analysis_results")
+        output_dir.mkdir(exist_ok=True)
+        
+        # Export summary table
+        summary_path = output_dir / "material_sweep_summary.csv"
+        with open(summary_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Config", "Feasibility", "Avg_N_packets", "Avg_M_total_kg"])
+            for config, res in results.items():
+                writer.writerow([
+                    config, 
+                    f"{np.mean(res['feasible']):.1%}",
+                    f"{np.mean(res['outputs']['N_packets']):.1f}",
+                    f"{np.mean(res['outputs']['M_total_kg']):.1f}"
+                ])
+        print(f"Summary saved to {summary_path}")
     
     else:
         # Legacy anchor analysis

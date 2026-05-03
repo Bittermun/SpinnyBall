@@ -82,18 +82,19 @@ F = lam * u^2
 ### Centrifugal Stress
 
 ```
-sigma = rho * r^2 * omega^2   [rho = 2500 kg/m^3 BFRP]
+sigma = m * omega^2 / (4 * pi * r)   [Thin-shell approximation]
 ```
 
-| Spin Rate | RPM | Stress (MPa) | Margin |
-|-----------|-----|--------------|--------|
-| 5,236 rad/s | 50,000 | 765.4 | 4.3% (SF=1.04) |
-| 4,000 rad/s | 38,197 | 447.0 | 44.1% (SF=1.79) |
-| 5,354 rad/s | 51,126 | 800.0 | At limit |
+| Spin Rate | RPM | Stress (MPa) | BFRP Margin (800 MPa) | CFRP Margin (2000 MPa) |
+|-----------|-----|--------------|----------------------|----------------------|
+| 5,236 rad/s | 50,000 | 765.4 | 4.3% (SF=1.04) ⚠️ | 161.4% (SF=2.61) ✅ |
+| 4,000 rad/s | 38,197 | 447.0 | 44.1% (SF=1.79) | 347.4% (SF=4.47) |
+| 5,354 rad/s | 51,126 | 800.0 | At limit | 150.0% (SF=2.50) |
 
-**Material Limit**: Utilizes 800 MPa BFRP/Carbon-Fiber containment jacket. The 10cm radius SmCo payload operates at ~765 MPa at 50,000 RPM, staying within the structural limit with a 1.5x safety factor assumed for ultimate tensile strength (UTS) vs operational limit.
-
-Note: High-RPM stability is critical for gyroscopic stabilization at extreme velocities. Reducing to 40,000 RPM provides a 44% safety margin.
+**Material Limit**: The recommended configuration uses a CFRP (T700 grade) containment jacket
+with 2.0 GPa allowable stress. The 10cm radius SmCo payload operates at ~765 MPa at 50,000 RPM,
+providing SF=2.61 with CFRP. BFRP (800 MPa) is insufficient at this spin rate (SF=1.04).
+Reducing to 40,000 RPM with BFRP provides SF=1.79.
 
 ### Radiative Thermal Limit
 

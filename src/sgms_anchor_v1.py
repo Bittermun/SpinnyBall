@@ -954,7 +954,7 @@ def mission_level_metrics(
     g_gain: float,
     k_fp: float,
     magnet_material: str = "SmCo",  # NEW: "SmCo" or "GdBCO"
-    jacket_material: str = "BFRP",   # NEW: "BFRP", "CFRP", "CNT_yarn"
+    jacket_material: str = "CFRP",   # NEW: "BFRP", "CFRP", "CNT_yarn"
     spacing: float = 0.48,  # NEW: Packet spacing (m), default from operational baseline
     theta_bias: float = 0.087,
     c_damp: float = 4.0,
