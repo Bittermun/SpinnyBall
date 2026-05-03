@@ -1,6 +1,7 @@
 # SpinnyBall
 
 Physics simulation framework for closed-loop shepherded gyroscopic mass-stream dynamics with flux-pinning stabilization.
+Bugs still present, be careful
 
 ## Overview
 
