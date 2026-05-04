@@ -13,6 +13,12 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+try:
+    from joblib import Parallel, delayed
+    _JOBLIB_AVAILABLE = True
+except ImportError:
+    _JOBLIB_AVAILABLE = False
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -113,10 +119,19 @@ def evaluate_sample_matrix(
     samples: np.ndarray,
     outputs: tuple[str, ...] = DEFAULT_OUTPUTS,
     base_params: dict | None = None,
+    n_jobs: int = -1,
 ) -> dict[str, np.ndarray]:
-    values = {output: np.empty(samples.shape[0]) for output in outputs}
-    for i, sample in enumerate(samples):
-        metrics = evaluate_parameter_vector(sample, base_params=base_params)
+    """Evaluate sample matrix, parallelised across rows with joblib."""
+    if _JOBLIB_AVAILABLE and n_jobs != 1:
+        results = Parallel(n_jobs=n_jobs, backend="loky")(
+            delayed(evaluate_parameter_vector)(sample, base_params=base_params)
+            for sample in samples
+        )
+    else:
+        results = [evaluate_parameter_vector(s, base_params=base_params) for s in samples]
+
+    values: dict[str, np.ndarray] = {output: np.empty(len(samples)) for output in outputs}
+    for i, metrics in enumerate(results):
         for output in outputs:
             values[output][i] = metrics[output]
     return values
@@ -285,23 +300,31 @@ def run_mission_sobol_analysis(
     
     print(f"  Generated {samples.shape[0]} samples")
     
-    # Evaluate mission metrics for each sample
+    # Evaluate mission metrics in parallel
     n_samples = samples.shape[0]
     outputs_dict = {output: np.empty(n_samples) for output in MISSION_OUTPUTS}
     feasible_array = np.empty(n_samples, dtype=bool)
-    
-    for i, sample in enumerate(samples):
-        metrics = evaluate_mission_vector(
-            sample, 
-            magnet_material=magnet_material,
-            jacket_material=jacket_material
+
+    if _JOBLIB_AVAILABLE:
+        print(f"  Evaluating {n_samples} samples in parallel (joblib)...")
+        all_metrics = Parallel(n_jobs=-1, backend="loky")(
+            delayed(evaluate_mission_vector)(sample, magnet_material, jacket_material)
+            for sample in samples
         )
+    else:
+        print(f"  Evaluating {n_samples} samples serially...")
+        all_metrics = [
+            evaluate_mission_vector(sample, magnet_material, jacket_material)
+            for sample in samples
+        ]
+    
+    for i, metrics in enumerate(all_metrics):
         for output in MISSION_OUTPUTS:
             if output == "feasible":
                 feasible_array[i] = metrics[output]
             else:
                 outputs_dict[output][i] = metrics[output]
-    
+
     print(f"  Evaluation complete. Feasible: {np.sum(feasible_array)}/{n_samples}")
     
     # Run Sobol analysis on continuous outputs
@@ -460,50 +483,52 @@ def print_mission_summary(results: dict) -> None:
             print(f"  {name:12s}: ST = {value:.4f}")
 
 
-def run_2x2_material_sweep(N: int = 512, seed: int = 42) -> dict:
+def run_2x2_material_sweep(N: int = 512, seed: int = 42, n_jobs: int = -1) -> dict:
     """
-    Run the 2x2 material sweep as specified in Task 6.
-    
+    Run the 2x3 material sweep (2 magnets × 3 jackets = 6 configs) in parallel.
+
     Sweeps over:
     - Magnet materials: GdBCO, SmCo
-    - Jacket materials: BFRP, CNT_yarn
-    
-    This creates 4 configurations:
-    1. GdBCO + BFRP: Current baseline
-    2. GdBCO + CNT_yarn: Higher RPM possible (relaxed stress constraint)
-    3. SmCo + BFRP: Current smco-heavy
-    4. SmCo + CNT_yarn: Best thermal + structural
-    
+    - Jacket materials: BFRP, CFRP, CNT_yarn
+
     Args:
         N: Number of samples per configuration
         seed: Random seed
-    
+        n_jobs: Number of parallel workers (-1 = all CPUs)
+
     Returns:
-        Dictionary with all 4 results
+        Dictionary with all 6 results keyed by "<magnet>_<jacket>"
     """
     magnet_materials = ["GdBCO", "SmCo"]
     jacket_materials = ["BFRP", "CFRP", "CNT_yarn"]
-    
-    all_results = {}
-    
-    for mag_mat in magnet_materials:
-        for jacket_mat in jacket_materials:
-            config_key = f"{mag_mat}_{jacket_mat}"
-            print(f"\n{'='*70}")
-            print(f"CONFIGURATION: {config_key}")
-            print('='*70)
-            
-            results = run_mission_sobol_analysis(
-                magnet_material=mag_mat,
-                jacket_material=jacket_mat,
-                N=N,
-                calc_second_order=True,
-                seed=seed,
-            )
-            
-            all_results[config_key] = results
-    
-    return all_results
+
+    configs = [
+        (mag, jkt)
+        for mag in magnet_materials
+        for jkt in jacket_materials
+    ]
+
+    def _run_one(mag_mat, jacket_mat):
+        print(f"  [{mag_mat}+{jacket_mat}] starting...")
+        result = run_mission_sobol_analysis(
+            magnet_material=mag_mat,
+            jacket_material=jacket_mat,
+            N=N,
+            calc_second_order=True,
+            seed=seed,
+        )
+        print(f"  [{mag_mat}+{jacket_mat}] done.")
+        return f"{mag_mat}_{jacket_mat}", result
+
+    if _JOBLIB_AVAILABLE and n_jobs != 1:
+        print(f"Running {len(configs)} configs in parallel (joblib, n_jobs={n_jobs})...")
+        pairs = Parallel(n_jobs=min(len(configs), n_jobs if n_jobs > 0 else 6), backend="loky")(
+            delayed(_run_one)(mag, jkt) for mag, jkt in configs
+        )
+    else:
+        pairs = [_run_one(mag, jkt) for mag, jkt in configs]
+
+    return dict(pairs)
 
 
 def main() -> None:

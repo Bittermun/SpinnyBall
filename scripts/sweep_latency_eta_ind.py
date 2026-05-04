@@ -26,7 +26,7 @@ from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.rigid_body import RigidBody, geometry_profile_to_inertia
 from control_layer.mpc_controller import MPCController, ConfigurationMode
 
-logging.basicConfig(level=logging.INFO)
+logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
 
 
@@ -135,8 +135,10 @@ def run_grid_point(
         enable_early_termination=True,
         ci_width_threshold=0.02,  # HIGH-FIDELITY: Tighter CI convergence (2% not 5%)
         min_realizations=50,  # HIGH-FIDELITY: More MC runs for convergence
-        use_numba_rk4=False,  # Disable regular Numba (function callback issues)
-        use_zero_torque_numba=use_zero_torque_numba,  # Use zero-torque Numba (no callback)
+        use_numba_rk4=True,  # Enable regular Numba (with callback support)
+        use_zero_torque_numba=False, # Disable zero-torque (need MPC callback)
+        enable_mpc=True,     # HIGH-FIDELITY: Enable MPC stabilization
+        mpc_delay_steps=int((latency_ms / 1000.0) / 0.01), # Dynamic latency compensation
     )
 
     runner = CascadeRunner(config)
@@ -362,13 +364,13 @@ if __name__ == "__main__":
     results = run_t1_sweep(
         latency_range=(5.0, 50.0),
         eta_ind_range=(0.82, 0.98),  # Adjusted range to avoid auto-fail < 0.82
-        n_latency_points=10,        # Increased resolution
-        n_eta_points=8,             # Increased resolution
+        n_latency_points=8,        # Optimized resolution for MPC
+        n_eta_points=8,             # Optimized resolution for MPC
         n_realizations_per_point=100, # N=100 for best data
         use_checkpoint=True,
         checkpoint_file='t1_high_fidelity_checkpoint.json',
         n_jobs=-1,
-        use_zero_torque_numba=True,
+        use_zero_torque_numba=False, # MPC requires callback
     )
 
     # Plot results

@@ -20,7 +20,9 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 **Velocity Scaling**: Ball count scales as N ∝ 1/v² for constant force. Increasing velocity from 500 m/s to 15,000 m/s reduces required packets by ~99.9%.
 
-**Stress Limits**: Packets with 10cm radius stable at 50,000 RPM (~685 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
+**Stress Limits**: 35kg SmCo packets with 10cm radius stable at 50,000 RPM (~765 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
+
+**Control Performance**: JAX-accelerated T1 sweep (N=256,000) confirms stability boundary at $t_{delay} \approx 65\text{ms}$ for $\eta_{ind} = 0.90$. Integration speed increased by 3,751x via XLA compilation.
 
 **Sensitivity Analysis**: Sobol analysis (9 parameters, N=1024 samples) shows velocity dominates `k_eff` variance (84.9% for SmCo) and `thermal_margin` (85.2% for SmCo). Log-transformation stabilizes indices for heavy-tailed outputs.
 
@@ -35,7 +37,7 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 **Monte Carlo Analysis**:
 - T3 fault cascade sweep: N=100 per point, 8 fault rates (10⁻⁶ to 10⁻³ /hr)
-- Extended fault rate sweep: 12 points (10⁻⁸ to 10⁻² /hr), N=100 per point
+- T1 Stability Sweep (JAX-Accelerated): N=1,000 per point, 16x16 grid (256,000 total). 3,751x speedup achieved via JAX/XLA.
 - Cascade boundary stress test: 6 points (100 to 464 /hr), N=250 per point
 - Results: Zero cascades up to 10⁻² /hr; cascade onset at λ_crit ≈ 215/hr
 
@@ -58,14 +60,11 @@ poetry install --extras mpc --extras ml --extras monte-carlo --extras validation
 # Run anchor simulation
 python src/sgms_anchor_v1.py
 
-# Run tests
-pytest tests/
+# Run vectorized JAX sweep
+python scripts/jax_sweep_latency_eta_ind.py
 
-# Run sensitivity analysis
-python src/sgms_anchor_sensitivity.py
-
-# Generate plots
-python scripts/generate_paper_plots.py
+# Generate JAX plots
+python scripts/generate_t1_jax_plots.py
 ```
 
 ## Key Equations
@@ -85,25 +84,6 @@ I · ω̇ + ω × (I · ω) = τ_mag + τ_grav + τ_control
 J_c(B,T) = J_c0 · (1 - T/T_c)^n · f(B)
 F_pin = ∫(J × B) dV
 ```
-
-## Repository Structure
-
-```
-SpinnyBall/
-├── src/                    # Core simulation modules
-├── dynamics/               # Physics models (rigid body, flux-pinning, thermal)
-├── control/                # MPC and control systems
-├── monte_carlo/            # Cascade analysis
-├── tests/                  # Unit tests
-├── scripts/                # Analysis scripts
-└── docs/                   # Documentation
-```
-
-## Documentation
-
-- [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) - Physical model and parameters
-- [RESEARCH_SUMMARY.md](RESEARCH_SUMMARY.md) - Key results
-- [DATA_REPORT.md](docs/DATA_REPORT.md) - Sweep results
 
 ## License
 

@@ -15,6 +15,7 @@ import numpy as np
 from typing import Callable, Optional, Tuple
 
 logger = logging.getLogger(__name__)
+logging.basicConfig(level=logging.WARNING)
 
 try:
     import casadi as ca
@@ -269,6 +270,7 @@ class MPCController:
             'ipopt.print_level': 0,
             'ipopt.tol': 1e-6,
             'ipopt.max_iter': 100,
+            'print_time': False,  # Silences CasADi's timer output
         }
         self.opti.solver('ipopt', opts)
     
@@ -328,9 +330,9 @@ class MPCController:
         }
 
         if self.enable_delay_compensation:
-            logger.info(f"MPC solve time: {info['solve_time']*1000:.2f} ms, delay_compensation: enabled")
+            logger.debug(f"MPC solve time: {info['solve_time']*1000:.2f} ms, delay_compensation: enabled")
         else:
-            logger.info(f"MPC solve time: {info['solve_time']*1000:.2f} ms, delay_compensation: disabled")
+            logger.debug(f"MPC solve time: {info['solve_time']*1000:.2f} ms, delay_compensation: disabled")
         
         return u_opt, info
     
