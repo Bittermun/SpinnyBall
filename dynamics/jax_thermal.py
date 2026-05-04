@@ -96,7 +96,7 @@ if JAX_AVAILABLE:
             self,
             T_initial: np.ndarray,  # noqa: N803
             Q_in: np.ndarray,  # noqa: N803
-            T_amb: float = 293.15,  # noqa: N803
+            T_amb: float = 4.0,  # noqa: N803 (deep space CMB temperature)
             n_steps: int = 100,
         ) -> tuple[np.ndarray, dict]:
             """
@@ -138,7 +138,7 @@ if JAX_AVAILABLE:
             self,
             T_initial: np.ndarray,  # noqa: N803
             Q_in: np.ndarray,  # noqa: N803
-            T_amb: float = 293.15,  # noqa: N803
+            T_amb: float = 4.0,  # noqa: N803 (deep space CMB temperature)
         ) -> np.ndarray:
             """
             Batch prediction for multiple scenarios.

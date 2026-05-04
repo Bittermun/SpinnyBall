@@ -131,11 +131,24 @@ def calculate_inelastic_hitch(
         payload_velocity_final = v_cm - (packet_mass / total_mass) * v_rel_cm_final
         
         # For hitch, we assume payload is captured, so use combined mass moving at v_cm
-        # plus the corrected relative motion contribution
+        # COR affects the energy dissipation during capture, not the final velocity
+        # The final velocity of a perfectly captured system is always v_cm (momentum conservation)
+        # However, COR determines how much KE is dissipated vs retained as internal motion
         final_velocity = v_cm  # Captured system moves at CoM velocity
         
-        # Recalculate energy with adjusted velocity
-        KE_final = 0.5 * total_mass * np.linalg.norm(final_velocity)**2
+        # Calculate final KE correctly:
+        # If COR < 1.0, some energy is dissipated in the capture process
+        # The remaining energy goes into internal motion (vibration, rotation) of the captured system
+        # For a rigid capture, we only track the translational KE of the combined mass
+        if config.coefficient_of_restitution >= 1.0 - 1e-10:
+            # Perfectly elastic: no capture, bodies separate
+            # Use the separated velocities for KE calculation
+            KE_final = (0.5 * packet_mass * np.linalg.norm(packet_velocity_final)**2 + 
+                       0.5 * payload_mass * np.linalg.norm(payload_velocity_final)**2)
+        else:
+            # Inelastic capture: bodies stick together, energy dissipated
+            KE_final = 0.5 * total_mass * np.linalg.norm(final_velocity)**2
+        
         energy_dissipated = KE_total_initial - KE_final
         energy_dissipation_fraction = energy_dissipated / KE_total_initial if KE_total_initial > 0 else 0.0
     

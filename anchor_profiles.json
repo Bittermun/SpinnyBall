@@ -40,6 +40,46 @@
       ]
     },
     {
+      "name": "paper-recommended",
+      "category": "paper",
+      "material_profile": "baseline_gdbco",
+      "geometry_profile": "test_sphere_medium",
+      "environment_profile": "liquid_nitrogen",
+      "params": {
+        "u": 588.8,
+        "lam": 9.52,
+        "mp": 4.57,
+        "g_gain": 0.0004,
+        "ms": 1000.0,
+        "eps": 0.0001,
+        "c_damp": 4.0,
+        "theta_bias": 0.087,
+        "k_fp": 6000.0,
+        "t_max": 240.0,
+        "x0": 0.1,
+        "v0": 0.0,
+        "k_drag": 0.01,
+        "cryocooler_power": 5.0,
+        "temperature": 77.0,
+        "B_field": 1.0
+      },
+      "provenance": {
+        "u": "Sobol-optimal velocity (588.8 m/s, TECHNICAL_SPEC.md Table 2)",
+        "lam": "Derived: mp/spacing = 4.57/0.48 = 9.52 kg/m",
+        "mp": "Sobol-optimal packet mass (4.57 kg)",
+        "g_gain": "Sobol-optimal control gain (0.0004)",
+        "ms": "Suspended node baseline (1000 kg)",
+        "k_fp": "Sobol-optimal flux-pinning stiffness (6000 N/m)",
+        "theta_bias": "Small-angle regime (0.087 rad = 5.0 deg)"
+      },
+      "notes": [
+        "Sobol-optimal profile from MISSION_LEVEL_ANALYSIS.md.",
+        "k_eff = lam*u^2*g_gain + k_fp = 9.52*588.8^2*0.0004 + 6000 ≈ 7320 N/m.",
+        "Passes all feasibility gates: k_eff >= 6000, stress_margin >= 1.5 (with CFRP).",
+        "Use for paper-facing claims with Sobol-validated parameters."
+      ]
+    },
+    {
       "name": "operational",
       "category": "operational",
       "material_profile": "apc_doped_bzo",
@@ -172,7 +212,7 @@
       },
       "provenance": {
         "u": "Extreme velocity design point for heavy lift (15 km/s)",
-        "lam": "Calculated from N×mp/L where N=40, mp=35kg, L=4.8m (72.92 kg/m)",
+        "lam": "Derived from mp/spacing = 35.0/0.48 = 72.92 kg/m",
         "mp": "SmCo heavy payload (35 kg) for 50,000 RPM operation",
         "g_gain": "Tuned for k_eff ≈ 12,000 N/m at u=15,000 m/s",
         "theta_bias": "small-angle approximation regime (0.087 rad = 5.0°, within <0.1 rad validity for sin(θ)≈θ)",

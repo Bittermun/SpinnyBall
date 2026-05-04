@@ -103,5 +103,39 @@
   ],
   "cascade_threshold": 1.05,
   "containment_threshold": 2,
-  "n_nodes": 10
+  "n_nodes": 10,
+  "fault_events_total_per_point": [
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0,
+    0
+  ],
+  "sanity_warnings": [
+    "NO FAULTS INJECTED at fault_rate=1.00e-08/hr",
+    "NO FAULTS INJECTED at fault_rate=2.68e-08/hr",
+    "NO FAULTS INJECTED at fault_rate=7.20e-08/hr",
+    "NO FAULTS INJECTED at fault_rate=1.93e-07/hr",
+    "NO FAULTS INJECTED at fault_rate=5.18e-07/hr",
+    "NO FAULTS INJECTED at fault_rate=1.39e-06/hr",
+    "NO FAULTS INJECTED at fault_rate=3.73e-06/hr",
+    "NO FAULTS INJECTED at fault_rate=1.00e-05/hr",
+    "NO FAULTS INJECTED at fault_rate=2.68e-05/hr",
+    "NO FAULTS INJECTED at fault_rate=7.20e-05/hr",
+    "NO FAULTS INJECTED at fault_rate=1.93e-04/hr",
+    "NO FAULTS INJECTED at fault_rate=5.18e-04/hr",
+    "NO FAULTS INJECTED at fault_rate=1.39e-03/hr",
+    "NO FAULTS INJECTED at fault_rate=3.73e-03/hr",
+    "NO FAULTS INJECTED at fault_rate=1.00e-02/hr"
+  ]
 }

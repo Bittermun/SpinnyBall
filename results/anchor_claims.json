@@ -17,5 +17,15 @@
       "claim_level": "L0-engineering-screen",
       "intended_use": "engineering"
     }
-  }
+  },
+  "anchor_claims": [
+    {
+      "profile": "paper-recommended",
+      "k_eff": 7320.3,
+      "stress_margin": 1.61,
+      "thermal_margin": 15.0,
+      "power_total_kw": 4360.0,
+      "feasible": true
+    }
+  ]
 }

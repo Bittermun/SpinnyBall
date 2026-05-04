@@ -1,34 +1,42 @@
-# Python compiled files
-*.pyc
+```
+# Python cache
 __pycache__/
-*.egg-info/
-dist/
+*.pyc
+*.pyo
+*.pyd
+
+# Dependencies
+.venv/
+venv/
+env/
+.env
+.env.local
+*.env.*
+
+# Build artifacts
 build/
-.eggs/
+dist/
+*.egg-info/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Logs
 *.log
 
-# IDE
-.idea/
-.vscode/
-*.swp
-.kimiflare/
+# Coverage
+.coverage
+coverage/
+htmlcov/
 
-# Generated simulation data
-profile_sweep_quick_*/
-extended_velocity_sweep_*.json
-sweep_results/
-results/
-research_data/
-mission_analysis_results/
-paper_figures/
-artifacts/
-paper_model/
+# Temporary files
+*.tmp
+*.temp
 
-# Hypothesis property-based testing database
-.hypothesis/
-
-# OS-specific
+# OS specific
 .DS_Store
 Thumbs.db
+```
