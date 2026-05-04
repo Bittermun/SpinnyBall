@@ -35,7 +35,7 @@ def _vectorized_uniform(size: int, low: float = 0.0, high: float = 1.0) -> np.nd
 def _compute_stress_python(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
     """Compute centrifugal stress (pure Python fallback)."""
     omega = np.linalg.norm(angular_velocity)
-    stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
+    stress = mass * omega ** 2 / (4 * np.pi * radius)
     return stress
 
 if _NUMBA_AVAILABLE:
