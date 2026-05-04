@@ -6,7 +6,6 @@ from pathlib import Path
 
 import numpy as np
 import pytest
-
 from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
 from sgms_anchor_v1 import analytical_metrics, simulate_anchor
 

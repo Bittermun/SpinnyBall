@@ -21,7 +21,6 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
-
 from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
 from sgms_anchor_sensitivity import run_sobol_sensitivity
 

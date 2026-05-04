@@ -24,7 +24,6 @@ import matplotlib
 matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
-
 from sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics
 
 DEFAULT_Q = np.diag([100.0, 1.0])

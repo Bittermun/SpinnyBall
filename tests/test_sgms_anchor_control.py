@@ -1,7 +1,6 @@
 import unittest
 
 import numpy as np
-
 from sgms_anchor_control import (
     build_state_space,
     controller_trade_study,

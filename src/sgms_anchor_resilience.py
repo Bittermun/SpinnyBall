@@ -8,7 +8,6 @@ from pathlib import Path
 
 import matplotlib.pyplot as plt
 import numpy as np
-
 from sgms_anchor_v1 import _stream_forces, analytical_metrics
 
 

@@ -7,14 +7,14 @@ Measures computational performance of PID, thermal, and flux-pinning components.
 import time
 
 import numpy as np
+from sgms_anchor_control import PIDController, PIDParameters
+from sgms_anchor_v1 import simulate_anchor_with_flux_pinning
 
 from dynamics.bean_london_model import BeanLondonModel
 from dynamics.cryocooler_model import DEFAULT_CRYOCOOLER_SPECS, CryocoolerModel
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.lumped_thermal import LumpedThermalModel, LumpedThermalParams
 from dynamics.quench_detector import QuenchDetector, QuenchThresholds
-from sgms_anchor_control import PIDController, PIDParameters
-from sgms_anchor_v1 import simulate_anchor_with_flux_pinning
 
 
 def benchmark_pid_controller():
