@@ -1,4 +1,4 @@
-"""Test script to verify T1 sweep optimizations work correctly."""
+"""Benchmark script to verify T1 sweep optimizations work correctly."""
 
 import time
 
