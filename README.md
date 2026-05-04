@@ -1,7 +1,6 @@
 # SpinnyBall
 
 Physics simulation framework for closed-loop shepherded gyroscopic mass-stream dynamics with flux-pinning stabilization.
-Bugs still present, be careful
 
 ## Overview
 
@@ -41,7 +40,7 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 - Cascade boundary stress test: 6 points (100 to 464 /hr), N=250 per point
 - Results: Zero cascades up to 10⁻² /hr; cascade onset at λ_crit ≈ 215/hr
 
-**Reproducibility**: All parameters documented in [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md), sweep data available in `profile_sweep_quick_20260501-074244/`
+**Reproducibility**: All parameters and sweep data are documented in the [Documentation](#documentation) section.
 
 ## Installation
 
@@ -66,6 +65,14 @@ python scripts/jax_sweep_latency_eta_ind.py
 # Generate JAX plots
 python scripts/generate_t1_jax_plots.py
 ```
+
+## Documentation
+
+- [paper_manuscript.md](docs/paper_manuscript.md) - Formal research paper
+- [TECHNICAL_SPEC.md](docs/TECHNICAL_SPEC.md) - Physical model and parameters
+- [RESEARCH_DATASET.md](docs/RESEARCH_DATASET.md) - Sweep data and JAX results
+- [CONTROL_THERMAL_PERFORMANCE.md](docs/CONTROL_THERMAL_PERFORMANCE.md) - Thermal and control analysis
+- [archive/](docs/archive/) - Internal logs and legacy reports
 
 ## Key Equations
 

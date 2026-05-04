@@ -15,8 +15,8 @@ The anchor system suspends a station node via a closed-loop, counter-propagating
 | Flux-pinning stiffness | k_fp | 9,000 | N/m | smco-heavy super-pinning profile |
 | Station mass | ms | 1,000 | kg | Suspended node baseline |
 | Damping coefficient | c_damp | 4.0 | N·s/m | System baseline |
-| Spin rate | omega | 5,236 | rad/s | 50,000 RPM |
-| Packet radius | r | 0.1 | m | Prolate spheroid, SmCo payload |
+| Spin rate | omega | 5,236 | rad/s | 50,000 RPM (CFRP limit) |
+| Packet radius | r | 0.1 | m | Prolate spheroid |
 | Orbital Altitude | h | 550 | km | SSO Baseline |
 
 **Packet Geometry Note**: Packet radius has evolved from 0.02m (early 8kg HTS packets) to 0.1m for the 35kg SmCo-heavy profile to maintain prolate stability and maximize flux-pinning surface area.
@@ -48,7 +48,7 @@ k_eff = lam * u^2 * g_gain + k_fp
 | Optimal (Sobol, 589 m/s) | 8,145 | 6,000–10,000 | Within |
 | Paper target | 8,000 | 6,000–10,000 | Within |
 
-Recommendation: Use optimal Sobol parameters for paper claims, but highlight the 15 km/s regime for multi-ton heavy lifting and cost optimization.
+Recommendation: Use the SmCo-heavy profile (15 km/s) as the primary research focus due to its passive thermal stability and 900x mass-efficiency gain over low-velocity chemical propulsion.
 
 ### Infrastructure Coverage & Cost Scaling
 

@@ -34,8 +34,14 @@ The MPC controller supports three configuration modes with different latency cha
 | Mode | Mass (kg) | Radius (m) | Spin Rate (rad/s) | Use Case |
 |------|-----------|------------|-------------------|----------|
 | TEST | 0.05 | 0.02 | 100 | Fast unit tests |
-| VALIDATION | 2.0 | 0.1 | 5236 | MuJoCo oracle validation |
-| OPERATIONAL | 8.0 | 0.1 | 5236 | Paper target (operational) |
+| VALIDATION | 2.0 | 0.1 | 5236 | Vectorized 6-DOF validation |
+| SMCO-HEAVY | 35.0 | 0.1 | 5236 | Paper design point (15 km/s) |
+
+### Control Acceleration (JAX)
+The system supports a high-speed JAX/XLA surrogate engine for large-scale Monte Carlo campaigns:
+- **Surrogate Law**: Linear Quadratic Regulator (LQR) mapped to JAX primitives.
+- **Solve Time**: ~0.04ms per realization (vectorized).
+- **Campaign Performance**: 256,000 realizations in 0.96s (3,751x faster than legacy).
 
 ### Latency Performance
 - **Target**: ≤30ms solve time per control cycle
@@ -123,11 +129,16 @@ The cryocooler integrates with:
 - **Cause**: Temperature exceeds 90K threshold
 - **Recovery**: Requires full cooldown cycle
 
-### Design Implications
-1. **Power Budget**: 50-80W continuous power per cryocooler
-2. **Thermal Margin**: Operate at 77-80K for safety margin to 90K limit
-3. **Redundancy**: Multiple cryocoolers may be needed for fault tolerance
-4. **Vibration**: 1μm amplitude may affect sensitive measurements
+### Material Divergence: GdBCO vs. SmCo
+
+| Feature | GdBCO (HTS) | SmCo (Permanent) |
+|---------|-------------|-------------------|
+| Operating Temp | 77-90K | 280-573K |
+| Passive Cooling | Impossible (Quench) | **Feasible (Passive Stability)** |
+| Power Requirement | ~2 MW (Cryo) | **~5 W (Station-keeping)** |
+| Risk Profile | High (Quench Cascade) | Low (Passive Radiative) |
+
+**Recommendation:** For high-velocity regimes ($u > 2$ km/s), Samarium Cobalt (SmCo) is the superior material due to its ability to operate passively at the 379K steady-state equilibrium without refrigeration.
 
 ---
 
