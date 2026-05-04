@@ -14,6 +14,7 @@ Conventions:
 from .rigid_body import RigidBody, euler_equations, quaternion_derivative
 from .gyro_matrix import skew_symmetric, gyroscopic_coupling
 from .multi_body import MultiBodyStream, Packet, SNode, PacketState, EventQueue
+from .heritage_scaling import HeritageScalingConfig
 from .stress_monitoring import (
     calculate_centrifugal_stress,
     verify_stress_constraint,
@@ -107,6 +108,7 @@ __all__ = [
     "SNode",
     "PacketState",
     "EventQueue",
+    "HeritageScalingConfig",
     "calculate_centrifugal_stress",
     "verify_stress_constraint",
     "verify_packet_stress",

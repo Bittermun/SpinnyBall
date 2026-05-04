@@ -15,6 +15,13 @@ from dataclasses import dataclass, field
 from enum import Enum
 import multiprocessing as mp
 
+# Optional acceleration libraries
+try:
+    from numba import jit, prange
+    _NUMBA_AVAILABLE = True
+except ImportError:
+    _NUMBA_AVAILABLE = False
+
 # Vectorized random number generation for Monte Carlo speedup
 def _vectorized_normal(loc: float, scale: float, size: int) -> np.ndarray:
     """Generate vectorized normal random samples."""
@@ -23,6 +30,23 @@ def _vectorized_normal(loc: float, scale: float, size: int) -> np.ndarray:
 def _vectorized_uniform(size: int, low: float = 0.0, high: float = 1.0) -> np.ndarray:
     """Generate vectorized uniform random samples."""
     return np.random.uniform(low, high, size)
+
+# Module-level stress computation functions (Numba-accelerated if available)
+def _compute_stress_python(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
+    """Compute centrifugal stress (pure Python fallback)."""
+    omega = np.linalg.norm(angular_velocity)
+    stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
+    return stress
+
+if _NUMBA_AVAILABLE:
+    @jit(nopython=True)
+    def _compute_stress_numba(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
+        """Compute centrifugal stress using Numba."""
+        omega = np.linalg.norm(angular_velocity)
+        stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
+        return stress
+else:
+    _compute_stress_numba = _compute_stress_python
 
 logger = logging.getLogger(__name__)
 
@@ -33,12 +57,6 @@ try:
     _JAX_AVAILABLE = True
 except ImportError:
     _JAX_AVAILABLE = False
-
-try:
-    from numba import jit, prange
-    _NUMBA_AVAILABLE = True
-except ImportError:
-    _NUMBA_AVAILABLE = False
 
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.stress_monitoring import verify_packet_stress
@@ -695,15 +713,6 @@ class CascadeRunner:
             result = self.run_realization(stream, i)
             results.append(result)
         return results
-
-    # Numba-accelerated helper functions
-    if _NUMBA_AVAILABLE:
-        @jit(nopython=True)
-        def _compute_stress_numba(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
-            """Compute centrifugal stress using Numba."""
-            omega = np.linalg.norm(angular_velocity)
-            stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
-            return stress
 
     def run_monte_carlo(
         self,

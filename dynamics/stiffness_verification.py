@@ -15,21 +15,7 @@ from dataclasses import dataclass
 
 from dynamics.gdBCO_material import GdBCOMaterial
 from dynamics.bean_london_model import BeanLondonModel
-
-
-@dataclass
-class HeritageScalingConfig:
-    """Configuration for heritage scaling multipliers from FMECA v1.2."""
-    # Scaling multiplier for stiffness (4-7×)
-    stiffness_multiplier: float = 1.0  # Default: nominal (no scaling)
-    
-    # Label for documentation
-    mode: str = "nominal"  # "nominal" or "conservative (FMECA 4-7× heritage)"
-    
-    def __post_init__(self):
-        """Update mode label based on multiplier."""
-        if self.stiffness_multiplier > 1.0:
-            self.mode = f"conservative (stiffness×{self.stiffness_multiplier})"
+from dynamics.heritage_scaling import HeritageScalingConfig
 
 
 @dataclass

@@ -1,6 +1,10 @@
 # Python compiled files
 *.pyc
 __pycache__/
+*.egg-info/
+dist/
+build/
+.eggs/
 
 # Logs
 *.log
@@ -9,3 +13,22 @@ __pycache__/
 .idea/
 .vscode/
 *.swp
+.kimiflare/
+
+# Generated simulation data
+profile_sweep_quick_*/
+extended_velocity_sweep_*.json
+sweep_results/
+results/
+research_data/
+mission_analysis_results/
+paper_figures/
+artifacts/
+paper_model/
+
+# Hypothesis property-based testing database
+.hypothesis/
+
+# OS-specific
+.DS_Store
+Thumbs.db

@@ -169,9 +169,14 @@ def _srp_perturbation(
     sr_pressure = params.get("sr_pressure", 4.56e-6)  # Pa at 1 AU
     C_r = params.get("C_r", 1.8)  # Reflectivity coefficient
     
-    # Simplified: assume Sun is in +x direction (not time-varying)
-    # A more accurate model would compute Sun position based on t
-    sun_direction = np.array([1.0, 0.0, 0.0])
+    # Approximate Sun direction in ECI using mean anomaly
+    # Earth's orbital period: 365.25 days, epoch J2000
+    # This gives ~1°/day rotation of Sun direction
+    # Reference: Meeus, "Astronomical Algorithms", Ch. 25 (low-precision)
+    T_centuries = t / (86400.0 * 36525.0)  # Julian centuries from J2000
+    L_sun_deg = 280.46 + 36000.77 * T_centuries  # Mean longitude
+    L_sun_rad = np.radians(L_sun_deg % 360.0)
+    sun_direction = np.array([np.cos(L_sun_rad), np.sin(L_sun_rad), 0.0])
     
     # Check if spacecraft is in eclipse (simplified)
     # If position.x < 0 and |position.y|, |position.z| are small, it's in Earth's shadow
@@ -208,15 +213,30 @@ def _drag_perturbation(
     altitude_km = np.linalg.norm(orbital_state.r) - R_earth
     altitude_m = altitude_km * 1000.0
     
-    # Scale height and sea-level density
-    H = 8500.0  # scale height in m
-    rho_0 = 1.225  # kg/m^3 at sea level
-    
-    # Density at altitude
-    if altitude_m < 0:
-        rho = rho_0
-    else:
-        rho = rho_0 * np.exp(-altitude_m / H)
+    # Piecewise exponential atmosphere (simplified US Standard Atmosphere 1976)
+    # Reference: Vallado, "Fundamentals of Astrodynamics", Table 8-4
+    # Each tuple: (base_altitude_km, base_density_kg_m3, scale_height_m)
+    _ATMO_LAYERS = [
+        (0, 1.225, 8500.0),
+        (25, 3.899e-2, 6500.0),
+        (50, 1.027e-3, 7200.0),
+        (100, 5.604e-7, 26000.0),
+        (200, 2.541e-10, 37000.0),
+        (400, 2.803e-12, 52000.0),
+        (600, 1.137e-13, 62000.0),
+        (800, 1.136e-14, 72000.0),
+    ]
+
+    # Find appropriate layer
+    rho = 0.0
+    for i in range(len(_ATMO_LAYERS) - 1, -1, -1):
+        base_alt, base_rho, H = _ATMO_LAYERS[i]
+        if altitude_km >= base_alt:
+            rho = base_rho * np.exp(-(altitude_km - base_alt) * 1000.0 / H)
+            break
+
+    if altitude_km < 0:
+        rho = 1.225  # Sea level
     
     # Only significant below ~1000 km
     if altitude_km > 1000:

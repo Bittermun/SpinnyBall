@@ -338,6 +338,55 @@ class MPCController:
         """Get first control input from optimal sequence."""
         return u_opt[:, 0]
 
+    def _euler_step_zero_control(self, x: np.ndarray, dt: float) -> np.ndarray:
+        """Single Euler integration step with zero control input.
+
+        Integrates quaternion kinematics and Euler rotational dynamics
+        for one timestep. Used by smith_predictor and apply_discrete_time_delay.
+
+        Args:
+            x: State [qx, qy, qz, qw, ωx, ωy, ωz]
+            dt: Time step (s)
+
+        Returns:
+            Updated state [7]
+        """
+        q = x[:4]
+        omega = x[4:7]
+
+        # Quaternion derivative (scalar-last to scalar-first and back)
+        qw, qx, qy, qz = q[3], q[0], q[1], q[2]
+        q_sf = np.array([qw, qx, qy, qz])
+        omega_q = np.array([0, omega[0], omega[1], omega[2]])
+        dq_sf = 0.5 * np.array([
+            q_sf[0]*omega_q[0] - q_sf[1]*omega_q[1] - q_sf[2]*omega_q[2] - q_sf[3]*omega_q[3],
+            q_sf[0]*omega_q[1] + q_sf[1]*omega_q[0] + q_sf[2]*omega_q[3] - q_sf[3]*omega_q[2],
+            q_sf[0]*omega_q[2] - q_sf[1]*omega_q[3] + q_sf[2]*omega_q[0] + q_sf[3]*omega_q[1],
+            q_sf[0]*omega_q[3] + q_sf[1]*omega_q[2] - q_sf[2]*omega_q[1] + q_sf[3]*omega_q[0],
+        ])
+        dq = np.array([dq_sf[1], dq_sf[2], dq_sf[3], dq_sf[0]])
+
+        # Gyroscopic coupling
+        I_omega = self.I @ omega
+        omega_skew = np.array([
+            [0, -omega[2], omega[1]],
+            [omega[2], 0, -omega[0]],
+            [-omega[1], omega[0], 0]
+        ])
+        alpha = self.I_inv @ (-(omega_skew @ I_omega))
+
+        # Euler update
+        x_new = x.copy()
+        x_new[:4] += dt * dq
+        x_new[4:7] += dt * alpha
+
+        # Renormalize quaternion
+        q_norm = np.linalg.norm(x_new[:4])
+        if q_norm > 1e-12:
+            x_new[:4] /= q_norm
+
+        return x_new
+
     def smith_predictor(
         self,
         x0: np.ndarray,
@@ -356,52 +405,8 @@ class MPCController:
             Predicted state after delay [7]
         """
         x_pred = x0.copy()
-
         for _ in range(self.delay_steps):
-            # Extract quaternion (scalar-last)
-            q = x_pred[:4]
-            omega = x_pred[4:7]
-
-            # Convert to scalar-first for quaternion derivative
-            qw = q[3]
-            qx = q[0]
-            qy = q[1]
-            qz = q[2]
-            q_scalar_first = np.array([qw, qx, qy, qz])
-
-            # Quaternion derivative: q̇ = 0.5 * q * ω
-            omega_quat = np.array([0, omega[0], omega[1], omega[2]])
-            dq_scalar_first = 0.5 * np.array([
-                q_scalar_first[0]*omega_quat[0] - q_scalar_first[1]*omega_quat[1] - q_scalar_first[2]*omega_quat[2] - q_scalar_first[3]*omega_quat[3],
-                q_scalar_first[0]*omega_quat[1] + q_scalar_first[1]*omega_quat[0] + q_scalar_first[2]*omega_quat[3] - q_scalar_first[3]*omega_quat[2],
-                q_scalar_first[0]*omega_quat[2] - q_scalar_first[1]*omega_quat[3] + q_scalar_first[2]*omega_quat[0] + q_scalar_first[3]*omega_quat[1],
-                q_scalar_first[0]*omega_quat[3] + q_scalar_first[1]*omega_quat[2] - q_scalar_first[2]*omega_quat[1] + q_scalar_first[3]*omega_quat[0],
-            ])
-
-            # Convert back to scalar-last
-            dq = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
-
-            # Gyroscopic coupling: ω × (I * ω)
-            I_omega = self.I @ omega
-            omega_skew = np.array([
-                [0, -omega[2], omega[1]],
-                [omega[2], 0, -omega[0]],
-                [-omega[1], omega[0], 0]
-            ])
-            gyro_coupling = omega_skew @ I_omega
-
-            # Angular acceleration (zero control during delay)
-            alpha = self.I_inv @ (-gyro_coupling)
-
-            # Euler integration
-            x_pred[:4] = x_pred[:4] + self.dt_delay * dq
-            x_pred[4:7] = x_pred[4:7] + self.dt_delay * alpha
-
-            # Renormalize quaternion to prevent drift
-            q_norm = np.linalg.norm(x_pred[:4])
-            if q_norm > 1e-12:
-                x_pred[:4] = x_pred[:4] / q_norm
-
+            x_pred = self._euler_step_zero_control(x_pred, self.dt_delay)
         return x_pred
 
     def apply_discrete_time_delay(
@@ -433,51 +438,8 @@ class MPCController:
         
         # Integrate forward with zero control (ZOH assumption)
         x_delayed = x0.copy()
-        
         for _ in range(delay_steps):
-            # Extract quaternion (scalar-last)
-            q = x_delayed[:4]
-            omega = x_delayed[4:7]
-
-            # Convert to scalar-first for quaternion derivative
-            qw = q[3]
-            qx = q[0]
-            qy = q[1]
-            qz = q[2]
-            q_scalar_first = np.array([qw, qx, qy, qz])
-
-            # Quaternion derivative: q̇ = 0.5 * q * ω
-            omega_quat = np.array([0, omega[0], omega[1], omega[2]])
-            dq_scalar_first = 0.5 * np.array([
-                q_scalar_first[0]*omega_quat[0] - q_scalar_first[1]*omega_quat[1] - q_scalar_first[2]*omega_quat[2] - q_scalar_first[3]*omega_quat[3],
-                q_scalar_first[0]*omega_quat[1] + q_scalar_first[1]*omega_quat[0] + q_scalar_first[2]*omega_quat[3] - q_scalar_first[3]*omega_quat[2],
-                q_scalar_first[0]*omega_quat[2] - q_scalar_first[1]*omega_quat[3] + q_scalar_first[2]*omega_quat[0] + q_scalar_first[3]*omega_quat[1],
-                q_scalar_first[0]*omega_quat[3] + q_scalar_first[1]*omega_quat[2] - q_scalar_first[2]*omega_quat[1] + q_scalar_first[3]*omega_quat[0],
-            ])
-
-            # Convert back to scalar-last
-            dq = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
-
-            # Gyroscopic coupling: ω × (I * ω)
-            I_omega = self.I @ omega
-            omega_skew = np.array([
-                [0, -omega[2], omega[1]],
-                [omega[2], 0, -omega[0]],
-                [-omega[1], omega[0], 0]
-            ])
-            gyro_coupling = omega_skew @ I_omega
-
-            # Angular acceleration (zero control during delay)
-            alpha = self.I_inv @ (-gyro_coupling)
-
-            # Euler integration
-            x_delayed[:4] = x_delayed[:4] + self.dt_delay * dq
-            x_delayed[4:7] = x_delayed[4:7] + self.dt_delay * alpha
-
-            # Renormalize quaternion to prevent drift
-            q_norm = np.linalg.norm(x_delayed[:4])
-            if q_norm > 1e-12:
-                x_delayed[:4] = x_delayed[:4] / q_norm
+            x_delayed = self._euler_step_zero_control(x_delayed, self.dt_delay)
 
         logger.debug(f"Discrete-time delay applied: {total_delay*1000:.1f} ms ({delay_steps} steps)")
         return x_delayed
@@ -546,10 +508,14 @@ class MPCController:
         # Use first input-output pair for simplicity
         try:
             freqs = np.logspace(-2, 3, 1000)  # 0.01 to 1000 rad/s
-            mag, phase = signal.freqresp(A_cl, B_omega[:, 0:1], np.eye(3)[0:1, :], freqs)
-
-            # Find gain crossover frequency (where |G(jw)| = 1)
-            gain = np.abs(mag)
+            # Create state-space system for frequency response
+            C_out = np.eye(3)[0:1, :]  # First output only
+            D_out = np.zeros((1, 3))
+            sys_ss = signal.StateSpace(A_cl, B_omega, C_out, D_out)
+            w_out, H = sys_ss.freqresp(w=freqs)
+            mag = np.abs(H).flatten()
+            phase = np.angle(H).flatten()
+            gain = mag
 
             # Check if gain actually crosses 1 (sign of gain - 1 changes)
             gain_minus_one = gain - 1.0

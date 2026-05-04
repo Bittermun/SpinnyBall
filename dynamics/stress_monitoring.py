@@ -14,28 +14,7 @@ import numpy as np
 from typing import Dict, Tuple, Optional
 from dataclasses import dataclass
 
-
-@dataclass
-class HeritageScalingConfig:
-    """Configuration for heritage scaling multipliers from FMECA v1.2."""
-    # Scaling multiplier for centrifugal stress/creep (6-10×)
-    stress_multiplier: float = 1.0  # Default: nominal (no scaling)
-    
-    # Scaling multiplier for hysteresis/eddy losses (6-10×)
-    hysteresis_multiplier: float = 1.0
-    
-    # Scaling multiplier for stiffness (4-7×)
-    stiffness_multiplier: float = 1.0
-    
-    # Label for documentation
-    mode: str = "nominal"  # "nominal" or "conservative (FMECA 6-10× heritage)"
-    
-    def __post_init__(self):
-        """Validate and update mode label based on multipliers."""
-        if self.stress_multiplier > 1.0 or self.hysteresis_multiplier > 1.0:
-            self.mode = f"conservative (stress×{self.stress_multiplier}, hysteresis×{self.hysteresis_multiplier})"
-        elif self.stiffness_multiplier > 1.0:
-            self.mode = f"conservative (stiffness×{self.stiffness_multiplier})"
+from dynamics.heritage_scaling import HeritageScalingConfig
 
 
 @dataclass

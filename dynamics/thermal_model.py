@@ -118,10 +118,6 @@ def update_temperature_euler(
     else:
         raise ValueError(f"Unknown shape type: {shape}")
     
-    # Validate effective_eddy_heating_power
-    if eddy_heating_power < 0:
-        raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
-    
     # Radiative cooling power (W)
     power_out = emissivity * stefan_boltzmann * surface_area * (temperature**4 - ambient_temp**4)
     

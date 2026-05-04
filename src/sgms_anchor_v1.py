@@ -152,6 +152,11 @@ DEFAULT_PARAMS = {
     "include_j2": False,  # Include J2 perturbation
     "include_srp": False,  # Include solar radiation pressure
     "include_drag": False,  # Include atmospheric drag
+    # Orbital perturbation coupling factor:
+    # Orbital forces (J2, SRP, drag) are ~mN scale while stream forces
+    # are ~N scale. This factor represents the fraction of orbital
+    # perturbation that couples into the 1D anchor displacement axis.
+    "orbital_coupling_factor": 0.01,
     "enable_thermal_dynamics": False,  # Enable temperature evolution
     "enable_eclipse": False,  # Enable eclipse detection in thermal model
     "control_mode": "pid",  # Control mode: "pid" or "mpc"
@@ -381,8 +386,9 @@ def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_th
                 # Compute perturbation force directly from current orbital state
                 # (state already propagated correctly in rhs closure)
                 f_orbital = get_orbital_perturbation_force(params, orbital_state, t, packet_mass=params["ms"])
-                # Scale factor 0.01 to couple orbital perturbations appropriately to anchor dynamics
-                f_total += f_orbital[0] * 0.01
+                # Apply orbital coupling factor (configurable, default 0.01)
+                orbital_coupling_factor = params.get("orbital_coupling_factor", 0.01)
+                f_total += f_orbital[0] * orbital_coupling_factor
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -480,26 +486,41 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     def noise_at(t: float) -> float:
         return float(np.interp(t, noise_t, disturbance_theta))
 
+    # Cache orbital states to avoid redundant propagation
+    # RK45 may call rhs at non-monotonic times, so we cache by rounded time
+    _orbital_cache: dict[float, object] = {}
+    _orbital_cache_precision = 6  # decimal places for time key rounding
+
     def rhs(t: float, y: np.ndarray) -> list[float]:
         x, vx = y
-        
+
         # Propagate orbital state if enabled using pure function of absolute time
         # This avoids non-monotonic time issues with RK45 intermediate stages
         current_orbital_state = None
         if _orbital_initial_state is not None and orbital_propagator is not None:
-            try:
-                # Propagate from initial state by absolute time t (pure function)
-                # Reset propagator to initial state each time for correctness
-                orbital_propagator.from_state_vector(_orbital_initial_state)
-                current_orbital_state = orbital_propagator.propagate(t)
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
-                current_orbital_state = _orbital_initial_state
+            # Cache orbital states to avoid redundant propagation
+            # RK45 may call rhs at non-monotonic times, so we cache by rounded time
+            cache_key = round(t, _orbital_cache_precision)
+            if cache_key in _orbital_cache:
+                current_orbital_state = _orbital_cache[cache_key]
+            else:
+                try:
+                    orbital_propagator.from_state_vector(_orbital_initial_state)
+                    current_orbital_state = orbital_propagator.propagate(t)
+                    _orbital_cache[cache_key] = current_orbital_state
+                    # Evict old entries to bound memory (keep last 1000)
+                    if len(_orbital_cache) > 1000:
+                        oldest_keys = sorted(_orbital_cache.keys())[:500]
+                        for k in oldest_keys:
+                            del _orbital_cache[k]
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
+                    current_orbital_state = _orbital_initial_state
         else:
             current_orbital_state = orbital_state
-        
+
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
         if balance_controller is not None:
@@ -531,6 +552,9 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         
         force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=current_orbital_state)
         return [vx, force / params["ms"]]
+
+    # Clear cache before each simulation to prevent stale data from previous runs
+    _orbital_cache.clear()
 
     sol = solve_ivp(
         rhs,

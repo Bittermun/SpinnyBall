@@ -20,6 +20,17 @@ import numpy as np
 from typing import Tuple, Optional, List, Dict
 from dataclasses import dataclass
 from enum import Enum
+from scipy.optimize import minimize_scalar
+
+# Infrastructure cost weights (sum to 1.0)
+# Rationale: Ball manufacturing dominates cost at scale (40%),
+# total mass drives launch cost (30%), tracking complexity scales
+# with ball count (20%), and system complexity is secondary (10%).
+# TODO: Validate with AHP or stakeholder input.
+WEIGHT_BALL_COST = 0.4
+WEIGHT_MASS_COST = 0.3
+WEIGHT_TRACKING_COST = 0.2
+WEIGHT_COMPLEXITY = 0.1
 
 
 class OptimizationStrategy(Enum):
@@ -151,7 +162,8 @@ class VelocityOptimizer:
         tracking_cost = (ball_count / n_base) ** 0.5
         complexity_factor = 1.0 + 0.1 * (velocity / v_base - 1.0)
 
-        total_cost = 0.4 * ball_cost + 0.3 * mass_cost + 0.2 * tracking_cost + 0.1 * complexity_factor
+        total_cost = (WEIGHT_BALL_COST * ball_cost + WEIGHT_MASS_COST * mass_cost +
+                      WEIGHT_TRACKING_COST * tracking_cost + WEIGHT_COMPLEXITY * complexity_factor)
         return total_cost
 
     def compute_efficiency_score(self, velocity: float, ball_count: int) -> float:
@@ -203,10 +215,14 @@ class VelocityOptimizer:
         n_samples: int = 200
     ) -> OptimizationResult:
         """Optimize velocity for given strategy."""
-        velocities = np.linspace(velocity_range[0], velocity_range[1], n_samples)
-        objectives = [self.objective_function(v, strategy) for v in velocities]
-        best_idx = np.argmin(objectives)
-        optimal_v = velocities[best_idx]
+        # Use bounded scalar optimization instead of grid search
+        result = minimize_scalar(
+            lambda v: self.objective_function(v, strategy),
+            bounds=velocity_range,
+            method='bounded',
+            options={'xatol': 1.0}  # 1 m/s precision
+        )
+        optimal_v = result.x
 
         ball_count = self.compute_ball_count(optimal_v)
         cost = self.compute_infrastructure_cost(optimal_v, ball_count)

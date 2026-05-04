@@ -143,7 +143,10 @@ class BeanLondonModel:
         if x < 1e-15:
             # For x → 0, tanh(b*x) → b*x, sech(b*x) → 1
             # Stiffness → a * [b*x + b*x * 1] = 2*a*b*x
-            stiffness = 2.0 * a * b * x
+            # Return the analytical limit 2*a*b*x, but enforce a minimum floor
+            # to prevent division-by-zero in downstream calculations (e.g., omega_n = sqrt(k/m)).
+            # The floor is set to 1% of the saturated stiffness 'a' as a numerical guard.
+            stiffness = max(2.0 * a * b * x, a * 0.01)
         elif b * x > 20:
             # For large b*x, tanh(b*x) → 1, sech(b*x) → 0
             # Stiffness → a * [1 + 0] = a

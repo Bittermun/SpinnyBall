@@ -19,6 +19,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics",
 ]
+packages = [
+    { include = "dynamics" },
+    { include = "src" },
+    { include = "monte_carlo" },
+    { include = "control_layer" },
+    { include = "scripts" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -67,14 +74,14 @@ all = ["casadi", "numba", "torch", "jax", "jaxlib", "SALib", "h5py", "scikit-lea
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 black = "^23.12.0"
-ruff = "^0.1.0"
+ruff = "^0.4.0"
 mypy = "^1.7.0"
 
 [tool.poetry.scripts]
 # Simulation scripts
-lob-scaling = "lob_scaling:main"
-sgms-anchor = "sgms_anchor_v1:main"
-sgms-suite = "sgms_anchor_suite:main"
+lob-scaling = "scripts.lob_scaling:main"
+sgms-anchor = "src.sgms_anchor_v1:main"
+sgms-suite = "src.sgms_anchor_suite:main"
 
 [tool.black]
 line-length = 100
