@@ -3,12 +3,12 @@ Unit tests for stream balance controller.
 """
 
 import unittest
-import numpy as np
+
 from control_layer.stream_balance import (
-    StreamBalanceController,
-    StreamBalanceConfig,
-    StreamBalanceState,
     BalanceMode,
+    StreamBalanceConfig,
+    StreamBalanceController,
+    StreamBalanceState,
     create_stream_balance_controller,
 )
 
@@ -90,7 +90,7 @@ class TestStreamBalanceController(unittest.TestCase):
                 timing_jitter_plus=0.0,
                 timing_jitter_minus=0.0,
             )
-        
+
         filtered = self.controller.get_filtered_imbalance()
         self.assertGreater(filtered, 0.0)
 
@@ -98,11 +98,11 @@ class TestStreamBalanceController(unittest.TestCase):
         """Test controller update in proportional mode."""
         self.config.control_mode = BalanceMode.PROPORTIONAL
         controller = StreamBalanceController(self.config)
-        
+
         # Add some imbalance - measured imbalance is higher than target
         # Controller should try to reduce epsilon (drive toward target)
         controller.measure_imbalance(10.0, 9.9, 0, 0, 0.0, 0.0)
-        
+
         epsilon, control = controller.update(dt=0.01)
         # Epsilon should be at or below min (0.0) since measured imbalance > target
         self.assertGreaterEqual(epsilon, self.config.min_epsilon)
@@ -112,10 +112,10 @@ class TestStreamBalanceController(unittest.TestCase):
         """Test controller update in PI mode."""
         self.config.control_mode = BalanceMode.PI
         controller = StreamBalanceController(self.config)
-        
+
         # Add some imbalance
         controller.measure_imbalance(10.0, 9.9, 0, 0, 0.0, 0.0)
-        
+
         epsilon, control = controller.update(dt=0.01)
         # Epsilon should be at or below min (0.0) since measured imbalance > target
         self.assertGreaterEqual(epsilon, self.config.min_epsilon)
@@ -125,10 +125,10 @@ class TestStreamBalanceController(unittest.TestCase):
         """Test controller update in PID mode."""
         self.config.control_mode = BalanceMode.PID
         controller = StreamBalanceController(self.config)
-        
+
         # Add some imbalance
         controller.measure_imbalance(10.0, 9.9, 0, 0, 0.0, 0.0)
-        
+
         epsilon, control = controller.update(dt=0.01)
         # Epsilon should be at or below min (0.0) since measured imbalance > target
         self.assertGreaterEqual(epsilon, self.config.min_epsilon)
@@ -137,10 +137,10 @@ class TestStreamBalanceController(unittest.TestCase):
     def test_epsilon_bounds(self):
         """Test epsilon stays within bounds."""
         # Force large control effort
-        for i in range(100):
+        for _i in range(100):
             self.controller.measure_imbalance(10.0, 0.0, 0, 0, 0.0, 0.0)
             epsilon, _ = self.controller.update(dt=0.01)
-        
+
         # Should be bounded by max_epsilon
         self.assertLessEqual(self.controller.state.epsilon, self.config.max_epsilon)
         self.assertGreaterEqual(self.controller.state.epsilon, self.config.min_epsilon)
@@ -150,10 +150,10 @@ class TestStreamBalanceController(unittest.TestCase):
         # Add some state
         self.controller.measure_imbalance(10.0, 9.9, 0, 0, 0.0, 0.0)
         self.controller.update(dt=0.01)
-        
+
         # Reset
         self.controller.reset()
-        
+
         # Check state is cleared
         self.assertEqual(self.controller.state.epsilon, 0.0)
         self.assertEqual(self.controller.state.integral_error, 0.0)
@@ -163,9 +163,9 @@ class TestStreamBalanceController(unittest.TestCase):
         """Test diagnostics output."""
         self.controller.measure_imbalance(10.0, 9.9, 0, 0, 0.0, 0.0)
         self.controller.update(dt=0.01)
-        
+
         diagnostics = self.controller.get_diagnostics()
-        
+
         self.assertIn("epsilon", diagnostics)
         self.assertIn("filtered_imbalance", diagnostics)
         self.assertIn("packet_loss_rate", diagnostics)
@@ -179,7 +179,7 @@ class TestStreamBalanceController(unittest.TestCase):
             target_epsilon=1e-4,
             control_mode=BalanceMode.PI,
         )
-        
+
         self.assertEqual(controller.config.target_epsilon, 1e-4)
         self.assertEqual(controller.config.control_mode, BalanceMode.PI)
 
@@ -190,7 +190,7 @@ class TestStreamBalanceConfig(unittest.TestCase):
     def test_default_config(self):
         """Test default configuration values."""
         config = StreamBalanceConfig()
-        
+
         self.assertEqual(config.target_epsilon, 1e-4)
         self.assertEqual(config.max_epsilon, 1e-2)
         self.assertEqual(config.min_epsilon, 0.0)
@@ -207,7 +207,7 @@ class TestStreamBalanceConfig(unittest.TestCase):
             control_mode=BalanceMode.PID,
             kp=2000.0,
         )
-        
+
         self.assertEqual(config.target_epsilon, 1e-5)
         self.assertEqual(config.max_epsilon, 1e-1)
         self.assertEqual(config.control_mode, BalanceMode.PID)
@@ -220,7 +220,7 @@ class TestStreamBalanceState(unittest.TestCase):
     def test_default_state(self):
         """Test default state values."""
         state = StreamBalanceState()
-        
+
         self.assertEqual(state.epsilon, 0.0)
         self.assertEqual(state.integral_error, 0.0)
         self.assertEqual(state.prev_error, 0.0)

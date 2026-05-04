@@ -8,9 +8,8 @@ import pytest
 pytest.importorskip("torch", reason="PyTorch not available")
 
 import torch
-import torch.nn as nn
 
-from control_layer.ircnn_predictor import IRCNNBlock, IRCNNPredictor, IRCNNParameters
+from control_layer.ircnn_predictor import IRCNNBlock, IRCNNParameters, IRCNNPredictor
 
 
 class TestIRCNNParameters:
@@ -56,10 +55,10 @@ class TestIRCNNBlock:
         """Test IRCNN block is exactly invertible (error < 1e-6)."""
         block = IRCNNBlock(hidden_dim=64)
         x = torch.randn(10, 128)
-        
+
         x_forward = block(x)
         x_inverse = block.inverse(x_forward)
-        
+
         error = torch.max(torch.abs(x - x_inverse))
         assert error < 1e-6, f"Invertibility error {error:.2e} exceeds 1e-6"
 
@@ -106,7 +105,7 @@ class TestIRCNNPredictor:
     def test_forward_different_batch_size(self):
         """Test forward pass with different batch sizes."""
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
-        
+
         for batch_size in [1, 5, 10, 20]:
             x = torch.randn(batch_size, 7)
             x_out = predictor(x)
@@ -117,7 +116,7 @@ class TestIRCNNPredictor:
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
         x = torch.randn(10, 7)
         x_pred = predictor(x)
-        
+
         log_likelihood = predictor.compute_log_likelihood(x, x_pred)
         assert log_likelihood is not None
         assert isinstance(log_likelihood.item(), float)
@@ -125,7 +124,7 @@ class TestIRCNNPredictor:
     def test_get_model_info(self):
         """Test get_model_info returns correct metadata."""
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
-        
+
         info = predictor.get_model_info()
         assert info['input_dim'] == 7
         assert info['hidden_dim'] == 64
@@ -167,7 +166,7 @@ class TestIRCNNPredictor:
         """Test model in eval mode."""
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
         predictor.eval()
-        
+
         x = torch.randn(10, 7)
         with torch.no_grad():
             x_out = predictor(x)
@@ -177,7 +176,7 @@ class TestIRCNNPredictor:
         """Test model in train mode."""
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
         predictor.train()
-        
+
         x = torch.randn(10, 7)
         x_out = predictor(x)
         assert x_out.shape == (10, 7)
@@ -189,17 +188,17 @@ class TestIRCNNPerformance:
     def test_inference_latency(self):
         """Test IRCNN inference meets latency target (< 5 ms)."""
         import time
-        
+
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
         predictor.eval()
-        
+
         x = torch.randn(10, 7)
-        
+
         # Warmup
         with torch.no_grad():
             for _ in range(10):
                 predictor(x)
-        
+
         # Benchmark
         n_iterations = 100
         start = time.perf_counter()
@@ -208,15 +207,15 @@ class TestIRCNNPerformance:
                 predictor(x)
         elapsed = time.perf_counter() - start
         latency_ms = (elapsed / n_iterations) * 1000
-        
+
         assert latency_ms < 5.0, f"Latency {latency_ms:.2f} ms exceeds target 5 ms"
 
     def test_parameter_count(self):
         """Test model parameter count is reasonable (< 50 MB)."""
         predictor = IRCNNPredictor(input_dim=7, hidden_dim=64, num_blocks=4)
-        
+
         info = predictor.get_model_info()
         # Assuming float32 (4 bytes per parameter)
         param_size_mb = info['total_parameters'] * 4 / (1024 ** 2)
-        
+
         assert param_size_mb < 50.0, f"Model size {param_size_mb:.2f} MB exceeds target 50 MB"

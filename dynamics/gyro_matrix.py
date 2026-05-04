@@ -22,20 +22,20 @@ import numpy as np
 def skew_symmetric(omega: np.ndarray) -> np.ndarray:
     """
     Compute the skew-symmetric matrix from a 3-vector.
-    
+
     For ω = [ωx, ωy, ωz], the skew-symmetric matrix is:
         [  0   -ωz   ωy ]
         [  ωz    0  -ωx ]
         [ -ωy   ωx    0 ]
-    
+
     This matrix has the property that skew_symmetric(ω) @ v = ω × v.
-    
+
     Args:
         omega: Angular velocity vector [ωx, ωy, ωz] (rad/s)
-    
+
     Returns:
         3×3 skew-symmetric matrix
-    
+
     Raises:
         ValueError: If omega is not a 3-element vector
     """
@@ -82,31 +82,31 @@ def gyroscopic_coupling(I: np.ndarray, omega: np.ndarray) -> np.ndarray:
 def verify_skew_properties(omega: np.ndarray, tol: float = 1e-12) -> dict:
     """
     Verify mathematical properties of the skew-symmetric matrix.
-    
+
     Properties checked:
     1. Antisymmetry: Sᵀ = -S
     2. Zero diagonal: diag(S) = [0, 0, 0]
     3. Trace = 0
     4. Cross product equivalence: S @ v = ω × v for arbitrary v
-    
+
     Args:
         omega: Angular velocity vector
         tol: Tolerance for numerical comparisons
-    
+
     Returns:
         Dictionary of test results (bool)
     """
     S = skew_symmetric(omega)
-    
+
     # Test 1: Antisymmetry
     antisymmetric = np.allclose(S.T, -S, atol=tol)
-    
+
     # Test 2: Zero diagonal
     zero_diag = np.allclose(np.diag(S), 0.0, atol=tol)
-    
+
     # Test 3: Zero trace
     zero_trace = np.abs(np.trace(S)) < tol
-    
+
     # Test 4: Cross product equivalence
     test_vectors = [
         np.array([1.0, 0.0, 0.0]),
@@ -121,7 +121,7 @@ def verify_skew_properties(omega: np.ndarray, tol: float = 1e-12) -> dict:
         if not np.allclose(S_v, omega_cross_v, atol=tol):
             cross_product_equiv = False
             break
-    
+
     return {
         "antisymmetric": antisymmetric,
         "zero_diagonal": zero_diag,

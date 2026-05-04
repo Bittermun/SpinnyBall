@@ -19,6 +19,13 @@ classifiers = [
     "Programming Language :: Python :: 3.12",
     "Topic :: Scientific/Engineering :: Physics",
 ]
+packages = [
+    { include = "dynamics" },
+    { include = "src" },
+    { include = "monte_carlo" },
+    { include = "control_layer" },
+    { include = "scripts" },
+]
 
 [tool.poetry.dependencies]
 python = "^3.11"
@@ -68,14 +75,15 @@ all = ["casadi", "numba", "torch", "jax", "jaxlib", "SALib", "h5py", "scikit-lea
 pytest = "^7.4.0"
 pytest-cov = "^4.1.0"
 black = "^23.12.0"
-ruff = "^0.1.0"
+ruff = "^0.4.0"
 mypy = "^1.7.0"
+httpx = "^0.27.0"
 
 [tool.poetry.scripts]
 # Simulation scripts
-lob-scaling = "lob_scaling:main"
-sgms-anchor = "sgms_anchor_v1:main"
-sgms-suite = "sgms_anchor_suite:main"
+lob-scaling = "scripts.lob_scaling:main"
+sgms-anchor = "src.sgms_anchor_v1:main"
+sgms-suite = "src.sgms_anchor_suite:main"
 
 [tool.black]
 line-length = 100
@@ -83,8 +91,24 @@ target-version = ['py311', 'py312']
 
 [tool.ruff]
 line-length = 100
+
+[tool.ruff.lint]
 select = ["E", "F", "W", "I", "N", "UP", "B", "C4"]
-ignore = ["E501"]  # Line too long (handled by black)
+ignore = [
+    "E501",   # Line too long (handled by black)
+    "N802",   # Function name should be lowercase (physics: matrix operations)
+    "N803",   # Argument name should be lowercase (physics: matrices use uppercase)
+    "N806",   # Variable in function should be lowercase (physics: I, L, S, R, etc.)
+    "N815",   # Mixed-case variable in class scope (physics)
+    "N816",   # Mixed-case variable in global scope (physics)
+    "N817",   # CamelCase imported as acronym (physics)
+    "N999",   # Invalid module name (legacy file naming)
+    "E741",   # Ambiguous variable name (physics: I = inertia, l = length)
+    "E402",   # Module level import not at top of file (optional imports pattern)
+    "E743",   # Ambiguous function name (physics conventions)
+    "B007",   # Loop control variable not used in loop body (simulation patterns)
+    "B023",   # Function definition in loop (simulation patterns)
+]
 
 [tool.mypy]
 python_version = "3.11"

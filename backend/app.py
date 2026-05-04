@@ -282,8 +282,12 @@ async def init_simulation(params: SimulationParams):
     """Initialize simulation with given parameters."""
 
     # Create packets
-    mass = 0.05
-    I = np.diag([0.0001, 0.00011, 0.00009])  # noqa: N806, E741
+    # Match project design target: 35 kg SmCo packet, 10 cm radius
+    mass = 35.0  # kg
+    radius = 0.10  # m
+    # Solid sphere inertia: I = (2/5) * m * r²
+    I_scalar = 0.4 * mass * radius**2  # 0.14 kg·m²
+    I = np.diag([I_scalar, I_scalar * 1.1, I_scalar * 0.9])  # Slight asymmetry
 
     packets = []
     for i in range(params.n_packets):

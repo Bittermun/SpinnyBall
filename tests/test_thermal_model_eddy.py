@@ -2,12 +2,11 @@
 Unit tests for thermal model with eddy-current heating.
 """
 
-import numpy as np
 import pytest
 
 from dynamics.thermal_model import (
-    update_temperature_euler,
     eddy_heating_power,
+    update_temperature_euler,
 )
 
 
@@ -16,9 +15,9 @@ def test_eddy_heating_power():
     k_drag = 0.01  # N·s/m
     velocity = 1000.0  # m/s
     radius = 0.1  # m
-    
+
     power = eddy_heating_power(velocity, k_drag, radius)
-    
+
     # P = k_drag * v^2
     expected = k_drag * velocity**2
     assert abs(power - expected) < 1e-6
@@ -34,10 +33,10 @@ def test_eddy_heating_power_scaling():
     """Test that eddy heating scales with velocity squared."""
     k_drag = 0.01
     radius = 0.1
-    
+
     power_100 = eddy_heating_power(100.0, k_drag, radius)
     power_200 = eddy_heating_power(200.0, k_drag, radius)
-    
+
     # 2x velocity should give 4x power
     assert abs(power_200 - 4.0 * power_100) < 1e-6
 
@@ -51,7 +50,7 @@ def test_update_temperature_euler_with_eddy_heating():
     specific_heat = 500.0  # J/kg/K
     dt = 0.01  # s
     eddy_power = 10.0  # W
-    
+
     new_temp = update_temperature_euler(
         temperature=temperature,
         mass=mass,
@@ -61,7 +60,7 @@ def test_update_temperature_euler_with_eddy_heating():
         dt=dt,
         eddy_heating_power=eddy_power,
     )
-    
+
     # Temperature should increase with eddy heating
     assert new_temp > temperature
 
@@ -88,7 +87,7 @@ def test_update_temperature_euler_zero_eddy():
     emissivity = 0.1
     specific_heat = 500.0
     dt = 0.01
-    
+
     new_temp = update_temperature_euler(
         temperature=temperature,
         mass=mass,
@@ -98,7 +97,7 @@ def test_update_temperature_euler_zero_eddy():
         dt=dt,
         eddy_heating_power=0.0,
     )
-    
+
     # Temperature should decrease due to radiative cooling
     assert new_temp < temperature
 
@@ -108,9 +107,9 @@ def test_eddy_heating_with_high_velocity():
     k_drag = 0.01
     velocity = 1600.0  # m/s (operational)
     radius = 0.1
-    
+
     power = eddy_heating_power(velocity, k_drag, radius)
-    
+
     # P = 0.01 * 1600^2 = 25.6 kW
     expected = 0.01 * 1600.0**2
     assert abs(power - expected) < 1e-3
@@ -125,7 +124,7 @@ def test_thermal_balance_with_eddy_and_cryocooler():
     specific_heat = 500.0
     dt = 0.01
     eddy_power = 10.0
-    
+
     # With eddy heating only
     temp_eddy = update_temperature_euler(
         temperature=temperature,
@@ -136,10 +135,10 @@ def test_thermal_balance_with_eddy_and_cryocooler():
         dt=dt,
         eddy_heating_power=eddy_power,
     )
-    
+
     # Eddy heating should increase temperature
     assert temp_eddy > temperature
-    
+
     # With cryocooler cooling (simulated by negative eddy power in this test)
     # Note: In real system, cryocooler is separate parameter
     # This test just verifies the function handles the parameter
@@ -150,9 +149,9 @@ def test_eddy_heating_negative_velocity():
     k_drag = 0.01
     velocity = -1000.0  # Negative velocity
     radius = 0.1
-    
+
     power = eddy_heating_power(velocity, k_drag, radius)
-    
+
     # P = k_drag * v^2, so negative velocity should give same power
     expected = k_drag * (-1000.0)**2
     assert abs(power - expected) < 1e-6
@@ -163,7 +162,7 @@ def test_eddy_heating_zero_radius():
     k_drag = 0.01
     velocity = 1000.0
     radius = 0.0  # Zero radius
-    
+
     # Should still compute power (radius is currently unused in calculation)
     power = eddy_heating_power(velocity, k_drag, radius)
     expected = k_drag * velocity**2
@@ -205,7 +204,7 @@ def test_update_temperature_euler_negative_dt():
     emissivity = 0.1
     specific_heat = 500.0
     dt = -0.01  # Negative time step
-    
+
     with pytest.raises(ValueError, match="dt must be > 0"):
         update_temperature_euler(
             temperature=temperature,

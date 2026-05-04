@@ -16,13 +16,12 @@ by splitting the feedback command evenly across the two streams.
 
 from __future__ import annotations
 
-import csv
-import math
 import argparse
-import warnings
+import csv
 import logging
+import math
+import warnings
 from pathlib import Path
-from typing import Optional, Dict
 
 import matplotlib
 
@@ -35,13 +34,14 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 from scipy.integrate import solve_ivp
 
-from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
-from dynamics.packet_budget import compute_packet_budget, PacketBudget as _PacketBudget
-from dynamics.stream_energy_model import compute_stream_energy_budget, analytical_lunar_slingshot_dv
+from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
+from dynamics.packet_budget import PacketBudget as _PacketBudget
+from dynamics.packet_budget import compute_packet_budget
+from dynamics.stream_energy_model import analytical_lunar_slingshot_dv, compute_stream_energy_budget
 
 try:
-    from control_layer.stream_balance import StreamBalanceController, StreamBalanceConfig
+    from control_layer.stream_balance import StreamBalanceConfig, StreamBalanceController
     STREAM_BALANCE_AVAILABLE = True
 except ImportError:
     STREAM_BALANCE_AVAILABLE = False
@@ -51,7 +51,7 @@ except ImportError:
 
 # Optional MPC controller
 try:
-    from control_layer.mpc_controller import MPCController, ConfigurationMode
+    from control_layer.mpc_controller import ConfigurationMode, MPCController
     MPC_AVAILABLE = True
 except ImportError:
     MPC_AVAILABLE = False
@@ -61,7 +61,10 @@ except ImportError:
 
 # Optional orbital perturbations
 try:
-    from dynamics.orbital_perturbations import get_orbital_perturbation_force, create_orbital_state_from_params
+    from dynamics.orbital_perturbations import (
+        create_orbital_state_from_params,
+        get_orbital_perturbation_force,
+    )
     ORBITAL_PERTURBATIONS_AVAILABLE = True
 except ImportError:
     ORBITAL_PERTURBATIONS_AVAILABLE = False
@@ -72,6 +75,7 @@ except ImportError:
 
 # Default Bean-London model configuration (for backward compatibility)
 from dynamics.gdBCO_material import gdbco_props_from_canonical
+
 DEFAULT_GDBCO_PROPS = gdbco_props_from_canonical()
 DEFAULT_FLUX_PINNING_GEOMETRY = {
     "thickness": DEFAULT_GDBCO_PROPS.thickness,
@@ -82,13 +86,13 @@ DEFAULT_FLUX_PINNING_GEOMETRY = {
 
 def material_profile_to_properties(material_profile: dict | None) -> GdBCOProperties:
     """Convert material profile dict to GdBCOProperties.
-    
+
     Args:
         material_profile: Material profile dict from catalog, or None for defaults
-        
+
     Returns:
         GdBCOProperties instance
-        
+
     Note:
         This function uses a simplified scaling model where Jc0 is scaled linearly
         based on the midpoint of the k_fp_range. This is a first-order approximation
@@ -99,7 +103,7 @@ def material_profile_to_properties(material_profile: dict | None) -> GdBCOProper
     """
     if material_profile is None:
         return DEFAULT_GDBCO_PROPS
-    
+
     # Extract k_fp_range from material profile
     k_fp_range = material_profile.get("k_fp_range", [80000, 120000])
     # Use midpoint of range as baseline, scale Jc0 proportionally
@@ -108,7 +112,7 @@ def material_profile_to_properties(material_profile: dict | None) -> GdBCOProper
     k_fp_baseline = (k_fp_range[0] + k_fp_range[1]) / 2
     k_fp_default = (80000 + 120000) / 2  # Default baseline
     jc0_scaled = DEFAULT_GDBCO_PROPS.Jc0 * (k_fp_baseline / k_fp_default)
-    
+
     return GdBCOProperties(
         Tc=DEFAULT_GDBCO_PROPS.Tc,
         Jc0=jc0_scaled,
@@ -152,6 +156,11 @@ DEFAULT_PARAMS = {
     "include_j2": False,  # Include J2 perturbation
     "include_srp": False,  # Include solar radiation pressure
     "include_drag": False,  # Include atmospheric drag
+    # Orbital perturbation coupling factor:
+    # Orbital forces (J2, SRP, drag) are ~mN scale while stream forces
+    # are ~N scale. This factor represents the fraction of orbital
+    # perturbation that couples into the 1D anchor displacement axis.
+    "orbital_coupling_factor": 0.01,
     "enable_thermal_dynamics": False,  # Enable temperature evolution
     "enable_eclipse": False,  # Enable eclipse detection in thermal model
     "control_mode": "pid",  # Control mode: "pid" or "mpc"
@@ -163,11 +172,11 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
 
     If params contains "k_fp", use linear stiffness (old behavior).
     Otherwise, use dynamic Bean-London stiffness (new behavior).
-    
+
     Args:
         params: System parameters
         flux_model: Optional BeanLondonModel instance. If None, creates default.
-    
+
     Returns:
         Dictionary with calculated metrics
     """
@@ -182,7 +191,7 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
 
     f_stream = lam * u**2 * theta_bias
     k_control = lam * u**2 * g_gain
-    
+
     if "k_fp" in params:
         # Legacy linear stiffness
         if "material_profile" in params:
@@ -202,14 +211,14 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
             gdBCO_props = material_profile_to_properties(material_profile)
             material = GdBCOMaterial(gdBCO_props)
             flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
-        
+
         temperature = params.get("temperature", 77.0)
         B_field = params.get("B_field", 1.0)
         displacement = params.get("x0", 0.0)
         k_fp = flux_model.get_stiffness(displacement, B_field, temperature)
 
     k_total = k_control + k_fp
-    
+
     omega_n = math.sqrt(k_total / ms) if k_total > 0.0 else 0.0
     period = (2.0 * math.pi / omega_n) if omega_n > 0.0 else math.inf
     zeta = c_damp / (2.0 * math.sqrt(k_total * ms)) if k_total > 0.0 else math.inf
@@ -256,7 +265,7 @@ def simulate_anchor_with_flux_pinning(
     if flux_model is None:
         material = GdBCOMaterial(DEFAULT_GDBCO_PROPS)
         flux_model = BeanLondonModel(material, DEFAULT_FLUX_PINNING_GEOMETRY)
-    
+
     # Initialize temperature and field profiles
     if temperature_profile is None:
         temperature_profile = np.full_like(t_eval, 77.0)  # Constant 77K
@@ -280,7 +289,7 @@ def simulate_anchor_with_flux_pinning(
     }
 
     # Simulation loop with velocity Verlet integration (2nd order, better energy conservation)
-    for i, t in enumerate(t_eval):
+    for i, _t in enumerate(t_eval):
         # Get current temperature and field
         T = temperature_profile[i]
         B = B_field_profile[i]
@@ -307,13 +316,13 @@ def simulate_anchor_with_flux_pinning(
         # Recompute forces at new position for next acceleration
         k_fp_new = flux_model.get_stiffness(x, B, T)
         k_eff_new = k_fp_new + params["k_structural"] if "k_structural" in params else k_fp_new
-        
+
         # Recalculate stream force at new position
         theta_cmd_new = params["g_gain"] * x
         theta_plus_new = params["theta_bias"] - 0.5 * theta_cmd_new
         theta_minus_new = params["theta_bias"] + 0.5 * theta_cmd_new
         f_stream_new = (1.0 + params["eps"]) * lam_u2 * theta_plus_new - (1.0 - params["eps"]) * lam_u2 * theta_minus_new
-        
+
         a_new = (f_stream_new - params["c_damp"] * (v + a_old * dt) - k_eff_new * x) / params["ms"]
         v += 0.5 * (a_old + a_new) * dt
 
@@ -381,8 +390,9 @@ def net_anchor_force(x: float, vx: float, t: float, params: dict, disturbance_th
                 # Compute perturbation force directly from current orbital state
                 # (state already propagated correctly in rhs closure)
                 f_orbital = get_orbital_perturbation_force(params, orbital_state, t, packet_mass=params["ms"])
-                # Scale factor 0.01 to couple orbital perturbations appropriately to anchor dynamics
-                f_total += f_orbital[0] * 0.01
+                # Apply orbital coupling factor (configurable, default 0.01)
+                orbital_coupling_factor = params.get("orbital_coupling_factor", 0.01)
+                f_total += f_orbital[0] * orbital_coupling_factor
             except Exception as e:
                 import logging
                 logger = logging.getLogger(__name__)
@@ -435,8 +445,8 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     orbital_propagator = None  # Create once to avoid recreation on every RK45 step
     _orbital_initial_state = None  # Cache initial state for pure-function propagation
     enable_orbital = (
-        params.get("include_j2", False) or 
-        params.get("include_srp", False) or 
+        params.get("include_j2", False) or
+        params.get("include_srp", False) or
         params.get("include_drag", False) or
         (params.get("enable_thermal_dynamics", False) and params.get("enable_eclipse", False))
     )
@@ -480,26 +490,41 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
     def noise_at(t: float) -> float:
         return float(np.interp(t, noise_t, disturbance_theta))
 
+    # Cache orbital states to avoid redundant propagation
+    # RK45 may call rhs at non-monotonic times, so we cache by rounded time
+    _orbital_cache: dict[float, object] = {}
+    _orbital_cache_precision = 6  # decimal places for time key rounding
+
     def rhs(t: float, y: np.ndarray) -> list[float]:
         x, vx = y
-        
+
         # Propagate orbital state if enabled using pure function of absolute time
         # This avoids non-monotonic time issues with RK45 intermediate stages
         current_orbital_state = None
         if _orbital_initial_state is not None and orbital_propagator is not None:
-            try:
-                # Propagate from initial state by absolute time t (pure function)
-                # Reset propagator to initial state each time for correctness
-                orbital_propagator.from_state_vector(_orbital_initial_state)
-                current_orbital_state = orbital_propagator.propagate(t)
-            except Exception as e:
-                import logging
-                logger = logging.getLogger(__name__)
-                logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
-                current_orbital_state = _orbital_initial_state
+            # Cache orbital states to avoid redundant propagation
+            # RK45 may call rhs at non-monotonic times, so we cache by rounded time
+            cache_key = round(t, _orbital_cache_precision)
+            if cache_key in _orbital_cache:
+                current_orbital_state = _orbital_cache[cache_key]
+            else:
+                try:
+                    orbital_propagator.from_state_vector(_orbital_initial_state)
+                    current_orbital_state = orbital_propagator.propagate(t)
+                    _orbital_cache[cache_key] = current_orbital_state
+                    # Evict old entries to bound memory (keep last 1000)
+                    if len(_orbital_cache) > 1000:
+                        oldest_keys = sorted(_orbital_cache.keys())[:500]
+                        for k in oldest_keys:
+                            del _orbital_cache[k]
+                except Exception as e:
+                    import logging
+                    logger = logging.getLogger(__name__)
+                    logger.warning(f"Orbital propagation failed at t={t:.3f}: {e}")
+                    current_orbital_state = _orbital_initial_state
         else:
             current_orbital_state = orbital_state
-        
+
         # Update dynamic epsilon if controller is active
         nonlocal dynamic_epsilon
         if balance_controller is not None:
@@ -512,11 +537,11 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             dt = 0.01  # Fixed control update rate
             dynamic_epsilon, _ = balance_controller.update(dt)
             eps_log.append((t, dynamic_epsilon))
-        
+
         # Use dynamic epsilon in force calculation
         sim_params = params.copy()
         sim_params["eps"] = dynamic_epsilon
-        
+
         # Use MPC for control if enabled
         if mpc_controller is not None and control_mode == "mpc":
             try:
@@ -528,9 +553,12 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             except Exception:
                 # Fall back to default g_gain on error
                 sim_params["g_gain"] = params["g_gain"]
-        
+
         force = net_anchor_force(x, vx, t, sim_params, disturbance_theta=noise_at(t), orbital_state=current_orbital_state)
         return [vx, force / params["ms"]]
+
+    # Clear cache before each simulation to prevent stale data from previous runs
+    _orbital_cache.clear()
 
     sol = solve_ivp(
         rhs,
@@ -571,7 +599,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         fp, fm, fpin, fd = _stream_forces(sol.y[0][i], sol.y[1][i], disturbance[i], sim_params)
         f_plus[i], f_minus[i], f_damp[i] = fp, fm, fd
         force[i] = fp + fm + fpin + fd
-        
+
         # Propagate orbital state for this output time (for thermal/eclipse)
         post_orbital_state = None
         if _orbital_initial_state is not None and orbital_propagator is not None:
@@ -582,7 +610,7 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
                 post_orbital_state = _orbital_initial_state
         else:
             post_orbital_state = orbital_state
-        
+
         # Update temperature if thermal dynamics enabled
         if params.get("enable_thermal_dynamics", False):
             try:
@@ -634,10 +662,10 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         "metrics": metrics,
         "params": params,
     }
-    
+
     if balance_controller is not None:
         result["balance_diagnostics"] = balance_controller.get_diagnostics()
-    
+
     return result
 
 
@@ -945,30 +973,30 @@ def print_summary(metrics: dict, estimated_period: float | None = None) -> None:
 
 
 def mission_level_metrics(
-    u: float,
-    mp: float,
-    r: float,
-    omega: float,
-    h_km: float,
-    ms: float,
-    g_gain: float,
-    k_fp: float,
+    u: float = 1600.0,
+    mp: float = 35.0,
+    r: float = 0.1,
+    omega: float = 5236.0,
+    h_km: float = 550.0,
+    ms: float = 1000.0,
+    g_gain: float = 0.000140,
+    k_fp: float = 8000.0,
     magnet_material: str = "SmCo",  # NEW: "SmCo" or "GdBCO"
     jacket_material: str = "CFRP",   # NEW: "BFRP", "CFRP", "CNT_yarn"
     spacing: float = 0.48,  # NEW: Packet spacing (m), default from operational baseline
     theta_bias: float = 0.087,
     c_damp: float = 4.0,
     eps: float = 0.0,
-    pm_geometry: Optional[Dict[str, float]] = None,  # For SmCo PM model
+    pm_geometry: dict[str, float] | None = None,  # For SmCo PM model
     counter_propagating: bool = True,  # NEW: Double stream for bidirectional station-keeping
 ) -> dict:
     """
     Compute mission-level system metrics for Sobol sensitivity analysis.
-    
+
     This function composes existing physics modules into a single evaluator that
     includes orbital environment, material constraints, thermal limits, and
     infrastructure mass calculations.
-    
+
     Args:
         u: Stream velocity (m/s)
         mp: Packet mass (kg)
@@ -984,9 +1012,9 @@ def mission_level_metrics(
         theta_bias: Bias angle (rad), default ~5 degrees
         c_damp: Damping coefficient (N·s/m)
         eps: Stream imbalance parameter
-        pm_geometry: Dict with PM geometry params for SmCo: 
+        pm_geometry: Dict with PM geometry params for SmCo:
                      {'pole_face_area': m^2, 'equilibrium_gap': m, 'config_type': str}
-    
+
     Returns:
         Dictionary with mission-level outputs:
         - N_packets: Number of packets required
@@ -1000,18 +1028,17 @@ def mission_level_metrics(
     """
     # Constants
     R_earth = 6371e3  # m
-    g0 = 9.81  # m/s²
-    
+
     # Import material properties from canonical registry
     from params.canonical_values import MATERIAL_PROPERTIES
-    
+
     # Get jacket material properties
     if jacket_material not in MATERIAL_PROPERTIES:
         raise ValueError(f"Unknown jacket material: {jacket_material}. "
                         f"Available: {list(MATERIAL_PROPERTIES.keys())}")
-    
+
     jacket_props = MATERIAL_PROPERTIES[jacket_material]
-    
+
     # Get allowable stress from jacket material
     if 'allowable_stress' in jacket_props:
         max_stress = jacket_props['allowable_stress']['value']
@@ -1021,7 +1048,7 @@ def mission_level_metrics(
     else:
         # Fallback to BFRP value
         max_stress = 800e6  # Pa
-    
+
     # Get magnet material properties
     if magnet_material in ["GdBCO", "YBCO"]:
         # Get properties from registry
@@ -1029,7 +1056,7 @@ def mission_level_metrics(
             props = MATERIAL_PROPERTIES[magnet_material]
             T_limit = props.get('Tc', {}).get('value', 92.0)
             # Use material-specific B0 for Bean-London field dependence
-            material_B0 = props.get('B0', {}).get('value', 5.0)
+            props.get('B0', {}).get('value', 5.0)
             # Use material-specific k_fp range for stiffness bounds
             k_fp_range = props.get('k_fp_bulk_range', {}).get('value', [80000, 120000])
             geometry_scale = MATERIAL_PROPERTIES.get('GdBCO', {}).get(
@@ -1040,7 +1067,6 @@ def mission_level_metrics(
                 k_fp = k_fp_max
         else:
             T_limit = 92.0
-            material_B0 = 5.0
             k_fp_max = None
 
         T_operating = 77.0  # K - typical operating temp
@@ -1057,30 +1083,34 @@ def mission_level_metrics(
         else:
             # Fallbacks
             if magnet_material == "SmCo":
-                T_limit = 573.0; B_r = 1.1; alpha_Br = -0.0003
-            else: # NdFeB
-                T_limit = 353.0; B_r = 1.45; alpha_Br = -0.0012
-        
+                T_limit = 573.0
+                B_r = 1.1
+                alpha_Br = -0.0003
+            else:  # NdFeB
+                T_limit = 353.0
+                B_r = 1.45
+                alpha_Br = -0.0012
+
         cryocooler_power_per_m = 0.0  # No cryocooling needed
         k_eff_pm = None  # Will be computed below with thermal model
     else:
         raise ValueError(f"Unknown magnet material: {magnet_material}")
-    
+
     # 1. Calculate stream length (closed-loop at altitude h)
     # FIX: Use actual orbital circumference instead of hardcoded 4.8 m
     stream_length = 2 * np.pi * (R_earth + h_km * 1000)  # meters
-    
+
     # 2. Compute linear density from packet mass and spacing (PHYSICS FIX #1)
     # lam = mp / spacing ensures physical consistency
     # Default spacing = 0.48 m gives lam = 72.92 kg/m for mp = 35 kg
     lam = mp / spacing
-    
+
     # 3. Compute packet count using VelocityOptimizer logic
     # Formula: N = F * L / (m * v² * η)
     # For station-keeping, F ≈ perturbations + control authority
     # Simplified: use momentum flux requirement
     capture_efficiency = 0.85  # Typical flux-pinning capture efficiency
-    
+
     # Estimate required force from orbital perturbations (PHYSICS FIX #4)
     # J2 perturbation force depends on altitude: F_J2 ∝ 1/r⁴
     # F_J2 ≈ 3/2 * J2 * μ * R² * ms / r⁴
@@ -1088,44 +1118,44 @@ def mission_level_metrics(
     R_earth_m = 6371e3  # m
     J2 = 1.08263e-3  # Earth's J2 coefficient
     r_orbit = R_earth_m + h_km * 1000  # orbital radius
-    
+
     # J2 perturbation acceleration: a_J2 ≈ 3/2 * J2 * (R/r)² * (μ/r²)
     # Force on station: F_J2 = ms * a_J2
     a_J2 = 1.5 * J2 * (R_earth_m / r_orbit)**2 * (mu_earth / r_orbit**2)
     F_J2 = ms * a_J2
-    
+
     # SRP force (solar radiation pressure): ~4.5e-6 N/m² at 1 AU
     # For typical cross-section A ~ π*r² with r=0.5m: A ~ 0.785 m²
     # F_SRP ≈ 4.5e-6 * A * C_R (C_R ~ 1.5 for reflective)
     A_cross = np.pi * r**2  # packet cross-section
     F_SRP = 4.5e-6 * A_cross * 1.5  # N
-    
+
     # Drag is negligible at 550 km but include for completeness
     # ρ_atm ~ 1e-15 kg/m³ at 550 km, C_D ~ 2.2
     rho_atm = 1e-15 * np.exp(-h_km / 100)  # exponential decay
     F_drag = 0.5 * rho_atm * u**2 * A_cross * 2.2 if u > 0 else 0
-    
+
     # Total perturbation force
     perturbation_force = F_J2 + F_SRP + F_drag
-    
+
     # Target force includes perturbation compensation + control margin
     target_force = perturbation_force * 10  # 10x margin for control authority
-    
+
     # Ball count calculation (from velocity_optimizer.compute_ball_count)
     if u < 1.0:
         N_packets = 999999
     else:
-        N_packets = int(np.ceil(target_force * stream_length / 
+        N_packets = int(np.ceil(target_force * stream_length /
                                 (mp * u**2 * capture_efficiency)))
         N_packets = max(N_packets, 1)
-    
+
     # 3. Packet budget (includes pipeline, spares, slingshot)
-    
+
     n_streams = 2 if counter_propagating else 1
-    
+
     # Typical fault rate: 1e-6 failures per packet per hour
     fault_rate = 1e-6
-    
+
     # Compute packet budget per single stream, then scale by n_streams.
     # This ensures counter_propagating=True gives exactly 2× the mass of
     # counter_propagating=False (the ceiling/floor operations inside
@@ -1150,24 +1180,24 @@ def mission_level_metrics(
         mass_multiplier=budget_per_stream.mass_multiplier,
     )
     M_total_kg = budget.M_total_kg
-    
+
     # 4. Power budget (cryocooler for GdBCO only)
     # Cryocooler power scales with stream length
     P_cryocooler_kW = cryocooler_power_per_m * (stream_length / 1000.0) * n_streams  # kW
     # Add small power for control electronics (negligible)
     P_control_kW = 0.001 * N_packets * n_streams  # 1 W per packet for control
     P_total_kW = P_cryocooler_kW + P_control_kW
-    
+
     # 5. Stress margin verification
     # Centrifugal stress: σ = ρ * ω² * r² (simplified for rotating sphere)
     # More accurate: σ = (3 + ν) / 8 * ρ * ω² * r² for solid sphere
     # Using verify_packet_stress from stress_monitoring.py
-    angular_velocity = np.array([0.0, 0.0, omega])  # rad/s
-    
+    np.array([0.0, 0.0, omega])  # rad/s
+
     # Approximate density from mass and radius (assuming sphere)
     volume = 4/3 * np.pi * r**3
     density = mp / volume if volume > 0 else 8400  # kg/m³ (SmCo density fallback)
-    
+
     # Use validated centrifugal stress formula from stress_monitoring.py
     try:
         from dynamics.stress_monitoring import calculate_centrifugal_stress
@@ -1181,10 +1211,10 @@ def mission_level_metrics(
         # Fallback: simplified formula σ = ρ * ω² * r² * 0.5
         logger.warning("Stress monitoring module not available - using simplified stress formula")
         centrifugal_stress = density * omega**2 * r**2 * 0.5
-    
+
     # Stress margin: ratio of allowable to actual stress
     stress_margin = max_stress / centrifugal_stress if centrifugal_stress > 0 else np.inf
-    
+
     # 6. Thermal margin (PHYSICS FIX #3)
     # For SmCo: compute steady-state temperature from eddy heating (v² dependent)
     # For GdBCO: operating 77K, limit 92K
@@ -1193,8 +1223,8 @@ def mission_level_metrics(
         # PHYSICS FIX #2: Compute PM steady-state temperature from thermal model
         # Eddy heating scales with v², so T_steady depends on velocity
         try:
-            from dynamics.thermal_model import steady_state_temperature, eddy_heating_power
-            
+            from dynamics.thermal_model import eddy_heating_power, steady_state_temperature
+
             # Default PM geometry if not provided
             if pm_geometry is None:
                 pm_geometry = {
@@ -1202,9 +1232,12 @@ def mission_level_metrics(
                     'equilibrium_gap': 0.005,  # 5 mm default
                     'config_type': 'axial'
                 }
-            
+
             # Compute PM stiffness for thermal model
-            from dynamics.permanent_magnet_model import PermanentMagnetModel, PermanentMagnetGeometry
+            from dynamics.permanent_magnet_model import (
+                PermanentMagnetGeometry,
+                PermanentMagnetModel,
+            )
             pm_geom_obj = PermanentMagnetGeometry(
                 pole_face_area=pm_geometry['pole_face_area'],
                 equilibrium_gap=pm_geometry['equilibrium_gap'],
@@ -1216,10 +1249,10 @@ def mission_level_metrics(
                 'alpha_Br': alpha_Br
             }
             pm_model = PermanentMagnetModel(pm_mat_props, pm_geom_obj)
-            
+
             # Compute stiffness at reference temp for thermal calculation
-            k_pm_ref = pm_model.compute_stiffness(0.0, 293.0)
-            
+            pm_model.compute_stiffness(0.0, 293.0)
+
             # Estimate eddy heating from velocity and magnetic field
             # Use eddy_heating_power from thermal_model with correct signature:
             # eddy_heating_power(velocity, k_drag, radius)
@@ -1237,14 +1270,14 @@ def mission_level_metrics(
                 # Fallback scaling if function signature doesn't match
                 k_eddy_fallback = 1e-9  # W/(m/s)² scaling factor
                 P_eddy = k_eddy_fallback * u**2
-            
+
             # Solar heating
             solar_flux = 1361  # W/m² at 1 AU
             emissivity = 0.85  # typical for SmCo coating
-            area_rad = 4 * np.pi * r**2  # radiating surface area
+            4 * np.pi * r**2  # radiating surface area
             P_solar = solar_flux * np.pi * r**2 * (1 - 0.3)  # Absorbed solar (30% albedo)
             P_total_heat = P_eddy + P_solar
-            
+
             # Use steady_state_temperature from thermal_model
             # Note: mass and specific_heat are not used in steady-state calculation
             T_steady_state = steady_state_temperature(
@@ -1253,11 +1286,11 @@ def mission_level_metrics(
                 emissivity=emissivity,
                 ambient_temp=3.0
             )
-            
+
             # Keep only lower bound clamp (cosmic background temperature)
             # Do NOT clamp to T_limit - let thermal_margin go negative for infeasible designs
             T_steady_state = max(T_steady_state, 3.0)  # Can't be below CMB
-            
+
             # Now compute actual PM stiffness at this temperature
             k_eff_pm = pm_model.compute_stiffness(0.0, T_steady_state)
 
@@ -1274,23 +1307,23 @@ def mission_level_metrics(
         # Actively cooled to 77K
         T_steady_state = T_operating
         k_eff_pm = None  # Not used for GdBCO
-    
+
     thermal_margin = T_limit - T_steady_state  # K
-    
+
     # 7. Energy injection power (from energy_injection module)
     # This is the dominant cost driver for packet replacement
     try:
         from dynamics.energy_injection import compute_injection_power_budget
-        
+
         # Typical fault rate: 1e-6 failures per packet per hour
         fault_rate = 1e-6
-        
+
         # Estimate angular velocity for injection (same as spin rate)
         omega_inj = omega
-        
+
         # Packet radius for injection calculation
         r_inj = r
-        
+
         injection_budget = compute_injection_power_budget(
             mp=mp,
             u=u,
@@ -1305,19 +1338,19 @@ def mission_level_metrics(
         # Fallback if energy_injection module not available
         logger.warning("Energy injection module not available - assuming zero injection power")
         P_injection_kW = 0.0
-    
+
     # Total power includes cryocooler, control, and injection
     P_total_kW = P_cryocooler_kW + P_control_kW + P_injection_kW
-    
+
     # Stream energy sustainability analysis
     slingshot_dv = analytical_lunar_slingshot_dv(v_inf=u) if slingshot_enabled else 0.0
-    
+
     # Compute eddy heating power per packet for energy budget
     # NOTE: For SmCo permanent magnets in vacuum with no nearby conductors,
     # eddy heating is negligible. Eddy currents are only induced when a magnetic
     # field moves relative to a conductor. In the SGMS design, packets are
     # isolated in vacuum and SmCo itself has low electrical conductivity.
-    # 
+    #
     # Eddy heating becomes relevant only if:
     # 1. Packets pass through Earth's ionosphere (negligible at 550+ km)
     # 2. Packets interact with nearby conductive structures (not present in design)
@@ -1330,12 +1363,12 @@ def mission_level_metrics(
     # the thermal energy deposition. If eddy heating raises temperature, it must
     # also drain stream energy.
     P_eddy_per_packet = P_eddy  # Use value computed in thermal model section
-    
+
     # If detailed eddy analysis is needed, use a more realistic model:
     # k_drag ~ (μ0 * m^2 * σ_conductor) / d^4 for dipole near conductor
     # This typically gives k_drag ~ 1e-9 to 1e-6 N·s/m, resulting in
     # P_eddy ~ 0.001 to 1 W per packet at 15 km/s.
-    
+
     energy_budget = compute_stream_energy_budget(
         N_packets=N_packets * n_streams,
         mp=mp,
@@ -1348,7 +1381,7 @@ def mission_level_metrics(
         n_slingshot_packets=budget.N_slingshot_pipeline,
         spacing=spacing,  # Pass actual spacing from simulation
     )
-    
+
     # 7b. Debris risk assessment (from debris_risk module)
     try:
         from dynamics.debris_risk import comprehensive_debris_risk_assessment
@@ -1365,15 +1398,15 @@ def mission_level_metrics(
         logger.warning("Debris risk module not available - assuming zero debris risk")
         debris_risk_score = 0.0
         kessler_ratio = 0.0
-    
+
     # 8. Force direction decomposition (for station-keeping authority analysis)
     # Stream force F = λu²sin(θ) acts along deflection direction
     # Decompose into radial, along-track, and cross-track components
     F_max_per_axis = lam * u**2 * np.sin(theta_bias)  # Max force in any single axis
     # J2 is primarily cross-track for SSO (~70% of J2 force is cross-track)
-    F_J2_cross_track = F_J2 * 0.7
+    F_J2 * 0.7
     force_authority_ratio = F_max_per_axis / perturbation_force if perturbation_force > 0 else np.inf
-    
+
     # 9. Effective stiffness - use PM model for SmCo, Bean-London for GdBCO (PHYSICS FIX #3)
     if magnet_material == "SmCo" and k_eff_pm is not None:
         # For SmCo, use the permanent magnet model stiffness (temperature-dependent)
@@ -1393,7 +1426,7 @@ def mission_level_metrics(
         }
         metrics = analytical_metrics(params)
         k_eff = metrics["k_eff"]
-    
+
     # 9. Feasibility check
     feasible = (
         stress_margin >= 1.5 and  # Safety factor 1.5
@@ -1403,7 +1436,7 @@ def mission_level_metrics(
         budget.M_total_kg <= 10000.0 and  # Use budget total, not just stream (10 tons)
         energy_budget.service_lifetime_hours >= 8760  # At least 1 year service life
     )
-    
+
     return {
         "N_packets": N_packets,
         "N_packets_total": N_packets * n_streams,
@@ -1460,7 +1493,7 @@ def main() -> None:
     parser.add_argument("--k_fp", type=float, default=DEFAULT_PARAMS["k_fp"], help="Pinning stiffness (N/m)")
     parser.add_argument("--ms", type=float, default=DEFAULT_PARAMS["ms"], help="Anchor mass (kg)")
     parser.add_argument("--audit", action="store_true", help="Run full suite audit and sweep")
-    parser.add_argument("--mission-analysis", action="store_true", 
+    parser.add_argument("--mission-analysis", action="store_true",
                        help="Run mission-level Sobol sensitivity analysis")
     args = parser.parse_args()
 
@@ -1477,27 +1510,27 @@ def main() -> None:
         # Run mission-level analysis
         print("Running mission-level sensitivity analysis...")
         print("This will take a few minutes with N=1024 samples.")
-        
+
         # Import here to avoid dependency if not needed
         try:
             from sgms_anchor_sensitivity import run_mission_sobol_analysis
             results_smco = run_mission_sobol_analysis(material_profile="SmCo", N=1024, seed=42)
             results_gdbco = run_mission_sobol_analysis(material_profile="GdBCO", N=1024, seed=42)
-            
+
             print("\n=== SmCo Results ===")
             print(f"Feasible designs: {np.sum(results_smco['feasible'])} / {len(results_smco['feasible'])}")
             print(f"Mean total mass: {np.mean(results_smco['M_total_kg']):.1f} kg")
             print(f"Mean k_eff: {np.mean(results_smco['k_eff']):.1f} N/m")
-            
+
             print("\n=== GdBCO Results ===")
             print(f"Feasible designs: {np.sum(results_gdbco['feasible'])} / {len(results_gdbco['feasible'])}")
             print(f"Mean total mass: {np.mean(results_gdbco['M_total_kg']):.1f} kg")
             print(f"Mean k_eff: {np.mean(results_gdbco['k_eff']):.1f} N/m")
-            
+
             # Save results
             output_dir = Path("mission_analysis_results")
             output_dir.mkdir(exist_ok=True)
-            
+
             np.savez(output_dir / "sobol_smco.npz", **results_smco)
             np.savez(output_dir / "sobol_gdbco.npz", **results_gdbco)
             print(f"\nResults saved to {output_dir}/")
@@ -1507,9 +1540,9 @@ def main() -> None:
             print(f"Error: SALib or required dependencies not available: {e}")
             print("Install with: pip install SALib")
             return
-        
+
         return
-    
+
     if args.audit:
         # Full Audit / Sweep Mode
         t_eval = np.linspace(0.0, params["t_max"], 6000)
@@ -1517,18 +1550,18 @@ def main() -> None:
         packet_result = simulate_discrete_anchor(params, t_eval=t_eval, seed=7)
         estimated_period = estimate_period(result["t"], result["x"])
         packet_period = estimate_period(packet_result["t"], packet_result["x"])
-        
+
         plot_anchor_response(result)
         plot_continuum_vs_packet(result, packet_result)
-        
+
         sweep_params = params.copy()
         sweep = sweep_velocity(sweep_params)
         plot_velocity_sweep(sweep)
-        
+
         rows = sweep_anchor_grid(sweep_params)
         export_sweep_csv(rows, "sgms_anchor_v1_grid.csv")
         plot_sweep_heatmaps(rows, eps=1e-3)
-        
+
         print_summary(result["metrics"], estimated_period=estimated_period)
         if packet_period is not None:
             print(f"Discrete period:    {packet_period:.3f} s")

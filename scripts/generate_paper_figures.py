@@ -17,16 +17,17 @@ from pathlib import Path
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent / 'src'))
 
-import numpy as np
-import matplotlib.pyplot as plt
 import matplotlib
+import matplotlib.pyplot as plt
+import numpy as np
+
 matplotlib.use('Agg')
 
-from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
-from sgms_anchor_v1 import analytical_metrics, simulate_anchor, sweep_velocity
-from sgms_anchor_sensitivity import run_sobol_sensitivity
+
 from sgms_anchor_pipeline import export_fmeca_json
-import json
+from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
+from sgms_anchor_sensitivity import run_sobol_sensitivity
+from sgms_anchor_v1 import analytical_metrics, simulate_anchor, sweep_velocity
 
 print("=" * 70)
 print("GENERATING PAPER FIGURES")
@@ -101,7 +102,7 @@ ax.set_ylim(0, max(s1_values) * 1.1)
 ax.grid(True, alpha=0.3, axis='y')
 
 # Add value labels on bars
-for bar, val in zip(bars, s1_values):
+for bar, val in zip(bars, s1_values, strict=False):
     height = bar.get_height()
     ax.text(bar.get_x() + bar.get_width()/2., height,
             f'{val:.3f}',
@@ -119,7 +120,7 @@ metrics = analytical_metrics(operational_params)
 fig, axes = plt.subplots(1, 3, figsize=(15, 5))
 
 # k_eff comparison
-axes[0].bar(["Paper Target", "Operational"], [8000, metrics["k_eff"]], 
+axes[0].bar(["Paper Target", "Operational"], [8000, metrics["k_eff"]],
             color=["#7ee787", "#79c0ff"])
 axes[0].axhspan(6000, 10000, alpha=0.2, color="green", label="Target range")
 axes[0].set_ylabel("k_eff (N/m)")

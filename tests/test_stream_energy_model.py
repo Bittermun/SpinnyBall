@@ -7,13 +7,11 @@ Tests cover:
 - Edge cases: zero velocity, zero packets
 - Slingshot enabled vs disabled produces different results
 """
-import pytest
-import numpy as np
 from dynamics.stream_energy_model import (
-    compute_stream_energy_budget,
+    StreamEnergyBudget,
     analytical_lunar_slingshot_dv,
     compute_multi_cycle_slingshot_dv,
-    StreamEnergyBudget
+    compute_stream_energy_budget,
 )
 
 
@@ -30,7 +28,7 @@ def test_compute_stream_energy_budget_basic():
         slingshot_dv_per_cycle=0.0,
         spacing=10.0
     )
-    
+
     assert isinstance(result, StreamEnergyBudget)
     assert result.total_stream_KE_J > 0
     assert result.power_drain_station_W >= 0
@@ -49,7 +47,7 @@ def test_zero_packets_energy():
         eddy_power_per_packet_W=0.0,
         spacing=10.0
     )
-    
+
     assert result.total_stream_KE_J == 0.0
     assert result.power_drain_eddy_W == 0.0
 
@@ -66,7 +64,7 @@ def test_zero_velocity_energy():
         eddy_power_per_packet_W=0.0,
         spacing=10.0
     )
-    
+
     assert result.total_stream_KE_J == 0.0
 
 
@@ -82,7 +80,7 @@ def test_eddy_heating_contributes_to_power_drain():
         eddy_power_per_packet_W=0.0,
         spacing=10.0
     )
-    
+
     result_with_eddy = compute_stream_energy_budget(
         N_packets=1000,
         mp=10.0,
@@ -93,7 +91,7 @@ def test_eddy_heating_contributes_to_power_drain():
         eddy_power_per_packet_W=10.0,
         spacing=10.0
     )
-    
+
     # Eddy heating adds to power drain
     assert result_with_eddy.power_drain_eddy_W > result_no_eddy.power_drain_eddy_W
 
@@ -130,13 +128,13 @@ def test_compute_multi_cycle_slingshot_dv_accumulates():
         n_cycles=1,
         v_inf_base=1000.0
     )
-    
+
     result_multi = compute_multi_cycle_slingshot_dv(
         v_initial=10900.0,
         n_cycles=10,
         v_inf_base=1000.0
     )
-    
+
     assert result_multi['total_dv'] > result_single['total_dv']
     assert result_multi['v_final'] > result_single['v_final']
 
@@ -148,7 +146,7 @@ def test_compute_multi_cycle_slingshot_dv_zero_cycles():
         n_cycles=0,
         v_inf_base=1000.0
     )
-    
+
     assert result['v_final'] == 10900.0
     assert result['total_dv'] == 0.0
 
@@ -167,7 +165,7 @@ def test_slingshot_replenishment_adds_power():
         n_slingshot_packets=0,
         spacing=10.0
     )
-    
+
     result_with_slingshot = compute_stream_energy_budget(
         N_packets=1000,
         mp=10.0,
@@ -181,7 +179,7 @@ def test_slingshot_replenishment_adds_power():
         slingshot_cycle_time_s=30*86400,
         spacing=10.0
     )
-    
+
     # Slingshot should add replenishment power
     assert result_with_slingshot.power_replenishment_slingshot_W > \
            result_no_slingshot.power_replenishment_slingshot_W

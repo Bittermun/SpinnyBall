@@ -3,6 +3,7 @@ Tests for FMECA JSON export functionality.
 """
 
 import pytest
+
 from src.sgms_anchor_pipeline import export_fmeca_json
 
 
@@ -62,7 +63,7 @@ class TestFMECAExport:
 
         fmeca = export_fmeca_json(results)
 
-        for mode_id, mode_data in fmeca["failure_modes"].items():
+        for _mode_id, mode_data in fmeca["failure_modes"].items():
             assert "mode" in mode_data
             assert "description" in mode_data
             assert "severity" in mode_data
@@ -100,12 +101,12 @@ class TestFMECAExport:
         kill_criteria = fmeca["kill_criteria"]
 
         # Check individual flags
-        assert kill_criteria["energy_dissipation_exceeded"] == True
-        assert kill_criteria["misalignment_exceeded"] == True
-        assert kill_criteria["induction_failed"] == True
-        assert kill_criteria["thermal_limit_exceeded"] == True
-        assert kill_criteria["stress_limit_exceeded"] == True
-        assert kill_criteria["any_kill_criteria"] == True
+        assert kill_criteria["energy_dissipation_exceeded"]
+        assert kill_criteria["misalignment_exceeded"]
+        assert kill_criteria["induction_failed"]
+        assert kill_criteria["thermal_limit_exceeded"]
+        assert kill_criteria["stress_limit_exceeded"]
+        assert kill_criteria["any_kill_criteria"]
 
     def test_passing_case(self):
         """Test FMECA with all passing metrics."""
@@ -128,12 +129,12 @@ class TestFMECAExport:
         kill_criteria = fmeca["kill_criteria"]
 
         # All should pass
-        assert kill_criteria["energy_dissipation_exceeded"] == False
-        assert kill_criteria["misalignment_exceeded"] == False
-        assert kill_criteria["induction_failed"] == False
-        assert kill_criteria["thermal_limit_exceeded"] == False
-        assert kill_criteria["stress_limit_exceeded"] == False
-        assert kill_criteria["any_kill_criteria"] == False
+        assert not kill_criteria["energy_dissipation_exceeded"]
+        assert not kill_criteria["misalignment_exceeded"]
+        assert not kill_criteria["induction_failed"]
+        assert not kill_criteria["thermal_limit_exceeded"]
+        assert not kill_criteria["stress_limit_exceeded"]
+        assert not kill_criteria["any_kill_criteria"]
 
         # Check failure mode statuses
         assert fmeca["failure_modes"]["FM-01"]["status"] == "PASS"

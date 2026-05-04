@@ -8,14 +8,15 @@ architecture described in the ideal blueprint.
 
 from __future__ import annotations
 
-import numpy as np
 import heapq
+from collections.abc import Callable
 from dataclasses import dataclass, field
-from typing import List, Callable, Optional
 from enum import Enum
 
+import numpy as np
+
 from .rigid_body import RigidBody
-from .thermal_model import update_temperature_euler, check_thermal_limits, ThermalLimits
+from .thermal_model import ThermalLimits, check_thermal_limits, update_temperature_euler
 
 # Optional flux-pinning model
 try:
@@ -30,7 +31,12 @@ except ImportError:
 
 # Optional orbital dynamics
 try:
-    from .orbital_coupling import OrbitalState, OrbitalPropagator, create_circular_orbit, compute_eclipse
+    from .orbital_coupling import (
+        OrbitalPropagator,
+        OrbitalState,
+        compute_eclipse,
+        create_circular_orbit,
+    )
     ORBITAL_DYNAMICS_AVAILABLE = True
 except ImportError:
     ORBITAL_DYNAMICS_AVAILABLE = False
@@ -68,18 +74,18 @@ class SNode:
     release_radius: float = 5.0  # m
     max_packets: int = 10
     eta_ind_min: float = 0.82
-    held_packets: List[int] = field(default_factory=list)
+    held_packets: list[int] = field(default_factory=list)
     k_fp: float = 6000.0  # N/m, default flux-pinning stiffness (meets feasibility gate)
-    
+
     def __post_init__(self):
         self.position = np.asarray(self.position, dtype=float)
         if self.position.shape != (3,):
             raise ValueError(f"S-Node position must be 3-element vector, got shape {self.position.shape}")
-    
+
     def can_capture(self, eta_ind: float) -> bool:
         """Check if node can capture a packet."""
         return (len(self.held_packets) < self.max_packets) and (eta_ind >= self.eta_ind_min)
-    
+
     def distance_to(self, position: np.ndarray) -> float:
         """Compute distance from node to a position."""
         return np.linalg.norm(position - self.position)
@@ -89,7 +95,7 @@ class SNode:
 class Packet:
     """
     Mass packet with rigid-body dynamics and orbital state.
-    
+
     Attributes:
         id: Unique identifier
         body: RigidBody with 6DOF dynamics
@@ -106,15 +112,15 @@ class Packet:
     id: int
     body: RigidBody
     state: PacketState = PacketState.FREE
-    current_node: Optional[int] = None
+    current_node: int | None = None
     eta_ind: float = 1.0  # Default induction efficiency
     radius: float = 0.02  # Default 2cm radius for stress calculations
     temperature: float = 77.0  # Initial temperature (K) - LN2 operating point
     emissivity: float = 0.8  # Al/BFRP emissivity
     specific_heat: float = 900.0  # J/kg·K for Al
-    orbital_state: Optional[OrbitalState] = None  # Orbital state in ECI frame
+    orbital_state: OrbitalState | None = None  # Orbital state in ECI frame
     in_eclipse: bool = False  # Eclipse state
-    
+
     def compute_flux_pinning_torque(self, B_field: np.ndarray, node_position: np.ndarray) -> np.ndarray:
         """Compute flux-pinning torque from body's flux model.
 
@@ -140,17 +146,17 @@ class Packet:
 
         # Return only torque component [τx, τy, τz]
         return force_torque[3:6]
-    
+
     @property
     def position(self) -> np.ndarray:
         """Get packet position."""
         return self.body.position
-    
+
     @property
     def velocity(self) -> np.ndarray:
         """Get packet velocity."""
         return self.body.velocity
-    
+
     @property
     def angular_velocity(self) -> np.ndarray:
         """Get packet angular velocity."""
@@ -177,29 +183,29 @@ class ReleaseEvent:
 
 class EventQueue:
     """Event queue for managing capture/release events using heapq for O(log n) operations."""
-    
+
     def __init__(self):
-        self.events: List[tuple[float, CaptureEvent | ReleaseEvent]] = []  # (time, event) heap
+        self.events: list[tuple[float, CaptureEvent | ReleaseEvent]] = []  # (time, event) heap
         self.current_time: float = 0.0
-    
+
     def add_capture(self, time: float, packet_id: int, node_id: int, eta_ind: float):
         """Add capture event to queue using heapq for O(log n) insertion."""
         event = CaptureEvent(time=time, packet_id=packet_id, node_id=node_id, eta_ind=eta_ind)
         heapq.heappush(self.events, (time, event))
-    
+
     def add_release(self, time: float, packet_id: int, node_id: int, target_velocity: np.ndarray):
         """Add release event to queue using heapq for O(log n) insertion."""
         event = ReleaseEvent(time=time, packet_id=packet_id, node_id=node_id, target_velocity=target_velocity)
         heapq.heappush(self.events, (time, event))
-    
-    def get_events_at(self, time: float) -> List[CaptureEvent | ReleaseEvent]:
+
+    def get_events_at(self, time: float) -> list[CaptureEvent | ReleaseEvent]:
         """Get all events at or before given time."""
         result = []
         while self.events and self.events[0][0] <= time:
             _, event = heapq.heappop(self.events)
             result.append(event)
         return result
-    
+
     def remove_processed(self, time: float):
         """Remove events that have been processed (no-op with heapq approach)."""
         # Events are already removed during get_events_at via heappop
@@ -209,10 +215,10 @@ class EventQueue:
 class MultiBodyStream:
     """
     Multi-body packet stream with event-driven magnetic handoff.
-    
+
     Manages N=5–20 packets with event-driven capture/release at sparse S-Nodes.
     Implements the closed-loop stream architecture from the ideal blueprint.
-    
+
     Attributes:
         packets: List of Packet objects
         nodes: List of S-Node objects
@@ -221,13 +227,13 @@ class MultiBodyStream:
         topology: Stream topology ('linear', 'ring', 'orbital_ring')
         counter_propagating: Whether two streams propagate in opposite directions
     """
-    
+
     def __init__(
         self,
-        packets: List[Packet],
-        nodes: List[SNode],
+        packets: list[Packet],
+        nodes: list[SNode],
         stream_velocity: float = 1600.0,  # m/s
-        B_field: Optional[np.ndarray] = None,  # Magnetic field (T)
+        B_field: np.ndarray | None = None,  # Magnetic field (T)
         enable_orbital_dynamics: bool = False,
         initial_altitude: float = 400.0,  # km
         initial_inclination: float = 0.0,  # deg
@@ -242,7 +248,7 @@ class MultiBodyStream:
     ):
         """
         Initialize multi-body stream.
-        
+
         Args:
             packets: List of Packet objects
             nodes: List of S-Node objects
@@ -272,18 +278,18 @@ class MultiBodyStream:
         self.enable_orbital_dynamics = enable_orbital_dynamics
         self.topology = topology
         self.counter_propagating = counter_propagating
-        
+
         # Magnetic field for flux-pinning (default 100 mT axial)
         if B_field is None:
             B_field = np.array([0.0, 0.0, 0.1])  # 100 mT in z-direction
         self.B_field = np.asarray(B_field, dtype=float)
-        
+
         # Build node lookup by ID
         self.node_map = {node.id: node for node in nodes}
-        
+
         # Configure topology-specific parameters
         self._configure_topology(initial_altitude)
-        
+
         # Orbital perturbation settings
         self.enable_j2_perturbation = enable_j2_perturbation
         self.enable_srp_perturbation = enable_srp_perturbation
@@ -291,7 +297,7 @@ class MultiBodyStream:
         self.drag_coefficient = drag_coefficient
         self.cross_sectional_area = cross_sectional_area
         self.srp_coefficient = srp_coefficient
-        
+
         # Initialize orbital dynamics if enabled
         if enable_orbital_dynamics and ORBITAL_DYNAMICS_AVAILABLE:
             self.orbital_propagator = OrbitalPropagator()
@@ -310,21 +316,21 @@ class MultiBodyStream:
                 material = GdBCOMaterial(props)
                 geometry = {"thickness": 1e-6, "width": 0.012, "length": 0.01}
                 packet.body.flux_model = BeanLondonModel(material, geometry)
-    
+
     def _configure_topology(self, initial_altitude: float):
         """Configure topology-specific parameters.
-        
+
         Args:
             initial_altitude: Orbital altitude (km) for orbital_ring topology
         """
         n_nodes = len(self.nodes)
-        
+
         if self.topology == 'linear':
             # Original linear array behavior
             self.stream_length = None  # Not applicable
             self.node_spacing = None
             self.is_closed_loop = False
-            
+
         elif self.topology == 'ring':
             # Closed ring - node[N-1] is adjacent to node[0]
             # Estimate stream length from node positions
@@ -342,7 +348,7 @@ class MultiBodyStream:
                 self.stream_length = 0.0
                 self.node_spacing = 0.0
             self.is_closed_loop = True
-            
+
         elif self.topology == 'orbital_ring':
             # Orbital ring - stream follows circular orbit
             R_earth = 6371.0  # km
@@ -350,7 +356,7 @@ class MultiBodyStream:
             self.stream_length = 2 * np.pi * orbital_radius_km * 1000  # Convert to meters
             self.node_spacing = self.stream_length / n_nodes if n_nodes > 0 else 0.0
             self.is_closed_loop = True
-            
+
             # For orbital_ring, counter-propagating doubles packet count
             if self.counter_propagating:
                 # Two streams in opposite directions
@@ -360,16 +366,16 @@ class MultiBodyStream:
         else:
             raise ValueError(f"Unknown topology: {self.topology}. "
                            f"Available: 'linear', 'ring', 'orbital_ring'")
-    
+
     def _initialize_orbital_states(self, altitude: float, inclination: float):
         """Initialize orbital states for all packets.
-        
+
         Args:
             altitude: Initial orbital altitude (km)
             inclination: Initial orbital inclination (deg)
         """
         initial_orbit = create_circular_orbit(altitude, inclination)
-        
+
         for packet in self.packets:
             # Assign same initial orbit to all packets
             # In reality, packets would be distributed along the orbit
@@ -381,16 +387,16 @@ class MultiBodyStream:
             # Initialize eclipse state
             if compute_eclipse is not None:
                 packet.in_eclipse = compute_eclipse(packet.orbital_state.r)
-    
+
     def _configure_perturbations(self):
         """Configure orbital perturbations based on settings."""
         if not ORBITAL_DYNAMICS_AVAILABLE or self.orbital_propagator is None:
             return
-        
+
         # Add J2 perturbation (Earth oblateness)
         if self.enable_j2_perturbation:
             self.orbital_propagator.add_j2_perturbation()
-        
+
         # Add SRP perturbation (Solar Radiation Pressure)
         if self.enable_srp_perturbation:
             # Use average packet mass for SRP calculation (propagator is shared)
@@ -400,7 +406,7 @@ class MultiBodyStream:
                 A=self.cross_sectional_area,
                 m=avg_mass
             )
-        
+
         # Add atmospheric drag perturbation
         if self.enable_drag_perturbation:
             total_mass = sum(p.body.mass for p in self.packets) if self.packets else 100.0
@@ -409,7 +415,7 @@ class MultiBodyStream:
                 A=self.cross_sectional_area,
                 m=total_mass
             )
-    
+
     def propagate_orbital_dynamics(self, dt: float):
         """Propagate orbital state for all packets.
 
@@ -432,15 +438,15 @@ class MultiBodyStream:
                 # Update eclipse state
                 if compute_eclipse is not None:
                     packet.in_eclipse = compute_eclipse(packet.orbital_state.r)
-    
+
     def check_capture_conditions(self, packet: Packet, node: SNode) -> tuple[bool, float]:
         """
         Check if packet can be captured by node.
-        
+
         Args:
             packet: Packet to check
             node: S-Node to check against
-        
+
         Returns:
             (can_capture, distance)
         """
@@ -448,12 +454,12 @@ class MultiBodyStream:
         in_capture_radius = distance <= node.capture_radius
         can_capture = in_capture_radius and node.can_capture(packet.eta_ind)
         return can_capture, distance
-    
+
     def process_capture_event(self, event: CaptureEvent):
         """Process a capture event."""
         packet = self.packets[event.packet_id]
         node = self.node_map[event.node_id]
-        
+
         if node.can_capture(event.eta_ind):
             packet.state = PacketState.CAPTURED
             packet.current_node = event.node_id
@@ -462,44 +468,44 @@ class MultiBodyStream:
             # Stop packet motion when captured
             packet.body.velocity = np.zeros(3)
             packet.body.angular_velocity = np.zeros(3)
-    
+
     def process_release_event(self, event: ReleaseEvent):
         """Process a release event."""
         packet = self.packets[event.packet_id]
         node = self.node_map[event.node_id]
-        
+
         if packet.id in node.held_packets:
             packet.state = PacketState.FREE
             packet.current_node = None
             node.held_packets.remove(packet.id)
             # Set target velocity for release
             packet.body.velocity = event.target_velocity.copy()
-    
+
     def update_events(self, dt: float):
         """
         Update and process events for current time step.
-        
+
         Args:
             dt: Time step (s)
         """
         self.time += dt
         events = self.event_queue.get_events_at(self.time)
-        
+
         for event in events:
             if isinstance(event, CaptureEvent):
                 self.process_capture_event(event)
             elif isinstance(event, ReleaseEvent):
                 self.process_release_event(event)
-        
+
         self.event_queue.remove_processed(self.time)
-    
-    def detect_auto_capture(self, packet: Packet) -> Optional[int]:
+
+    def detect_auto_capture(self, packet: Packet) -> int | None:
         """
         Detect if packet should be automatically captured by any node.
-        
+
         Args:
             packet: Packet to check
-        
+
         Returns:
             Node ID if capture should occur, None otherwise
         """
@@ -508,7 +514,7 @@ class MultiBodyStream:
             if can_capture and packet.state == PacketState.FREE:
                 return node_id
         return None
-    
+
     def integrate(
         self,
         dt: float,
@@ -538,18 +544,18 @@ class MultiBodyStream:
             "events_processed": 0,
             "thermal_violations": [],
         }
-        
+
         if thermal_limits is None:
             thermal_limits = ThermalLimits()
-        
+
         # Process events first
         initial_events = len(self.event_queue.events)
         self.update_events(dt)
         results["events_processed"] = initial_events - len(self.event_queue.events)
-        
+
         # Propagate orbital dynamics (if enabled)
         self.propagate_orbital_dynamics(dt)
-        
+
         # Integrate each free packet
         for packet in self.packets:
             if packet.state == PacketState.FREE:
@@ -566,7 +572,7 @@ class MultiBodyStream:
                     # Process immediately
                     self.update_events(0.0)
                     results["events_processed"] += 1
-                
+
                 # Integrate if still free after capture check
                 if packet.state == PacketState.FREE:
                     # Find nearest node for flux-pinning displacement calculation
@@ -579,21 +585,21 @@ class MultiBodyStream:
                     # Define control torque function outside lambda for Numba compatibility
                     def control_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
                         return torques(packet_id, t, state)
-                    
+
                     # Define flux-pinning torque function
                     def flux_pinning_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
                         if nearest_node_pos is not None:
                             return packet.compute_flux_pinning_torque(self.B_field, nearest_node_pos)
                         else:
                             return np.zeros(3)
-                    
+
                     # Combined torque function for Numba
                     def packet_torques_func(t: float, state: np.ndarray) -> np.ndarray:
                         tau_control = control_torque_func(packet.id, t, state)
                         tau_pin = flux_pinning_torque_func(packet.id, t, state)
                         return tau_control + tau_pin
-                    
-                    packet_result = packet.body.integrate(
+
+                    packet.body.integrate(
                         t_span=(self.time, self.time + dt),
                         torques=packet_torques_func,
                         method="RK45",
@@ -603,15 +609,18 @@ class MultiBodyStream:
                         use_numba_rk4=False,  # Disable Numba to avoid lambda issues
                         use_zero_torque_numba=use_zero_torque_numba,
                     )
-                    
+
                     # Thermal update (radiation cooling + solar heating + eddy heating)
                     solar_flux = 0.0
                     if self.enable_orbital_dynamics and ORBITAL_DYNAMICS_AVAILABLE:
                         # Solar heating when not in eclipse
                         if not packet.in_eclipse:
-                            from dynamics.thermal_model import SOLAR_CONSTANT, SOLAR_ABSORPTION_FACTOR
+                            from dynamics.thermal_model import (
+                                SOLAR_ABSORPTION_FACTOR,
+                                SOLAR_CONSTANT,
+                            )
                             solar_flux = SOLAR_CONSTANT * SOLAR_ABSORPTION_FACTOR
-                    
+
                     # Calculate eddy heating power for FREE packets
                     eddy_power = 0.0
                     if packet.state == PacketState.FREE:
@@ -622,7 +631,7 @@ class MultiBodyStream:
                             k_drag=0.01,  # Match sgms_v1.py k_drag
                             radius=packet.radius
                         )
-                    
+
                     packet.temperature = update_temperature_euler(
                         temperature=packet.temperature,
                         mass=packet.body.mass,
@@ -637,7 +646,7 @@ class MultiBodyStream:
                         shape="prolate_spheroid",  # Use prolate spheroid for packets
                         aspect_ratio=1.2  # Standard aspect ratio
                     )
-                    
+
                     # Check thermal limits
                     within_limits, violation_type = check_thermal_limits(
                         packet.temperature, thermal_limits
@@ -648,7 +657,7 @@ class MultiBodyStream:
                             "temperature": packet.temperature,
                             "violation_type": violation_type,
                         })
-                    
+
                     results["packets"].append({
                         "id": packet.id,
                         "position": packet.position.copy(),
@@ -666,10 +675,10 @@ class MultiBodyStream:
                         solar_flux = 1361.0  # W/m^2
                         # Reduce by albedo and view factor (simplified)
                         solar_flux *= 0.3  # Effective absorption
-                
+
                 # Captured packets have no eddy heating (velocity = 0)
                 eddy_power = 0.0
-                
+
                 packet.temperature = update_temperature_euler(
                     temperature=packet.temperature,
                     mass=packet.body.mass,
@@ -684,7 +693,7 @@ class MultiBodyStream:
                     shape="prolate_spheroid",  # Use prolate spheroid for packets
                     aspect_ratio=1.2  # Standard aspect ratio
                 )
-                
+
                 # Check thermal limits
                 within_limits, violation_type = check_thermal_limits(
                     packet.temperature, thermal_limits
@@ -695,7 +704,7 @@ class MultiBodyStream:
                         "temperature": packet.temperature,
                         "violation_type": violation_type,
                     })
-                
+
                 results["packets"].append({
                     "id": packet.id,
                     "position": packet.position.copy(),
@@ -703,21 +712,21 @@ class MultiBodyStream:
                     "angular_velocity": packet.angular_velocity.copy(),
                     "temperature": packet.temperature,
                 })
-        
+
         return results
-    
+
     def get_stream_metrics(self) -> dict:
         """
         Get current stream metrics.
-        
+
         Returns:
             Dictionary with stream metrics
         """
         free_packets = sum(1 for p in self.packets if p.state == PacketState.FREE)
         captured_packets = sum(1 for p in self.packets if p.state == PacketState.CAPTURED)
-        
+
         avg_eta_ind = np.mean([p.eta_ind for p in self.packets]) if self.packets else 0.0
-        
+
         return {
             "total_packets": len(self.packets),
             "free_packets": free_packets,

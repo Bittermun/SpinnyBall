@@ -10,10 +10,10 @@ Defines the pass/fail criteria for system stability:
 
 from __future__ import annotations
 
-import numpy as np
-from typing import Dict, List, Tuple, Callable, Optional
 from dataclasses import dataclass
 from enum import Enum
+
+import numpy as np
 
 
 class GateStatus(Enum):
@@ -37,21 +37,21 @@ class GateResult:
 class PassFailGate:
     """
     Base class for pass/fail gates.
-    
+
     A gate evaluates a condition and returns pass/fail based on
     predefined thresholds.
     """
-    
+
     def __init__(
         self,
         name: str,
         threshold: float,
         comparison: str = ">=",
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         """
         Initialize pass/fail gate.
-        
+
         Args:
             name: Gate name
             threshold: Pass/fail threshold
@@ -62,20 +62,20 @@ class PassFailGate:
         self.threshold = threshold
         self.comparison = comparison
         self.warning_threshold = warning_threshold
-    
+
     def evaluate(self, value: float) -> GateResult:
         """
         Evaluate gate against value.
-        
+
         Args:
             value: Value to check
-        
+
         Returns:
             GateResult object
         """
         # Check pass/fail
         passed = self._compare(value, self.threshold)
-        
+
         # Determine status
         if passed:
             status = GateStatus.PASS
@@ -83,7 +83,7 @@ class PassFailGate:
         else:
             status = GateStatus.FAIL
             message = f"{self.name}: {value:.4e} NOT {self.comparison} {self.threshold:.4e} - FAIL"
-        
+
         # Check for warning: value is between main threshold and warning threshold
         if self.warning_threshold is not None:
             # For ">=": warning if value between threshold and warning_threshold
@@ -98,7 +98,7 @@ class PassFailGate:
                 if not self._compare(value, self.warning_threshold) and self._compare(value, self.threshold):
                     status = GateStatus.WARNING
                     message = f"{self.name}: {value:.4e} near threshold - WARNING"
-        
+
         return GateResult(
             gate_name=self.name,
             status=status,
@@ -107,7 +107,7 @@ class PassFailGate:
             comparison=self.comparison,
             message=message,
         )
-    
+
     def _compare(self, value: float, threshold: float) -> bool:
         """Compare value against threshold."""
         if self.comparison == ">=":
@@ -129,10 +129,10 @@ class PassFailGate:
 class InductionEfficiencyGate(PassFailGate):
     """
     Gate for induction efficiency (η_ind).
-    
+
     Requirement: η_ind ≥ 0.82
     """
-    
+
     def __init__(self, threshold: float = 0.82, warning_threshold: float = 0.85):
         super().__init__(
             name="eta_ind",
@@ -145,21 +145,21 @@ class InductionEfficiencyGate(PassFailGate):
 class StressGate(PassFailGate):
     """
     Gate for centrifugal stress (σ).
-    
+
     Requirement: σ ≤ 1.2 GPa with SF=1.5
     Effective threshold: 1.2e9 / 1.5 = 0.8e9 Pa = 800 MPa
     """
-    
+
     def __init__(
         self,
         max_stress: float = 1.2e9,  # 1.2 GPa
         safety_factor: float = 1.5,
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         effective_threshold = max_stress / safety_factor
         if warning_threshold is None:
             warning_threshold = effective_threshold * 0.9  # 90% of limit
-        
+
         super().__init__(
             name="stress",
             threshold=effective_threshold,
@@ -171,10 +171,10 @@ class StressGate(PassFailGate):
 class StiffnessGate(PassFailGate):
     """
     Gate for effective stiffness (k_eff).
-    
+
     Requirement: k_eff ≥ 6,000 N/m
     """
-    
+
     def __init__(self, threshold: float = 6000.0, warning_threshold: float = 7000.0):
         super().__init__(
             name="k_eff",
@@ -187,10 +187,10 @@ class StiffnessGate(PassFailGate):
 class CascadeProbabilityGate(PassFailGate):
     """
     Gate for cascade probability.
-    
+
     Requirement: P(cascade) < 10⁻⁶
     """
-    
+
     def __init__(self, threshold: float = 1e-6, warning_threshold: float = 1e-5):
         super().__init__(
             name="cascade_probability",
@@ -213,7 +213,7 @@ class TemperatureGate(PassFailGate):
         max_packet_temp: float = 90.0,  # K - below GdBCO Tc=92K
         max_node_temp: float = 400.0,  # K
         gate_type: str = "packet",  # "packet" or "node"
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         if gate_type == "packet":
             threshold = max_packet_temp
@@ -245,7 +245,7 @@ class LatencyGate(PassFailGate):
     def __init__(
         self,
         max_latency_ms: float = 30.0,
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         if warning_threshold is None:
             warning_threshold = max_latency_ms * 0.9  # 90% of limit
@@ -268,7 +268,7 @@ class StreamBalanceGate(PassFailGate):
     def __init__(
         self,
         max_epsilon: float = 1e-4,
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         if warning_threshold is None:
             warning_threshold = max_epsilon * 0.8  # 80% of limit
@@ -291,7 +291,7 @@ class DelayMarginGate(PassFailGate):
     def __init__(
         self,
         min_delay_margin_ms: float = 35.0,
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         if warning_threshold is None:
             warning_threshold = min_delay_margin_ms * 1.2  # 120% of minimum
@@ -314,7 +314,7 @@ class ContainmentGate(PassFailGate):
     def __init__(
         self,
         max_nodes_affected: int = 2,
-        warning_threshold: Optional[float] = None,
+        warning_threshold: float | None = None,
     ):
         if warning_threshold is None:
             warning_threshold = max_nodes_affected - 0.5  # Warn at 0.5 below limit
@@ -333,14 +333,14 @@ class ContainmentGate(PassFailGate):
 class GateSet:
     """
     Collection of pass/fail gates for system evaluation.
-    
+
     Evaluates all gates and returns overall pass/fail status.
     """
-    
-    def __init__(self, gates: List[PassFailGate] = None):
+
+    def __init__(self, gates: list[PassFailGate] = None):
         """
         Initialize gate set.
-        
+
         Args:
             gates: List of gates to include
         """
@@ -359,19 +359,19 @@ class GateSet:
             ]
         else:
             self.gates = gates
-    
-    def evaluate_all(self, metrics: Dict[str, float]) -> List[GateResult]:
+
+    def evaluate_all(self, metrics: dict[str, float]) -> list[GateResult]:
         """
         Evaluate all gates against metrics.
-        
+
         Args:
             metrics: Dictionary of metric names to values
-        
+
         Returns:
             List of GateResult objects
         """
         results = []
-        
+
         for gate in self.gates:
             if gate.name in metrics:
                 result = gate.evaluate(metrics[gate.name])
@@ -386,42 +386,42 @@ class GateSet:
                     comparison=gate.comparison,
                     message=f"{gate.name}: Metric not found - WARNING",
                 ))
-        
+
         return results
-    
-    def get_overall_status(self, results: List[GateResult]) -> GateStatus:
+
+    def get_overall_status(self, results: list[GateResult]) -> GateStatus:
         """
         Get overall status from gate results.
-        
+
         Args:
             results: List of GateResult objects
-        
+
         Returns:
             Overall GateStatus
         """
         has_fail = any(r.status == GateStatus.FAIL for r in results)
         has_warning = any(r.status == GateStatus.WARNING for r in results)
-        
+
         if has_fail:
             return GateStatus.FAIL
         elif has_warning:
             return GateStatus.WARNING
         else:
             return GateStatus.PASS
-    
-    def evaluate_and_summarize(self, metrics: Dict[str, float]) -> Dict:
+
+    def evaluate_and_summarize(self, metrics: dict[str, float]) -> dict:
         """
         Evaluate all gates and return summary.
-        
+
         Args:
             metrics: Dictionary of metric names to values
-        
+
         Returns:
             Dictionary with summary and results
         """
         results = self.evaluate_all(metrics)
         overall_status = self.get_overall_status(results)
-        
+
         return {
             "overall_status": overall_status.value,
             "passed": sum(1 for r in results if r.status == GateStatus.PASS),
@@ -434,7 +434,7 @@ class GateSet:
 def create_default_gate_set() -> GateSet:
     """
     Create default gate set for system evaluation.
-    
+
     Returns:
         GateSet with default gates
     """
@@ -442,8 +442,8 @@ def create_default_gate_set() -> GateSet:
 
 
 def evaluate_monte_carlo_gates(
-    monte_carlo_results: Dict,
-) -> Dict:
+    monte_carlo_results: dict,
+) -> dict:
     """
     Evaluate pass/fail gates on Monte-Carlo results.
 

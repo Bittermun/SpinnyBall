@@ -1,6 +1,6 @@
 
+
 from src.sgms_anchor_v1 import mission_level_metrics
-import numpy as np
 
 # Baseline operational point that should be feasible (with GdBCO)
 # From MISSION_LEVEL_ANALYSIS.md

@@ -12,9 +12,8 @@ import numpy as np
 import torch
 from torch.utils.data import Dataset
 
-from control_layer.training_data_generator import TrainingDataGenerator, GeneratorConfig
-from control_layer.ircnn_predictor import IRCNNPredictor, IRCNNParameters
-from control_layer.training_pipeline import TrainingPipeline, TrainingConfig
+from control_layer.training_data_generator import GeneratorConfig, TrainingDataGenerator
+from control_layer.training_pipeline import TrainingConfig, TrainingPipeline
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -34,7 +33,7 @@ class WobbleDataset(Dataset):
             raise ValueError(f"labels must be 1D array, got shape {labels.shape}")
         if len(signals) != len(labels):
             raise ValueError(f"signals and labels must have same length, got {len(signals)} and {len(labels)}")
-        
+
         self.signals = torch.FloatTensor(signals)
         self.labels = torch.FloatTensor(labels)
 
@@ -59,7 +58,7 @@ class PredictionDataset(Dataset):
             raise ValueError(f"targets must be 3D array, got shape {targets.shape}")
         if len(inputs) != len(targets):
             raise ValueError(f"inputs and targets must have same length, got {len(inputs)} and {len(targets)}")
-        
+
         self.inputs = torch.FloatTensor(inputs)
         self.targets = torch.FloatTensor(targets)
 
@@ -105,7 +104,7 @@ class SimplePredictor(torch.nn.Module):
         expected_input_features = 100 * 7  # 700
         if x.shape[-1] != expected_input_features:
             raise ValueError(f"Expected input with {expected_input_features} features, got {x.shape[-1]}")
-        
+
         x_flat = x.view(batch_size, -1)
         output = self.network(x_flat)
         return output.view(batch_size, 10, 7)
@@ -126,7 +125,7 @@ def main():
     # Generate wobble dataset
     logger.info("Generating wobble detection dataset...")
     signals, labels = generator.generate_wobble_dataset(n_samples=1000)
-    
+
     # Split into train/val
     split_idx = int(0.8 * len(signals))
     train_signals = signals[:split_idx]
@@ -169,7 +168,7 @@ def main():
     if torch.cuda.is_available():
         logger.info(f"GPU: {torch.cuda.get_device_name(0)}")
         logger.info(f"GPU Memory: {torch.cuda.get_device_properties(0).total_memory / 1e9:.1f} GB")
-    
+
     config = TrainingConfig(
         batch_size=32,
         learning_rate=1e-3,
@@ -187,7 +186,6 @@ def main():
     logger.info("Training wobble detector...")
     wobble_model = SimpleWobbleDetector(input_dim=1000, hidden_dim=64)
 
-    wobble_success = False
     try:
         wobble_metrics = pipeline.train_wobble_detector(
             wobble_model,
@@ -196,7 +194,6 @@ def main():
             save_dir="data/models/wobble_detector/v1.0.0",
         )
         logger.info(f"Wobble detector training complete. Best val loss: {wobble_metrics['best_val_loss']:.6f}")
-        wobble_success = True
     except Exception as e:
         logger.error(f"Wobble detector training failed: {e}")
         logger.error("Skipping predictor training due to wobble detector failure")

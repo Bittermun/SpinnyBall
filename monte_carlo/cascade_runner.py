@@ -9,11 +9,19 @@ transients for stability analysis.
 from __future__ import annotations
 
 import logging
-import numpy as np
-from typing import Callable, Dict, List, Optional, Tuple, Union
+import multiprocessing as mp
+from collections.abc import Callable
 from dataclasses import dataclass, field
 from enum import Enum
-import multiprocessing as mp
+
+import numpy as np
+
+# Optional acceleration libraries
+try:
+    from numba import jit
+    _NUMBA_AVAILABLE = True
+except ImportError:
+    _NUMBA_AVAILABLE = False
 
 # Vectorized random number generation for Monte Carlo speedup
 def _vectorized_normal(loc: float, scale: float, size: int) -> np.ndarray:
@@ -24,26 +32,35 @@ def _vectorized_uniform(size: int, low: float = 0.0, high: float = 1.0) -> np.nd
     """Generate vectorized uniform random samples."""
     return np.random.uniform(low, high, size)
 
+# Module-level stress computation functions (Numba-accelerated if available)
+def _compute_stress_python(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
+    """Compute centrifugal stress (pure Python fallback)."""
+    omega = np.linalg.norm(angular_velocity)
+    stress = mass * omega ** 2 / (4 * np.pi * radius)
+    return stress
+
+if _NUMBA_AVAILABLE:
+    @jit(nopython=True)
+    def _compute_stress_numba(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
+        """Compute centrifugal stress using Numba."""
+        omega = np.linalg.norm(angular_velocity)
+        stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
+        return stress
+else:
+    _compute_stress_numba = _compute_stress_python
+
 logger = logging.getLogger(__name__)
 
 # Optional acceleration libraries
 try:
     import jax
-    import jax.numpy as jnp
     _JAX_AVAILABLE = True
 except ImportError:
     _JAX_AVAILABLE = False
 
-try:
-    from numba import jit, prange
-    _NUMBA_AVAILABLE = True
-except ImportError:
-    _NUMBA_AVAILABLE = False
-
-from dynamics.multi_body import MultiBodyStream, Packet, SNode
-from dynamics.stress_monitoring import verify_packet_stress
-from dynamics.stiffness_verification import verify_anchor_stiffness
 from control_layer.mpc_controller import create_mpc_controller
+from dynamics.multi_body import MultiBodyStream, Packet
+from dynamics.stress_monitoring import verify_packet_stress
 
 
 class PerturbationType(Enum):
@@ -61,7 +78,7 @@ class Perturbation:
     """Perturbation parameters."""
     type: PerturbationType
     magnitude: float
-    direction: Optional[np.ndarray] = None
+    direction: np.ndarray | None = None
     probability: float = 1.0
 
 
@@ -77,13 +94,13 @@ class RealizationResult:
     k_eff_within_limit: bool
     cascade_occurred: bool
     final_state: np.ndarray
-    failure_mode: Optional[str] = None
+    failure_mode: str | None = None
     latency_events: int = 0
     max_latency_ms: float = 0.0
-    per_packet_latency: Optional[List[Tuple[int, float]]] = None  # [(packet_id, latency_ms), ...]
+    per_packet_latency: list[tuple[int, float]] | None = None  # [(packet_id, latency_ms), ...]
     nodes_affected: int = 0  # Number of nodes that experienced failure
     containment_successful: bool = True  # True if nodes_affected <= 2
-    
+
     # NEW: Diagnostic counters - addresses Root Cause #6 and Trust Strategy #1
     fault_events_injected: int = 0  # How many faults actually fired
     thermal_violations_count: int = 0
@@ -101,9 +118,9 @@ class MonteCarloConfig:
     dt: float = 0.01  # s
     use_jax: bool = False  # Enable ultra-fast GPU/CPU JAX backend
     use_numba_rk4: bool = False
-    random_seed: Optional[int] = None
-    perturbations: List[Perturbation] = field(default_factory=list)
-    pass_fail_gates: Dict[str, Tuple[float, str]] = field(default_factory=dict)
+    random_seed: int | None = None
+    perturbations: list[Perturbation] = field(default_factory=list)
+    pass_fail_gates: dict[str, tuple[float, str]] = field(default_factory=dict)
     latency_ms: float = 0.0  # Latency to inject (ms)
     latency_std_ms: float = 5.0  # Latency standard deviation (ms)
     track_per_packet_latency: bool = True  # Track per-packet latency details
@@ -112,16 +129,16 @@ class MonteCarloConfig:
     fault_rate: float = 1e-4  # Failure rate per hour (units: /hr)
     cascade_threshold: float = 1.05  # Stiffness reduction factor for cascade
     containment_threshold: int = 2  # Max nodes allowed for containment success
-    
+
     # NEW: Fault injection mode - addresses Root Cause #1
     fault_injection_mode: str = "rate"  # "rate", "guaranteed", or "poisson"
     n_guaranteed_faults: int = 0  # Inject exactly N faults per realization (for "guaranteed" mode)
-    
+
     # NEW: Cascade propagation - addresses Root Cause #2
     enable_cascade_propagation: bool = False  # Enable neighbor load redistribution
     cascade_propagation_factor: float = 0.1  # Fraction of failed load transferred to neighbors
     max_cascade_generations: int = 5  # Maximum cascade propagation depth
-    
+
     # NEW: Thermal/quench integration - addresses Root Cause #4
     enable_thermal_quench: bool = False  # Enable thermal-quench coupling
     quench_detection_enabled: bool = False  # Enable quench detector monitoring
@@ -151,21 +168,21 @@ class MonteCarloConfig:
 class CascadeRunner:
     """
     Monte-Carlo cascade risk assessment runner.
-    
+
     Executes multiple realizations with random perturbations to assess
     cascade probability and system robustness.
     """
-    
+
     def __init__(self, config: MonteCarloConfig):
         """Initialize cascade runner with configuration."""
         self.config = config
 
         # Detect and configure acceleration
         self._configure_acceleration()
-        
+
         # Initialize Wilson CI method
         self._wilson_ci = self._create_wilson_ci()
-    
+
     def _create_wilson_ci(self):
         """Create Wilson CI function."""
         def _wilson_ci(k, n, z=1.96):
@@ -214,7 +231,7 @@ class CascadeRunner:
             logger.info(f"Multiprocessing enabled with {self.config.n_workers} workers")
 
         logger.info(f"Acceleration mode: {self.acceleration_mode}")
-    
+
     def apply_perturbation(
         self,
         packet: Packet,
@@ -268,7 +285,7 @@ class CascadeRunner:
             # Magnitude is the node_id to fail (or -1 for random)
             # This is applied to nodes, not packets - handled in run_realization
             logger.debug(f"Node failure perturbation requested for node {perturbation.magnitude}")
-    
+
     def run_realization(
         self,
         stream: MultiBodyStream,
@@ -276,11 +293,11 @@ class CascadeRunner:
     ) -> RealizationResult:
         """
         Run a single Monte-Carlo realization.
-        
+
         Args:
             stream: Multi-body stream to simulate
             realization_id: Realization identifier
-        
+
         Returns:
             RealizationResult object
         """
@@ -308,14 +325,14 @@ class CascadeRunner:
         cascade_occurred = False
         failure_mode = None
         nodes_affected = set()  # Track which nodes experienced failure
-        
+
         # NEW: Diagnostic counters - Trust Strategy #1
         fault_events_injected = 0
         thermal_violations_count = 0
         quench_events = 0
         max_temperature_reached = 0.0
         cascade_generations = 0
-        
+
         # Initialize quench detector if enabled (Root Cause #4)
         quench_detector = None
         if self.config.quench_detection_enabled or self.config.enable_thermal_quench:
@@ -326,14 +343,14 @@ class CascadeRunner:
                 logger.warning("QuenchDetector not available, disabling quench detection")
                 self.config.quench_detection_enabled = False
                 self.config.enable_thermal_quench = False
-        
+
         # Apply perturbations probabilistically
         for perturbation in self.config.perturbations:
             if np.random.random() < perturbation.probability:
                 for packet in stream.packets:
                     if np.random.random() < 0.5:  # Apply to random subset
                         self.apply_perturbation(packet, perturbation, current_time=0.0)
-        
+
         # Simulate
         n_steps = int(self.config.time_horizon / self.config.dt)
         current_time = 0.0
@@ -345,7 +362,7 @@ class CascadeRunner:
         # Latency tracking
         latency_events = 0
         max_latency_ms = 0.0
-        per_packet_latency: List[Tuple[int, float]] = []
+        per_packet_latency: list[tuple[int, float]] = []
 
         # Integration method
         use_numba = self.config.use_numba_rk4 and _NUMBA_AVAILABLE
@@ -369,7 +386,7 @@ class CascadeRunner:
                 size=n_packets
             )
             latencies = np.maximum(0.0, latencies)  # Ensure non-negative
-            
+
             for idx, packet in enumerate(stream.packets):
                 latency = latencies[idx]
                 packet.latency_buffer.append((current_time + latency, packet.body.state_copy()))
@@ -380,7 +397,7 @@ class CascadeRunner:
 
         # fault_rate is per hour, convert to per-step probability
         fault_prob_per_step = self.config.fault_rate * self.config.dt / 3600.0
-        
+
         # NEW: Guaranteed fault injection (Root Cause #1)
         guaranteed_fault_times = []
         guaranteed_fault_nodes = []
@@ -391,7 +408,7 @@ class CascadeRunner:
             n_nodes_available = len(stream.nodes) if stream.nodes else 1
             guaranteed_fault_nodes = np.random.randint(0, n_nodes_available, self.config.n_guaranteed_faults)
             logger.info(f"Guaranteed fault injection: {self.config.n_guaranteed_faults} faults at times {guaranteed_fault_times}")
-        
+
         # NEW: Poisson fault injection (Root Cause #1 alternative)
         poisson_n_faults = 0
         poisson_fault_times = []
@@ -436,7 +453,7 @@ class CascadeRunner:
                             nodes_affected.add(node.id)
                             fault_events_injected += 1
                             logger.debug(f"Step {step}: Node {node.id} failed: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
-                            
+
                             # NEW: Cascade propagation (Root Cause #2)
                             if self.config.enable_cascade_propagation:
                                 cascade_generations = self._propagate_cascade(
@@ -445,7 +462,7 @@ class CascadeRunner:
 
             # NEW: Guaranteed fault injection (Root Cause #1)
             if self.config.fault_injection_mode == "guaranteed" and len(guaranteed_fault_times) > 0:
-                for i, (fault_time, fault_node_idx) in enumerate(zip(guaranteed_fault_times, guaranteed_fault_nodes)):
+                for i, (fault_time, fault_node_idx) in enumerate(zip(guaranteed_fault_times, guaranteed_fault_nodes, strict=False)):
                     # Check if this fault should fire at this step
                     step_time = current_time + self.config.dt  # Will be time after this integration
                     if fault_time <= step_time and fault_time > current_time:
@@ -457,7 +474,7 @@ class CascadeRunner:
                                 nodes_affected.add(node.id)
                                 fault_events_injected += 1
                                 logger.debug(f"Guaranteed fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s: k_fp {original_k:.1f} -> {node.k_fp:.1f}")
-                                
+
                                 # Cascade propagation for guaranteed faults
                                 if self.config.enable_cascade_propagation:
                                     gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
@@ -466,7 +483,7 @@ class CascadeRunner:
             # NEW: Poisson fault injection (Root Cause #1)
             if self.config.fault_injection_mode == "poisson" and poisson_n_faults > 0:
                 # Use pre-sampled fault times and nodes
-                for i, (fault_time, fault_node_idx) in enumerate(zip(poisson_fault_times, poisson_fault_nodes)):
+                for i, (fault_time, fault_node_idx) in enumerate(zip(poisson_fault_times, poisson_fault_nodes, strict=False)):
                     step_time = current_time + self.config.dt
                     if fault_time <= step_time and fault_time > current_time:
                         if stream.nodes and fault_node_idx < len(stream.nodes):
@@ -477,7 +494,7 @@ class CascadeRunner:
                                 nodes_affected.add(node.id)
                                 fault_events_injected += 1
                                 logger.debug(f"Poisson fault #{i+1}: Node {node.id} failed at t={current_time:.3f}s")
-                                
+
                                 if self.config.enable_cascade_propagation:
                                     gen = self._propagate_cascade(stream, node, nodes_affected, current_time)
                                     cascade_generations = max(cascade_generations, gen)
@@ -489,7 +506,7 @@ class CascadeRunner:
                 # state is [qx, qy, qz, qw, ωx, ωy, ωz]
                 x0 = state
                 x_target = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-                
+
                 try:
                     u_opt, info = mpc.solve(x0, x_target)
                     tau = mpc.get_first_control(u_opt)
@@ -500,20 +517,20 @@ class CascadeRunner:
 
             torque_func = mpc_torque if mpc is not None else zero_torque
 
-            result = stream.integrate(
+            stream.integrate(
                 self.config.dt,
                 torque_func,
                 use_numba_rk4=use_numba and mpc is None, # Numba RK4 doesn't support MPC callback well
                 use_zero_torque_numba=use_zero_torque_numba and mpc is None,
             )
             current_time += self.config.dt
-            
+
             # NEW: Thermal/quench monitoring (Root Cause #4)
             if quench_detector is not None or self.config.enable_thermal_quench:
                 for packet in stream.packets:
                     # Track max temperature
                     max_temperature_reached = max(max_temperature_reached, packet.temperature)
-                    
+
                     # Check for thermal violations
                     if hasattr(packet, 'temperature') and hasattr(packet, 'material'):
                         try:
@@ -521,14 +538,14 @@ class CascadeRunner:
                             if packet.temperature >= critical_temp:
                                 thermal_violations_count += 1
                                 logger.debug(f"Thermal violation: packet {packet.id} T={packet.temperature:.1f}K >= Tc={critical_temp:.1f}K")
-                                
+
                                 # Trigger quench event
                                 quench_events += 1
-                                
+
                                 # If quench detector enabled, check for emergency shutdown
                                 if quench_detector is not None:
                                     quench_detected = quench_detector.check_quench(
-                                        packet.temperature, 
+                                        packet.temperature,
                                         critical_temp,
                                         current_time
                                     )
@@ -563,7 +580,7 @@ class CascadeRunner:
 
             if cascade_occurred:
                 break
-        
+
         # Compute k_eff_min from the minimum stiffness reached during the run
         if stream.nodes:
             # Each node's actual stiffness at the end is its initial_k_fp reduced by the failures.
@@ -577,7 +594,7 @@ class CascadeRunner:
             if node.id in initial_k_fp:
                 node.k_fp = initial_k_fp[node.id]
         k_eff_within_limit = k_eff_min >= self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
-        
+
         # Determine containment success and cascade from node failures
         containment_successful = len(nodes_affected) <= self.config.containment_threshold
 
@@ -627,8 +644,8 @@ class CascadeRunner:
             max_temperature_reached=max_temperature_reached,
             cascade_generations=cascade_generations,
         )
-    
-    def run_monte_carlo_jax(self, stream: MultiBodyStream) -> List[RealizationResult]:
+
+    def run_monte_carlo_jax(self, stream: MultiBodyStream) -> list[RealizationResult]:
         """
         Runs Monte-Carlo realizations using the JAX GPU/CPU backend.
         This uses an LQR surrogate for the MPC controller for maximum throughput.
@@ -637,33 +654,34 @@ class CascadeRunner:
             logger.error("JAX not available, falling back to CPU")
             return self.run_monte_carlo(stream)
 
-        from monte_carlo.jax_cascade_runner import run_full_sweep_vmap
-        from monte_carlo.lqr_gain import compute_lqr_gain
         import jax.numpy as jnp
 
+        from monte_carlo.jax_cascade_runner import run_full_sweep_vmap
+        from monte_carlo.lqr_gain import compute_lqr_gain
+
         logger.info(f"Starting JAX-accelerated Monte Carlo: {self.config.n_realizations} realizations")
-        
+
         # 1. Prepare physics parameters
         # Use first packet's inertia as representative
         if not stream.packets:
             return []
-        
+
         packet0 = stream.packets[0]
         I = packet0.body.inertia
         I_inv = np.linalg.inv(I)
         K = compute_lqr_gain(I)
-        
+
         state0 = jnp.array(np.concatenate([packet0.body.quaternion, packet0.body.angular_velocity]))
-        
+
         # 2. Setup grid (single point sweep for standard MC)
         latencies = jnp.array([self.config.latency_ms / 1000.0])
         etas = jnp.array([packet0.eta_ind])
-        
+
         keys = jax.random.split(jax.random.PRNGKey(np.random.randint(0, 1000000)), self.config.n_realizations)
-        
+
         # 3. Execute
         n_steps = int(self.config.time_horizon / self.config.dt)
-        
+
         # Result shape: (n_eta=1, n_lat=1, n_realizations)
         success_batch = run_full_sweep_vmap(
             keys,
@@ -679,9 +697,9 @@ class CascadeRunner:
             packet0.radius,
             self.config.pass_fail_gates.get("stress", (1.2e9,))[0]
         )
-        
+
         success_batch = np.array(success_batch[0, 0])
-        
+
         # 4. Wrap results
         results = []
         for i, success in enumerate(success_batch):
@@ -697,94 +715,46 @@ class CascadeRunner:
                 final_state=np.array(state0),
                 failure_mode=None if success else "stability_loss"
             ))
-            
+
         return results
 
-    def run_monte_carlo(self, stream_factory: Callable[[], MultiBodyStream]) -> List[RealizationResult]:
-        """Runs Monte-Carlo realizations using parallel execution."""
-        # Note: If JAX is enabled, standard JAX flow is triggered
-        if self.config.use_jax:
-            stream = stream_factory()
-            return self.run_monte_carlo_jax(stream)
-            
-        logger.info(f"Starting Monte-Carlo analysis: {self.config.n_realizations} realizations")
-        # Logic from existing run_monte_carlo continuation...
-        results = []
-        if self.config.random_seed is not None:
-            np.random.seed(self.config.random_seed)
-
-        # Early termination: run in batches and check CI convergence
-        if self.config.enable_early_termination and self.acceleration_mode != "multiprocessing":
-            batch_size = 10
-            for start_idx in range(0, self.config.n_realizations, batch_size):
-                current_batch_size = min(batch_size, self.config.n_realizations - start_idx)
-                for i in range(start_idx, start_idx + current_batch_size):
-                    stream = stream_factory()
-                    result = self.run_realization(stream, i)
-                    results.append(result)
-
-                # Check convergence after min_realizations
-                if len(results) >= self.config.min_realizations:
-                    success_count = sum(1 for r in results if r.success)
-                    ci_lower, ci_upper = self._wilson_ci(success_count, len(results))
-                    ci_width = ci_upper - ci_lower
-
-                    if ci_width < self.config.ci_width_threshold:
-                        logger.info(f"Early termination: CI width {ci_width:.3f} < threshold {self.config.ci_width_threshold} after {len(results)} realizations")
-                        break
-        elif self.acceleration_mode == "multiprocessing":
-            # Use multiprocessing for parallel execution
-            with mp.Pool(self.config.n_workers) as pool:
-                args_list = [(stream_factory, i) for i in range(self.config.n_realizations)]
-                results = pool.map(self._run_realization_worker, args_list)
-        else:
-            # Sequential execution (CPU or Numba)
-            for i in range(self.config.n_realizations):
-                # Create fresh stream for each realization
-                stream = stream_factory()
-
-                # Run realization
-                result = self.run_realization(stream, i)
-                results.append(result)
-        return results
-
-    def _run_realization_worker(self, args: Tuple) -> RealizationResult:
+    def _run_realization_worker(self, args: tuple) -> RealizationResult:
         """Worker function for multiprocessing."""
         stream_factory, realization_id = args
         stream = stream_factory()
         return self.run_realization(stream, realization_id)
-    
+
     def _propagate_cascade(
-        self, 
-        stream: MultiBodyStream, 
-        failed_node, 
+        self,
+        stream: MultiBodyStream,
+        failed_node,
         nodes_affected: set,
         current_time: float,
         generation: int = 0
     ) -> int:
         """
         Propagate cascade failure to neighboring nodes (Root Cause #2).
-        
+
         When a node fails, transfer load to adjacent nodes, increasing their
         failure probability. This creates the positive feedback loop that
         defines a true cascade.
-        
+
         Args:
             stream: Multi-body stream containing nodes
             failed_node: The node that just failed
             nodes_affected: Set of already-affected node IDs (modified in place)
             current_time: Current simulation time
             generation: Current cascade generation depth
-            
+
         Returns:
             Maximum cascade generation reached
         """
         if generation >= self.config.max_cascade_generations:
             return generation
-        
+
         if not stream.nodes:
             return generation
-        
+
         # Find neighbors (simple distance-based adjacency)
         failed_pos = failed_node.position
         neighbors = []
@@ -794,19 +764,19 @@ class CascadeRunner:
                 # Consider nodes within 20m as neighbors (adjustable)
                 if distance < 20.0:
                     neighbors.append(node)
-        
+
         if not neighbors:
             return generation
-        
+
         # Transfer load to neighbors
         load_factor = 1.0 + self.config.cascade_propagation_factor / len(neighbors)
-        
+
         for neighbor in neighbors:
             if hasattr(neighbor, 'k_fp'):
                 # Reduce neighbor's stiffness to model increased stress
                 original_k = neighbor.k_fp
                 neighbor.k_fp /= load_factor
-                
+
                 # Check if neighbor also fails (cascades further)
                 # Use a simplified criterion: if k_fp drops below threshold, it fails too
                 k_fp_threshold = self.config.pass_fail_gates.get("k_eff", (6000.0,))[0]
@@ -816,7 +786,7 @@ class CascadeRunner:
                         f"Cascade gen {generation+1}: Node {neighbor.id} failed due to load transfer: "
                         f"k_fp {original_k:.1f} -> {neighbor.k_fp:.1f}"
                     )
-                    
+
                     # Recursively propagate
                     sub_gen = self._propagate_cascade(
                         stream, neighbor, nodes_affected, current_time, generation + 1
@@ -826,17 +796,17 @@ class CascadeRunner:
                     logger.debug(
                         f"Load transferred to Node {neighbor.id}: k_fp {original_k:.1f} -> {neighbor.k_fp:.1f}"
                     )
-        
+
         return generation
 
-    def _run_jax_batch(self, stream_factory: Callable[[], MultiBodyStream], start_idx: int, batch_size: int) -> List[RealizationResult]:
+    def _run_jax_batch(self, stream_factory: Callable[[], MultiBodyStream], start_idx: int, batch_size: int) -> list[RealizationResult]:
         """
         Run a batch of realizations using JAX for GPU acceleration.
 
         NOTE: This is currently a sequential loop wrapper - it does NOT vectorize
         the physics integration. Full physics vectorization would require rewriting
         the MultiBodyStream integration in JAX (major refactoring task).
-        
+
         Current implementation:
         - Sequential loop over realizations (no GPU vectorization)
         - JAX is only used for perturbation generation if enabled elsewhere
@@ -857,19 +827,10 @@ class CascadeRunner:
             results.append(result)
         return results
 
-    # Numba-accelerated helper functions
-    if _NUMBA_AVAILABLE:
-        @jit(nopython=True)
-        def _compute_stress_numba(mass: float, radius: float, angular_velocity: np.ndarray) -> float:
-            """Compute centrifugal stress using Numba."""
-            omega = np.linalg.norm(angular_velocity)
-            stress = mass * (radius * omega) ** 2 / (4 * np.pi * radius ** 2)
-            return stress
-
     def run_monte_carlo(
         self,
         stream_factory: Callable[[], MultiBodyStream],
-    ) -> Dict:
+    ) -> dict:
         """
         Run full Monte-Carlo analysis.
         """
@@ -943,7 +904,7 @@ class CascadeRunner:
         quench_events_total = sum(r.quench_events for r in results)
         max_temperature_global = max(r.max_temperature_reached for r in results) if results else 0.0
         cascade_generations_max = max(r.cascade_generations for r in results) if results else 0
-        
+
         # Provenance metadata - Trust Strategy #4
 
         # Create ONE reference stream for provenance inspection
@@ -997,7 +958,7 @@ class CascadeRunner:
             "containment_rate": containment_rate,
             "containment_rate_ci": self._wilson_ci(sum(containment_successful_values), n),
             "delay_margin_ms": None,  # Not calculated in Monte-Carlo - requires MPC controller
-            
+
             # NEW: Diagnostic counters - Trust Strategy #1
             "fault_events_total": fault_events_total,
             "fault_events_per_realization_mean": fault_events_total / n if n > 0 else 0.0,
@@ -1005,21 +966,21 @@ class CascadeRunner:
             "quench_events_total": quench_events_total,
             "max_temperature_global": max_temperature_global,
             "cascade_generations_max": cascade_generations_max,
-            
+
             # NEW: Provenance metadata - Trust Strategy #4
             "provenance": provenance,
-            
+
             # NEW: Sanity flag - Trust Strategy #2
             "sanity_check_passed": fault_events_total > 0 or self.config.fault_rate == 0 or self.config.fault_injection_mode != "rate",
-            "sanity_warning": "" if (fault_events_total > 0 or self.config.fault_rate == 0 or self.config.fault_injection_mode != "rate") 
+            "sanity_warning": "" if (fault_events_total > 0 or self.config.fault_rate == 0 or self.config.fault_injection_mode != "rate")
                               else "NO FAULTS INJECTED - results may not reflect cascade behavior",
         }
 
 
-def create_default_perturbations() -> List[Perturbation]:
+def create_default_perturbations() -> list[Perturbation]:
     """
     Create default perturbation set for Monte-Carlo analysis.
-    
+
     Returns:
         List of default perturbations
     """

@@ -7,8 +7,8 @@ Tests cover:
 - Counter-propagating doubles mass (mass_multiplier)
 """
 import pytest
-import numpy as np
-from dynamics.packet_budget import compute_packet_budget, PacketBudget
+
+from dynamics.packet_budget import PacketBudget, compute_packet_budget
 
 
 def test_compute_packet_budget_basic():
@@ -21,7 +21,7 @@ def test_compute_packet_budget_basic():
         mission_duration_years=15.0,
         slingshot_enabled=True
     )
-    
+
     assert isinstance(result, PacketBudget)
     assert result.N_stream == 1000
     assert result.N_total >= result.N_stream
@@ -39,7 +39,7 @@ def test_zero_packets():
         mission_duration_years=15.0,
         slingshot_enabled=True
     )
-    
+
     # With N_stream=0, there should be no active stream or slingshot packets
     assert result.N_stream == 0
     assert result.N_slingshot_pipeline == 0
@@ -58,7 +58,7 @@ def test_slingshot_enabled_vs_disabled():
         mission_duration_years=15.0,
         slingshot_enabled=True
     )
-    
+
     result_disabled = compute_packet_budget(
         N_stream=1000,
         mp=10.0,
@@ -67,7 +67,7 @@ def test_slingshot_enabled_vs_disabled():
         mission_duration_years=15.0,
         slingshot_enabled=False
     )
-    
+
     # Slingshot pipeline adds packets when enabled
     assert result_enabled.N_slingshot_pipeline > 0
     assert result_disabled.N_slingshot_pipeline == 0
@@ -84,7 +84,7 @@ def test_high_fault_rate_increases_spares():
         mission_duration_years=15.0,
         slingshot_enabled=False
     )
-    
+
     result_high_fault = compute_packet_budget(
         N_stream=1000,
         mp=10.0,
@@ -93,7 +93,7 @@ def test_high_fault_rate_increases_spares():
         mission_duration_years=15.0,
         slingshot_enabled=False
     )
-    
+
     # Higher fault rate should increase total inventory (spares or injection queue)
     # Note: implementation may cap spares, but total should still increase
     assert result_high_fault.N_total >= result_low_fault.N_total
@@ -109,6 +109,6 @@ def test_mass_multiplier_reflects_overhead():
         mission_duration_years=15.0,
         slingshot_enabled=True
     )
-    
+
     expected_multiplier = result.N_total / result.N_stream if result.N_stream > 0 else 1.0
     assert result.mass_multiplier == pytest.approx(expected_multiplier, rel=1e-6)

@@ -6,9 +6,9 @@ import numpy as np
 import pytest
 
 from dynamics.cryocooler_model import (
+    DEFAULT_CRYOCOOLER_SPECS,
     CryocoolerModel,
     CryocoolerSpecs,
-    DEFAULT_CRYOCOOLER_SPECS,
 )
 
 
@@ -42,12 +42,12 @@ def test_cryocooler_initialization():
 def test_cooling_power_interpolation():
     """Test cooling power interpolation between data points."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
-    
+
     # At data points (use pytest.approx for floating-point tolerance)
     assert model.cooling_power(70.0) == pytest.approx(5.0, rel=1e-9)
     assert model.cooling_power(80.0) == pytest.approx(8.0, rel=1e-9)
     assert model.cooling_power(90.0) == pytest.approx(12.0, rel=1e-9)
-    
+
     # Between data points
     power_75 = model.cooling_power(75.0)
     assert 5.0 < power_75 < 8.0
@@ -70,12 +70,12 @@ def test_cooling_power_above_90k():
 def test_input_power_interpolation():
     """Test input power interpolation."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
-    
+
     # At data points
     assert model.input_power(70.0) == pytest.approx(50.0, rel=1e-9)
     assert model.input_power(80.0) == pytest.approx(60.0, rel=1e-9)
     assert model.input_power(90.0) == pytest.approx(80.0, rel=1e-9)
-    
+
     # Between data points
     power_75 = model.input_power(75.0)
     assert 50.0 < power_75 < 60.0
@@ -84,11 +84,11 @@ def test_input_power_interpolation():
 def test_cop_calculation():
     """Test coefficient of performance calculation."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
-    
+
     # At 70K (use pytest.approx for floating-point tolerance)
     cop_70 = model.cop(70.0)
     assert cop_70 == pytest.approx(5.0 / 50.0, rel=1e-9)
-    
+
     # At 80K
     cop_80 = model.cop(80.0)
     assert cop_80 == pytest.approx(8.0 / 60.0, rel=1e-9)
@@ -116,7 +116,7 @@ def test_cop_zero_input_power():
 def test_cooling_curve_fit():
     """Test that cooling curve is fitted correctly."""
     model = CryocoolerModel(DEFAULT_CRYOCOOLER_SPECS)
-    
+
     # The quadratic fit should pass through the data points
     T = np.array([70.0, 80.0, 90.0])
     for temp in T:

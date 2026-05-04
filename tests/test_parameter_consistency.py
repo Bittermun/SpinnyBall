@@ -1,8 +1,7 @@
 """Test that all modules use canonical parameter values."""
-import pytest
-import ast
 import re
 from pathlib import Path
+
 from params.canonical_values import MATERIAL_PROPERTIES
 
 CANONICAL_JC0 = MATERIAL_PROPERTIES['GdBCO']['Jc0']['value']  # 3e10
@@ -51,7 +50,8 @@ def test_mission_level_metrics_differentiates_materials():
 
 def test_snode_default_above_feasibility_gate():
     """SNode default k_fp must be >= 6000 N/m feasibility gate."""
-    from dynamics.multi_body import SNode
     import numpy as np
+
+    from dynamics.multi_body import SNode
     node = SNode(id=0, position=np.array([0.0, 0.0, 0.0]))
     assert node.k_fp >= 6000.0, f"SNode default k_fp={node.k_fp} < 6000 feasibility gate"

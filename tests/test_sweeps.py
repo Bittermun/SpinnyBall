@@ -4,10 +4,11 @@ Integration tests for T1 and T3 sweep scripts.
 
 import numpy as np
 import pytest
-from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
-from monte_carlo.pass_fail_gates import DelayMarginGate, ContainmentGate, create_default_gate_set
+
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.rigid_body import RigidBody
+from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
+from monte_carlo.pass_fail_gates import ContainmentGate, DelayMarginGate, create_default_gate_set
 
 
 def test_delay_margin_gate():
@@ -153,7 +154,7 @@ def test_fault_injection_logic():
 
     # Check if any nodes had stiffness reduced
     # With high fault rate, at least one node should fail
-    stiffness_reduced = any(node.k_fp < original for node, original in zip(nodes, original_stiffness))
+    any(node.k_fp < original for node, original in zip(nodes, original_stiffness, strict=False))
 
     # Note: This is probabilistic, so we don't assert it must happen
     # Just verify the mechanism exists
@@ -222,7 +223,7 @@ def test_t3_sweep_small_grid():
 def test_mpc_delay_margin_calculation():
     """Test MPC delay margin calculation."""
     try:
-        from control_layer.mpc_controller import MPCController, ConfigurationMode
+        from control_layer.mpc_controller import ConfigurationMode, MPCController
 
         mpc = MPCController(
             configuration_mode=ConfigurationMode.TEST,

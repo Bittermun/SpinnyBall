@@ -13,16 +13,16 @@ Output:
     - Saves detailed results to parameter_metrics_table.json
 """
 
-import sys
 import json
+import sys
 from pathlib import Path
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
+
 from src.sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
 from src.sgms_anchor_v1 import analytical_metrics
-import numpy as np
 
 print("=" * 80)
 print("COMPREHENSIVE PARAMETER METRICS TABLE")
@@ -44,15 +44,15 @@ test_configs = [
 # Base parameters (use operational as base)
 try:
     if not Path("anchor_profiles.json").exists():
-        print(f"ERROR: anchor_profiles.json not found")
+        print("ERROR: anchor_profiles.json not found")
         sys.exit(1)
-    print(f"DEBUG: Loading anchor_profiles.json...")
+    print("DEBUG: Loading anchor_profiles.json...")
     data = load_anchor_profiles("anchor_profiles.json")
-    print(f"DEBUG: Resolving operational profile...")
+    print("DEBUG: Resolving operational profile...")
     resolved = resolve_profile_params(data, "operational")
     base_params = resolved["params"]
     profile_meta = resolved["profile"]
-    print(f"DEBUG: Profile resolved successfully.")
+    print("DEBUG: Profile resolved successfully.")
 except (KeyError, ValueError, FileNotFoundError, OSError, json.JSONDecodeError) as e:
     print(f"ERROR: Failed to resolve operational profile: {e}")
     sys.exit(1)
@@ -78,18 +78,18 @@ for name, overrides in test_configs:
     print(f"DEBUG: Testing config: {name}")
     params = base_params.copy()
     params.update(overrides)
-    
+
     # Compute metrics
     print(f"DEBUG: Computing metrics for {name}...")
     metrics = analytical_metrics(params)
-    print(f"DEBUG: Metrics computed.")
-    
+    print("DEBUG: Metrics computed.")
+
     k_eff = metrics["k_eff"]
     force = metrics["force_per_stream_n"]
     period = metrics["period_s"]
-    
+
     print(f"{name:<25} {params['u']:>10.1f} {params['mp']:>10.2f} {k_eff:>15.2f} {force:>15.2f} {period:>12.3f}")
-    
+
     results.append({
         "config": name,
         "u": params["u"],
@@ -119,4 +119,4 @@ print("=" * 80)
 with open("parameter_metrics_table.json", "w") as f:
     json.dump(results, f, indent=2)
 
-print(f"\nDetailed results saved to parameter_metrics_table.json")
+print("\nDetailed results saved to parameter_metrics_table.json")

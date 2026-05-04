@@ -3,17 +3,19 @@ High-resolution 2x3 material sweep (parallel, N=512).
 GdBCO/SmCo × BFRP/CFRP/CNT_yarn → 6 configs, fully parallelised.
 Run from SpinnyBall root: python scripts/run_highres_sweep.py
 """
-import sys, time
-import numpy as np
+import sys
+import time
 from pathlib import Path
+
+import numpy as np
 
 sys.path.insert(0, '.')
 
 from src.sgms_anchor_sensitivity import (
-    run_2x2_material_sweep,
-    print_mission_summary,
     export_sobol_indices_csv,
     plot_mission_results,
+    print_mission_summary,
+    run_2x2_material_sweep,
 )
 
 print("=" * 70)

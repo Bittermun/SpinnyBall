@@ -1,12 +1,12 @@
 import json
-from pathlib import Path
 import sys
 from pathlib import Path
+
 sys.path.append(str(Path.cwd()))
 
 def verify_phase0():
     print("--- Phase 0 Verification ---")
-    
+
     # 1. Check docs
     docs = ["docs/comparison_table.md", "docs/TECHNICAL_SPEC.md"]
     for d in docs:
@@ -16,7 +16,7 @@ def verify_phase0():
             print(f"[FAIL] {d} missing")
 
     # 2. Check profiles
-    with open("anchor_profiles.json", "r") as f:
+    with open("anchor_profiles.json", encoding="utf-8") as f:
         profiles_data = json.load(f)
     profiles = profiles_data["profiles"] if isinstance(profiles_data, dict) else profiles_data
     profile_names = [p["name"] for p in profiles]
@@ -26,15 +26,15 @@ def verify_phase0():
         print("[FAIL] 'paper-recommended' profile missing")
 
     # 3. Check claims
-    with open("results/anchor_claims.json", "r") as f:
+    with open("results/anchor_claims.json", encoding="utf-8") as f:
         claims_data = json.load(f)
-    
+
     # Handle both list and dict-with-anchor_claims formats
     if isinstance(claims_data, dict) and "anchor_claims" in claims_data:
         claims = claims_data["anchor_claims"]
     else:
         claims = claims_data
-        
+
     claim_profiles = [c["profile"] for c in claims]
     if "paper-recommended" in claim_profiles:
         print("[OK] 'paper-recommended' claim found")
@@ -50,7 +50,7 @@ def verify_phase0():
         h_km=550, ms=1000, g_gain=0.0004, k_fp=6000,
         magnet_material="GdBCO", spacing=0.48
     )
-    # GdBCO @ 50k RPM stress is 765 MPa. 
+    # GdBCO @ 50k RPM stress is 765 MPa.
     # BFRP limit is 800 MPa / 1.5 = 533 MPa -> margin = 0.70 < 1.0 (fail)
     # CFRP limit is 2000 MPa / 1.5 = 1333 MPa -> margin = 1333/765 = 1.74 > 1.5 (pass)
     if r["stress_margin"] >= 1.5:

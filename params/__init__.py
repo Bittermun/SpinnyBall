@@ -6,27 +6,27 @@ and simulation parameters, eliminating discrepancies across modules.
 
 Usage:
     from params import PHYSICAL_CONSTANTS, SIMULATION_PARAMS
-    
+
     # Access canonical values
     Jc0 = PHYSICAL_CONSTANTS['GdBCO']['Jc0']
     thickness = SIMULATION_PARAMS['flux_pinning']['thickness']
-    
+
 Provenance:
     All values include source citations and uncertainty estimates where available.
 """
 
 from .canonical_values import (
+    GEOMETRY_PARAMS,
+    MATERIAL_PROPERTIES,
     PHYSICAL_CONSTANTS,
     SIMULATION_PARAMS,
-    MATERIAL_PROPERTIES,
-    GEOMETRY_PARAMS,
     get_parameter,
     validate_parameters,
 )
 
 __all__ = [
     'PHYSICAL_CONSTANTS',
-    'SIMULATION_PARAMS', 
+    'SIMULATION_PARAMS',
     'MATERIAL_PROPERTIES',
     'GEOMETRY_PARAMS',
     'get_parameter',

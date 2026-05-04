@@ -8,7 +8,7 @@ import pytest
 # Skip all tests if CasADi is not available
 pytest.importorskip("casadi", reason="CasADi is required for MPC tests")
 
-from control_layer.mpc_controller import MPCController, create_mpc_controller, ConfigurationMode
+from control_layer.mpc_controller import ConfigurationMode, MPCController, create_mpc_controller
 
 
 def test_smith_predictor_advances_state():
@@ -47,7 +47,7 @@ def test_delay_compensation_disabled():
 
     u_opt, info = controller.solve(x0, x_target)
 
-    assert info['delay_compensation_enabled'] == False
+    assert not info['delay_compensation_enabled']
     assert info['success']
 
 
@@ -155,7 +155,7 @@ def test_delay_compensation_info_dict():
     assert 'delay_steps' in info
     assert 'delay_compensation_enabled' in info
     assert info['delay_steps'] == 5
-    assert info['delay_compensation_enabled'] == True
+    assert info['delay_compensation_enabled']
 
 
 def test_discrete_time_delay_disabled():

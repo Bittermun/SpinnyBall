@@ -8,13 +8,13 @@ Tests cover:
 - Debris risk integration
 """
 import pytest
-import numpy as np
+
 from src.sgms_anchor_v1 import mission_level_metrics
 
 
 def test_thermal_clamp_removed():
     """Infeasible designs must have negative thermal margin.
-    
+
     At high velocities with SmCo, eddy heating should exceed T_limit,
     causing thermal_margin to go negative (not clamped to positive).
     """
@@ -26,7 +26,7 @@ def test_thermal_clamp_removed():
     )
     # Either thermal margin is negative OR steady state temp is below limit
     # (if heating is low enough, design might still be feasible)
-    assert (result['thermal_margin'] < 0 or 
+    assert (result['thermal_margin'] < 0 or
             result['steady_state_temp_K'] < result.get('T_limit', 573)), \
         "Thermal clamp not properly removed - infeasible designs should fail"
 

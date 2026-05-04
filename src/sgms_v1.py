@@ -6,14 +6,16 @@
 # ============================================================
 
 # ---- CELL 1: Setup ----
-import numpy as np
 import matplotlib
+import numpy as np
+
 matplotlib.use('Agg')  # non-interactive backend for headless run
-import matplotlib.pyplot as plt
-import matplotlib.gridspec as gridspec
-from scipy.integrate import solve_ivp
-from scipy.optimize import minimize_scalar
 import warnings
+
+import matplotlib.gridspec as gridspec
+import matplotlib.pyplot as plt
+from scipy.integrate import solve_ivp
+
 warnings.filterwarnings('ignore')
 
 plt.rcParams['figure.dpi'] = 120
@@ -57,9 +59,7 @@ P = {
     'enable_precession': True,
     'enable_mutual_inductance': False,
     'k_drag': 0.01,  # Eddy-current drag coefficient (N·s/m) - velocity-dependent
-    'k_quad': 0.0,
-    # Mutual inductance parameters
-    'enable_mutual_inductance': False,  # Enable mutual inductance coupling
+    'k_quad': 0.0,  # Enable mutual inductance coupling
     'mutual_coupling_coeff': 0.1,  # Average coupling coefficient between segments
     'segment_inductance': 1e-3,  # Self-inductance per segment (H)
 }
@@ -112,7 +112,7 @@ def segment_arrival_time(seg_z, v_z0):
 def Bx_field(z, t, P):
     Bx = 0.0
     dBx_dz = 0.0
-    
+
     # Base field from each segment
     segment_fields = []
     for i in range(P['n_segments']):
@@ -128,12 +128,12 @@ def Bx_field(z, t, P):
         segment_fields.append(B_seg)
         Bx    += B_seg
         dBx_dz += B_amp * p * dq
-    
+
     # Apply mutual inductance coupling if enabled
     if P.get('enable_mutual_inductance', False):
         k = P.get('mutual_coupling_coeff', 0.1)
-        L = P.get('segment_inductance', 1e-3)
-        
+        P.get('segment_inductance', 1e-3)
+
         # Simple coupling model: each segment's field is modified by neighbors
         # This is a first-order approximation of mutual inductance effects
         coupled_fields = segment_fields.copy()
@@ -145,7 +145,7 @@ def Bx_field(z, t, P):
                     dist = abs(P['seg_z'][i] - P['seg_z'][j])
                     coupling = k * np.exp(-dist / P['segment_sigma'])
                     coupled_fields[i] += coupling * segment_fields[j]
-        
+
         # Recompute total field with coupling
         Bx = sum(coupled_fields)
         # Gradient approximation (finite difference)
@@ -160,7 +160,7 @@ def Bx_field(z, t, P):
             p  = np.exp(-((t - t_arr - di)**2) / (2 * P['pulse_sigma']**2))
             B_amp = ai * P['gradient'] * P['segment_sigma']
             Bx_plus += B_amp * p * q
-        
+
         if P.get('enable_mutual_inductance', False):
             coupled_plus = []
             for i in range(P['n_segments']):
@@ -181,9 +181,9 @@ def Bx_field(z, t, P):
                         B_seg_plus += coupling * B_amp_j * p_j * q_j
                 coupled_plus.append(B_seg_plus)
             Bx_plus = sum(coupled_plus)
-        
+
         dBx_dz = (Bx_plus - Bx) / dz
-    
+
     return Bx, dBx_dz
 
 def drag_envelope(z, t, P):
@@ -300,15 +300,15 @@ def extract_results(sol, P):
 def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True):
     """
     Simulate multi-pass Δvx accumulation to analyze error propagation.
-    
+
     Tracks cumulative Δvx over many transits to determine if errors
     compound (random walk) or cancel (mean-reverting).
-    
+
     Args:
         n_passes: Number of transits to simulate (default: 10^6)
         params: System parameters (uses P if None)
         verbose: Print progress warnings (default: True)
-    
+
     Returns:
         Dictionary with accumulation statistics:
         - delta_vx_history: Array of Δvx per pass
@@ -322,18 +322,18 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
     """
     if params is None:
         params = P
-    
+
     # Warning for large n_passes
     if verbose and n_passes > 10000:
         print(f"WARNING: n_passes={n_passes} will take significant time to execute.")
-        print(f"Consider using n_passes=1000-10000 for initial testing.")
-    
+        print("Consider using n_passes=1000-10000 for initial testing.")
+
     # Validate required parameters
     required_params = ['array_length', 'v_z0', 'rtol', 'atol', 'max_step']
     for param in required_params:
         if param not in params:
             raise ValueError(f"Missing required parameter: {param}")
-    
+
     # Validate parameter values
     if params['array_length'] <= 0:
         raise ValueError(f"array_length must be > 0, got {params['array_length']}")
@@ -345,10 +345,10 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
         raise ValueError(f"atol must be > 0, got {params['atol']}")
     if params['max_step'] <= 0:
         raise ValueError(f"max_step must be > 0, got {params['max_step']}")
-    
+
     delta_vx_history = np.zeros(n_passes)
     failed_passes = 0
-    
+
     # Simulate each pass
     for i in range(n_passes):
         try:
@@ -356,25 +356,25 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
             y0 = [0.0, 0.0, -params['array_length']/2, 0.0, 0.0, params['v_z0'], 0.0, 0.0, 1.0]
             t_span = (0.0, params['array_length'] / params['v_z0'] * 1.5)
             t_eval = np.linspace(t_span[0], t_span[1], 1000)
-            
+
             # Solve single pass
             sol = solve_ivp(lambda t, y: eom(t, y, params, include_precession=False),
-                           t_span, y0, t_eval=t_eval, 
+                           t_span, y0, t_eval=t_eval,
                            rtol=params['rtol'], atol=params['atol'],
                            max_step=params['max_step'])
-            
+
             if not sol.success:
                 failed_passes += 1
                 delta_vx_history[i] = 0.0
                 if verbose and failed_passes <= 5:
                     print(f"Pass {i}: Integration failed - {sol.message}")
                 continue
-            
+
             # Extract Δvx
             z = sol.y[2]
             vx = sol.y[3]
             exit_idx = np.argmin(np.abs(z - params['array_length']/2))
-            
+
             # Validate exit point was reached
             if np.abs(z[exit_idx] - params['array_length']/2) > params['array_length'] * 0.1:
                 failed_passes += 1
@@ -382,37 +382,37 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
                 if verbose and failed_passes <= 5:
                     print(f"Pass {i}: Exit point not reached")
                 continue
-            
+
             delta_vx = vx[exit_idx] - vx[0]
             delta_vx_history[i] = delta_vx
-            
+
             # Progress logging
             if verbose and (i+1) % 1000 == 0:
                 print(f"Progress: {i+1}/{n_passes} passes completed")
-                
+
         except Exception as e:
             failed_passes += 1
             delta_vx_history[i] = 0.0
             if verbose and failed_passes <= 5:
                 print(f"Pass {i}: Exception - {str(e)}")
-    
+
     if verbose and failed_passes > 0:
         print(f"WARNING: {failed_passes}/{n_passes} passes failed")
-    
+
     # Analyze accumulation
     cumulative_delta_vx = np.cumsum(delta_vx_history)
     mean_delta_vx = np.mean(delta_vx_history)
     std_delta_vx = np.std(delta_vx_history)
     final_cumulative = cumulative_delta_vx[-1]
     drift_rate = final_cumulative / n_passes
-    
+
     # Determine error type using statistical test
     # Random walk: cumulative std grows as sqrt(n) * sigma_single
     # Mean-reverting: cumulative std remains bounded (independent of n)
     # Use ratio of actual to expected random walk std
     expected_random_walk_std = std_delta_vx * np.sqrt(n_passes)
     actual_cumulative_std = np.std(cumulative_delta_vx)
-    
+
     # Avoid division by zero
     if expected_random_walk_std < 1e-12:
         error_type = 'insufficient_variance'
@@ -424,7 +424,7 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
             error_type = 'random_walk'
         else:
             error_type = 'mean_reverting'
-    
+
     return {
         'delta_vx_history': delta_vx_history,
         'cumulative_delta_vx': cumulative_delta_vx,
@@ -440,9 +440,9 @@ def simulate_multi_pass_accumulation(n_passes=1000000, params=None, verbose=True
 # ---- CELL 6: Plotting ----
 def plot_summary(sol, results, P, title="SGMS V1 — Single Pass"):
     t = sol.t
-    x, y, z   = sol.y[0], sol.y[1], sol.y[2]
-    vx, vy, vz = sol.y[3], sol.y[4], sol.y[5]
-    ei = results['exit_idx']
+    x, _y, z   = sol.y[0], sol.y[1], sol.y[2]
+    vx, _vy, vz = sol.y[3], sol.y[4], sol.y[5]
+    results['exit_idx']
     # Use pre-computed trajectory log — no recomputation needed
     traj     = results['traj']
     Bx_arr   = traj['Bx']
@@ -504,7 +504,7 @@ def plot_summary(sol, results, P, title="SGMS V1 — Single Pass"):
     ax6.text(0.05, 0.95, summary, transform=ax6.transAxes,
              fontsize=9, verticalalignment='top',
              fontfamily='monospace',
-             bbox=dict(boxstyle='round', facecolor='lightyellow', alpha=0.8))
+             bbox={'boxstyle': 'round', 'facecolor': 'lightyellow', 'alpha': 0.8})
     plt.savefig('sgms_v1_summary.png', bbox_inches='tight', dpi=150)
     plt.close()
     print("Saved: sgms_v1_summary.png")
@@ -757,7 +757,7 @@ def convergence_check(P, dt_levels=None):
 
     print("\n=== CONVERGENCE CHECK ===\n")
     print(f"  (rtol={P['rtol']:.0e}, atol={P['atol']:.0e} — note: tightening these does not help;")
-    print(f"   convergence is limited by spatial force sampling, not ODE tolerance)\n")
+    print("   convergence is limited by spatial force sampling, not ODE tolerance)\n")
     results_conv = []
     for dt in dt_levels:
         Pc = P.copy()

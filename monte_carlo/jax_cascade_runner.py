@@ -1,31 +1,34 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
+
 from dynamics.jax_rigid_body import rk4_step_jax
-from functools import partial
+
 
 @jax.jit
 def evaluate_safety_gates_jax(final_state, state0, max_omega, eta_ind, mass, radius, max_stress):
     """
     Evaluate safety gates based on simulation-derived metrics.
-    
+
     Success criteria:
     1. Convergence: final omega < 10% of initial perturbation
     2. Stress: max stress during simulation <= limit
     """
     omega_final = final_state[4:]
     omega0 = state0[4:]
-    
+
     # Convergence check: system damped the perturbation
     omega0_mag = jnp.linalg.norm(omega0)
     omega_final_mag = jnp.linalg.norm(omega_final)
     # Avoid div by zero
     convergence_ratio = jnp.where(omega0_mag > 1e-6, omega_final_mag / omega0_mag, 0.0)
     converged = convergence_ratio < 0.5  # Relaxed to 50% reduction
-    
+
     # Stress check using peak omega
     stress = (mass * max_omega**2) / (4 * jnp.pi * radius)
     stress_pass = stress <= max_stress
-    
+
     return jnp.where(converged & stress_pass, 1, 0)
 
 # Mark n_steps and dt as static because they define the loop structure

@@ -8,23 +8,23 @@ Sweep parameters:
 - Question: Can discrete-time control stabilize the validated mechanism?
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Dict, List, Tuple
-import logging
 import json
+import logging
 import os
 import sys
 from pathlib import Path
+
+import matplotlib.pyplot as plt
+import numpy as np
 from joblib import Parallel, delayed
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
-from dynamics.multi_body import MultiBodyStream, Packet, SNode
+from control_layer.mpc_controller import ConfigurationMode, MPCController
+from dynamics.multi_body import MultiBodyStream, Packet
 from dynamics.rigid_body import RigidBody, geometry_profile_to_inertia
-from control_layer.mpc_controller import MPCController, ConfigurationMode
+from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 
 logging.basicConfig(level=logging.WARNING)
 logger = logging.getLogger(__name__)
@@ -33,39 +33,39 @@ logger = logging.getLogger(__name__)
 def create_stream(eta_ind: float = 0.9, geometry_profile: dict = None):
     """Create a MultiBodyStream with specified eta_ind (module-level for pickling)."""
     mass = 0.05
-    
+
     # Use geometry_profile if available, otherwise use default inertia
     if geometry_profile is not None:
         I = geometry_profile_to_inertia(geometry_profile)
     else:
         I = np.diag([0.0001, 0.00011, 0.00009])
-    
+
     packets = [Packet(id=0, body=RigidBody(mass, I), eta_ind=eta_ind)]
-    
+
     # HIGH-FIDELITY: Enable orbital dynamics and thermal effects
     stream = MultiBodyStream(
-        packets=packets, 
-        nodes=[], 
+        packets=packets,
+        nodes=[],
         stream_velocity=100.0,
         enable_orbital_dynamics=True,  # HIGH-FIDELITY: Enable orbital coupling
     )
-    
+
     # Initialize packet with high-fidelity thermal properties
     packet = packets[0]
     packet.temperature = 300.0  # K, room temperature
     packet.radius = 0.01  # m, 1cm radius
     packet.emissivity = 0.8  # Typical for metal
     packet.specific_heat = 500.0  # J/(kg·K), typical for metal
-    
+
     # HIGH-FIDELITY: Initialize magnetic flux-pinning model
     try:
-        from dynamics.gdBCO_material import GdBCOProperties, GdBCOMaterial
         from dynamics.bean_london_model import BeanLondonModel
-        
+        from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
+
         # Real GdBCO material properties
         gd_props = GdBCOProperties()
         material = GdBCOMaterial(gd_props)
-        
+
         # Bean-London flux-pinning model
         geometry = {
             'thickness': 1e-6,  # 1 μm superconducting layer
@@ -73,14 +73,14 @@ def create_stream(eta_ind: float = 0.9, geometry_profile: dict = None):
             'length': 0.1       # 10 cm length
         }
         flux_model = BeanLondonModel(material, geometry)
-        
+
         # Attach to packet
         packet.flux_model = flux_model
         packet.material = material
         logger.info("HIGH-FIDELITY: GdBCO flux-pinning model enabled")
     except ImportError:
         logger.warning("Flux-pinning model not available, using placeholder")
-    
+
     # Initialize orbital state if available
     try:
         from dynamics.orbital_coupling import create_circular_orbit
@@ -88,11 +88,11 @@ def create_stream(eta_ind: float = 0.9, geometry_profile: dict = None):
         packet.in_eclipse = False  # Start in sunlight
     except ImportError:
         logger.warning("Orbital dynamics not available, using placeholder")
-    
+
     return stream
 
 
-def save_checkpoint(results: Dict, grid_point_idx: int, total_points: int, checkpoint_file: str = 't1_checkpoint.json'):
+def save_checkpoint(results: dict, grid_point_idx: int, total_points: int, checkpoint_file: str = 't1_checkpoint.json'):
     """Save checkpoint after each grid point."""
     checkpoint_data = {
         'results': {k: v.tolist() if hasattr(v, 'tolist') else v for k, v in results.items()},
@@ -104,10 +104,10 @@ def save_checkpoint(results: Dict, grid_point_idx: int, total_points: int, check
     logger.info(f"Checkpoint saved: {grid_point_idx+1}/{total_points} points completed")
 
 
-def load_checkpoint(checkpoint_file: str = 't1_checkpoint.json') -> Dict:
+def load_checkpoint(checkpoint_file: str = 't1_checkpoint.json') -> dict:
     """Load checkpoint if exists."""
     if os.path.exists(checkpoint_file):
-        with open(checkpoint_file, 'r') as f:
+        with open(checkpoint_file) as f:
             data = json.load(f)
         logger.info(f"Checkpoint loaded: {data['last_idx']+1}/{data['total_points']} points completed")
         return data
@@ -119,7 +119,7 @@ def run_grid_point(
     latency_ms: float,
     n_realizations_per_point: int,
     use_zero_torque_numba: bool = False,
-) -> Dict:
+) -> dict:
     """Run a single grid point (for parallel execution)."""
     config = MonteCarloConfig(
         n_realizations=n_realizations_per_point,
@@ -142,15 +142,16 @@ def run_grid_point(
     )
 
     runner = CascadeRunner(config)
-    
+
     # Use canonical values if possible
     try:
         from params.canonical_values import get_parameter
-        k_fp_canonical = get_parameter('MATERIAL_PROPERTIES', 'GdBCO', 'k_fp_bulk_range')[0] * 0.12 # Scale for tape
+        get_parameter('MATERIAL_PROPERTIES', 'GdBCO', 'k_fp_bulk_range')[0] * 0.12 # Scale for tape
     except ImportError:
-        k_fp_canonical = 6000.0
+        pass
 
-    stream_factory = lambda: create_stream(eta_ind=eta_ind)
+    def stream_factory():
+        return create_stream(eta_ind=eta_ind)
     results = runner.run_monte_carlo(stream_factory)
 
     return {
@@ -161,8 +162,8 @@ def run_grid_point(
 
 
 def run_t1_sweep(
-    latency_range: Tuple[float, float] = (5.0, 50.0),
-    eta_ind_range: Tuple[float, float] = (0.8, 0.95),
+    latency_range: tuple[float, float] = (5.0, 50.0),
+    eta_ind_range: tuple[float, float] = (0.8, 0.95),
     n_latency_points: int = 10,
     n_eta_points: int = 8,
     n_realizations_per_point: int = 50,
@@ -170,7 +171,7 @@ def run_t1_sweep(
     checkpoint_file: str = 't1_checkpoint.json',
     n_jobs: int = -1,  # -1 = use all cores
     use_zero_torque_numba: bool = True,
-) -> Dict:
+) -> dict:
     """
     Run T1 sweep: latency × eta_ind grid (parallelized with joblib).
 
@@ -190,7 +191,7 @@ def run_t1_sweep(
     """
     latency_values = np.linspace(latency_range[0], latency_range[1], n_latency_points)
     eta_ind_values = np.linspace(eta_ind_range[0], eta_ind_range[1], n_eta_points)
-    total_points = n_eta_points * n_latency_points
+    n_eta_points * n_latency_points
 
     # Results storage
     success_rate_grid = np.zeros((n_eta_points, n_latency_points))
@@ -199,7 +200,7 @@ def run_t1_sweep(
 
     # Create MPC controller for delay margin calculation
     try:
-        mpc = MPCController(
+        MPCController(
             configuration_mode=ConfigurationMode.TEST,
             delay_steps=5,
             enable_delay_compensation=True,
@@ -245,7 +246,7 @@ def run_t1_sweep(
     }
 
 
-def plot_t1_results(results: Dict, output_file: str = 'sweep_t1_latency_eta_ind.png'):
+def plot_t1_results(results: dict, output_file: str = 'sweep_t1_latency_eta_ind.png'):
     """Plot T1 sweep results."""
     latency_values = results['latency_values']
     eta_ind_values = results['eta_ind_values']
@@ -315,7 +316,7 @@ def plot_t1_results(results: Dict, output_file: str = 'sweep_t1_latency_eta_ind.
     logger.info(f"Saved T1 sweep plot: {output_file}")
 
 
-def analyze_stability_boundary(results: Dict) -> Dict:
+def analyze_stability_boundary(results: dict) -> dict:
     """Analyze stability boundary from sweep results."""
     latency_values = results['latency_values']
     eta_ind_values = results['eta_ind_values']
@@ -383,12 +384,12 @@ if __name__ == "__main__":
     print("\n=== T1 SWEEP SUMMARY ===")
     print(f"Overall success rate: {analysis['overall_success_rate']*100:.1f}%")
     print(f"Region with delay_margin ≥ 35ms: {analysis['delay_margin_95_region']*100:.1f}%")
-    print(f"\nMax latency for 95% success at each eta_ind:")
-    for eta, lat in zip(results['eta_ind_values'], analysis['max_latency_95']):
+    print("\nMax latency for 95% success at each eta_ind:")
+    for eta, lat in zip(results['eta_ind_values'], analysis['max_latency_95'], strict=False):
         print(f"  η_ind={eta:.3f}: {lat:.1f} ms")
 
-    print(f"\nMin eta_ind for 95% success at each latency:")
-    for lat, eta in zip(results['latency_values'], analysis['min_eta_95']):
+    print("\nMin eta_ind for 95% success at each latency:")
+    for lat, eta in zip(results['latency_values'], analysis['min_eta_95'], strict=False):
         print(f"  latency={lat:.1f}ms: η_ind={eta:.3f}")
 
     output_path = Path("results/t1_latency_eta_sweep.json")

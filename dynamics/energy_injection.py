@@ -6,7 +6,7 @@ which is a dominant cost driver for mission-level analysis.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+from typing import Any
 
 
 @dataclass
@@ -14,19 +14,19 @@ class InjectionEnergyResult:
     """Results from energy injection calculation."""
     # Translational kinetic energy (J)
     KE_translational_J: float
-    
+
     # Rotational kinetic energy (J)
     KE_rotational_J: float
-    
+
     # Total energy required including efficiency losses (J)
     total_energy_J: float
-    
+
     # Total energy in kWh
     total_energy_kWh: float
-    
+
     # Launch method used
     method: str
-    
+
     # Wall-plug efficiency
     efficiency: float
 
@@ -39,12 +39,12 @@ def compute_injection_energy(
     method: str = 'electromagnetic'
 ) -> InjectionEnergyResult:
     """Total energy to inject one packet into the stream.
-    
+
     Components:
     1. Translational KE: 0.5 * mp * u^2
     2. Rotational KE: 0.5 * I * omega^2 (where I = 2/5 * mp * r^2 for sphere)
     3. Launch overhead: efficiency factor (0.3 for EM launcher, 0.01 for chemical)
-    
+
     Args:
         mp: Packet mass (kg)
         u: Stream velocity (m/s)
@@ -54,7 +54,7 @@ def compute_injection_energy(
             - 'electromagnetic': EM railgun/coilgun (30% efficiency)
             - 'chemical': Chemical rocket (~1% efficiency)
             - 'lunar_slingshot': Lunar gravity assist (only need transfer orbit)
-    
+
     Returns:
         InjectionEnergyResult with energy breakdown
     """
@@ -64,14 +64,14 @@ def compute_injection_energy(
         u_effective = 10900.0  # Transfer orbit velocity (m/s)
     else:
         u_effective = u
-    
+
     KE_trans = 0.5 * mp * u_effective ** 2
-    
+
     # Rotational kinetic energy
     # For solid sphere: I = 2/5 * m * r^2
     I = 2.0 / 5.0 * mp * r ** 2
     KE_rot = 0.5 * I * omega ** 2
-    
+
     # Efficiency based on launch method
     if method == 'electromagnetic':
         efficiency = 0.30  # 30% wall-plug efficiency for EM launcher
@@ -83,10 +83,10 @@ def compute_injection_energy(
     else:
         raise ValueError(f"Unknown launch method: {method}. "
                         f"Available: 'electromagnetic', 'chemical', 'lunar_slingshot'")
-    
+
     # Total energy required (including efficiency losses)
     total_energy = (KE_trans + KE_rot) / efficiency
-    
+
     return InjectionEnergyResult(
         KE_translational_J=KE_trans,
         KE_rotational_J=KE_rot,
@@ -103,12 +103,12 @@ def compute_replacement_rate(
     mission_duration_hr: float = 8760.0  # 1 year default
 ) -> float:
     """Packets lost per hour requiring replacement.
-    
+
     Args:
         fault_rate: Fault rate (failures per packet per hour)
         n_packets: Total number of packets in stream
         mission_duration_hr: Mission duration (hours)
-    
+
     Returns:
         Replacement rate (packets per hour)
     """
@@ -120,11 +120,11 @@ def compute_steady_state_power(
     energy_per_packet: float
 ) -> float:
     """Continuous power needed to replace lost packets.
-    
+
     Args:
         replacement_rate: Packets lost per hour
         energy_per_packet: Energy per injection (J)
-    
+
     Returns:
         Continuous power requirement (Watts)
     """
@@ -140,9 +140,9 @@ def compute_injection_power_budget(
     fault_rate: float,
     n_packets: int,
     method: str = 'electromagnetic'
-) -> Dict[str, Any]:
+) -> dict[str, Any]:
     """Complete power budget for packet injection and replacement.
-    
+
     Args:
         mp: Packet mass (kg)
         u: Stream velocity (m/s)
@@ -151,26 +151,26 @@ def compute_injection_power_budget(
         fault_rate: Fault rate (failures per packet per hour)
         n_packets: Total number of packets
         method: Launch method
-    
+
     Returns:
         Dictionary with complete power budget metrics
     """
     # Energy per injection
     energy_result = compute_injection_energy(mp, u, omega, r, method)
-    
+
     # Replacement rate
     replacement_rate = compute_replacement_rate(fault_rate, n_packets)
-    
+
     # Steady-state power for replacement
     steady_state_power = compute_steady_state_power(
-        replacement_rate, 
+        replacement_rate,
         energy_result.total_energy_J
     )
-    
+
     # Annual energy consumption
     annual_energy_J = steady_state_power * 3600 * 24 * 365  # J/year
     annual_energy_kWh = annual_energy_J / 3.6e6  # kWh/year
-    
+
     return {
         'energy_per_packet_J': energy_result.total_energy_J,
         'energy_per_packet_kWh': energy_result.total_energy_kWh,
@@ -197,9 +197,9 @@ def compare_launch_methods(
     r: float,
     fault_rate: float,
     n_packets: int
-) -> Dict[str, Dict[str, Any]]:
+) -> dict[str, dict[str, Any]]:
     """Compare different launch methods for the same mission parameters.
-    
+
     Args:
         mp: Packet mass (kg)
         u: Stream velocity (m/s)
@@ -207,22 +207,22 @@ def compare_launch_methods(
         r: Packet radius (m)
         fault_rate: Fault rate (failures per packet per hour)
         n_packets: Total number of packets
-    
+
     Returns:
         Dictionary comparing all launch methods
     """
     methods = ['electromagnetic', 'chemical', 'lunar_slingshot']
     results = {}
-    
+
     for method in methods:
         results[method] = compute_injection_power_budget(
             mp, u, omega, r, fault_rate, n_packets, method
         )
-    
+
     # Add comparison metrics
     em_power = results['electromagnetic']['steady_state_power_W']
     for method in methods:
         power = results[method]['steady_state_power_W']
         results[method]['power_ratio_vs_EM'] = power / em_power if em_power > 0 else float('inf')
-    
+
     return results

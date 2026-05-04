@@ -18,7 +18,7 @@ than it loses to station deflections and eddy heating?
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+
 import numpy as np
 
 
@@ -50,20 +50,20 @@ def compute_stream_energy_budget(
 ) -> StreamEnergyBudget:
     """
     Compute the complete energy budget for the stream.
-    
+
     The key question: does the stream gain more energy from slingshots
     than it loses to station deflections and eddy heating?
-    
+
     PHYSICS NOTE: The power drain from station-keeping is determined by the
     ACTUAL deflection angle needed to produce F_station, NOT the bias angle.
-    
+
     For station-keeping: F = lambda * u^2 * sin(theta_eff)
     Therefore: theta_eff = F / (lambda * u^2)
     And power drain: P = F * u * sin(theta_eff) ≈ F * u * theta_eff (small angle)
-    
+
     This means at high velocities with dense streams, the power drain is
     surprisingly small (~0.016 W for 4.2 N at 15 km/s with lambda=72.92 kg/m).
-    
+
     Args:
         N_packets: Number of packets in the active stream
         mp: Packet mass (kg)
@@ -76,30 +76,30 @@ def compute_stream_energy_budget(
         slingshot_cycle_time_s: Duration of one slingshot cycle (s)
         n_slingshot_packets: Number of packets dedicated to slingshot replenishment
         spacing: Packet spacing (m). If None, estimated from typical stream length
-    
+
     Returns:
         StreamEnergyBudget with complete energy breakdown
     """
     # Total stream KE
     total_KE = 0.5 * N_packets * mp * u**2 if N_packets > 0 and u > 0 else 0.0
-    
+
     # Station deflection power drain
     # CRITICAL: Use the EFFECTIVE deflection angle, not the bias angle!
     # The bias angle (0.087 rad) is the geometric setup, but station-keeping
     # only requires a tiny additional deflection to extract 4.2 N.
-    # 
+    #
     # From F = lambda * u^2 * sin(theta_eff):
     #   theta_eff = F / (lambda * u^2)
-    # 
+    #
     # Power drain: P = F * u * sin(theta_eff) ≈ F * u * theta_eff (small angle)
-    # 
+    #
     # If spacing not provided, estimate from typical stream (43,500 km / N_packets)
     if spacing is None:
         stream_length = 43.5e6  # m - typical Earth circumference for LEO
         spacing = stream_length / N_packets if N_packets > 0 else 1.0
-    
+
     lambda_val = mp / spacing if spacing > 0 else mp  # kg/m
-    
+
     if lambda_val > 0 and u > 0:
         # Small angle approximation: theta_eff = F / (lambda * u^2)
         theta_effective = F_station / (lambda_val * u**2)
@@ -108,10 +108,10 @@ def compute_stream_energy_budget(
         P_station = F_station * u * np.sin(theta_effective) * n_stations
     else:
         P_station = 0.0
-    
+
     # Eddy heating drain (total across all packets)
     P_eddy_total = eddy_power_per_packet_W * N_packets if N_packets > 0 else 0.0
-    
+
     # Slingshot replenishment
     # Each slingshot packet gains dv, adding KE = 0.5 * mp * ((u+dv)^2 - u^2) ≈ mp * u * dv
     if n_slingshot_packets > 0 and slingshot_dv_per_cycle > 0 and u > 0:
@@ -119,14 +119,14 @@ def compute_stream_energy_budget(
         P_slingshot = KE_gain_per_cycle / slingshot_cycle_time_s
     else:
         P_slingshot = 0.0
-    
+
     # Injection replenishment (new packets at full velocity)
     # This is handled by energy_injection.py, just track the power
     P_injection = 0.0  # Computed externally
-    
+
     # Net power balance
     P_net = P_slingshot + P_injection - P_station - P_eddy_total
-    
+
     # Service lifetime (time until KE drops to 90% of initial)
     if P_net < 0 and total_KE > 0:
         # Stream is losing energy
@@ -138,7 +138,7 @@ def compute_stream_energy_budget(
         lifetime_hr = 1e6  # Self-sustaining (capped at ~114 years for numerical stability)
     else:
         lifetime_hr = 0.0  # No energy to lose
-    
+
     # Replacement rate to maintain stream velocity
     # If P_net < 0, need to inject new packets to compensate
     if P_net < 0 and u > 0:
@@ -148,7 +148,7 @@ def compute_stream_energy_budget(
         packets_per_year = packets_per_second * 3600 * 24 * 365
     else:
         packets_per_year = 0.0
-    
+
     return StreamEnergyBudget(
         total_stream_KE_J=total_KE,
         power_drain_station_W=P_station,
@@ -164,23 +164,23 @@ def compute_stream_energy_budget(
 def analytical_lunar_slingshot_dv(v_inf: float = 1000.0, periapsis_alt: float = 100e3) -> float:
     """
     Quick analytical delta-v from a single lunar gravity assist.
-    
+
     Uses the hyperbolic orbit formula from patched-conic approximation:
     - e = 1 + r_p * v_inf^2 / mu_moon
     - turn_angle = 2 * arcsin(1/e)
     - delta_v = 2 * v_inf * sin(turn_angle/2)
-    
+
     Args:
         v_inf: Approach velocity relative to Moon (m/s)
         periapsis_alt: Closest approach altitude above Moon surface (m)
-    
+
     Returns:
         Delta-v magnitude (m/s)
     """
     mu_moon = 4.904e12  # m³/s²
     R_moon = 1.737e6    # m
     r_p = R_moon + periapsis_alt
-    
+
     e = 1.0 + r_p * v_inf**2 / mu_moon
     if e <= 1.0:
         return 0.0
@@ -193,20 +193,20 @@ def compute_multi_cycle_slingshot_dv(
     n_cycles: int = 10,
     v_inf_base: float = 1000.0,
     periapsis_alt: float = 100e3,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Compute cumulative delta-v from multiple slingshot cycles.
-    
+
     Each cycle increases velocity, which changes the approach velocity
     for the next cycle. This provides a quick estimate without running
     the full earth_moon_pumping simulation.
-    
+
     Args:
         v_initial: Initial stream velocity (m/s)
         n_cycles: Number of slingshot cycles
         v_inf_base: Base approach velocity relative to Moon (m/s)
         periapsis_alt: Periapsis altitude (m)
-    
+
     Returns:
         Dict with:
             - v_final: Final velocity after all cycles (m/s)
@@ -215,14 +215,14 @@ def compute_multi_cycle_slingshot_dv(
     """
     v_current = v_initial
     total_dv = 0.0
-    
-    for i in range(n_cycles):
+
+    for _i in range(n_cycles):
         # Approach velocity scales with stream velocity
         v_inf = v_inf_base * (v_current / v_initial)
         dv = analytical_lunar_slingshot_dv(v_inf, periapsis_alt)
         v_current += dv
         total_dv += dv
-    
+
     return {
         'v_final': v_current,
         'total_dv': total_dv,

@@ -6,12 +6,12 @@ import numpy as np
 import pytest
 
 from control_layer.anomaly_detector import (
-    ZScoreDetector,
-    IsolationForestDetector,
-    StatisticalAnomalyDetector,
-    ResponseHandler,
-    AlertSeverity,
     AlertAction,
+    AlertSeverity,
+    IsolationForestDetector,
+    ResponseHandler,
+    StatisticalAnomalyDetector,
+    ZScoreDetector,
     create_statistical_anomaly_detector,
 )
 
