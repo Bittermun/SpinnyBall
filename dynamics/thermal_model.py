@@ -7,14 +7,14 @@ in the mass-stream system.
 
 from __future__ import annotations
 
-import numpy as np
 from dataclasses import dataclass
-from typing import Tuple, Optional
+
+import numpy as np
 
 from dynamics.lumped_thermal import LumpedThermalModel, LumpedThermalParams
 
 try:
-    from dynamics.orbital_coupling import compute_eclipse, R_earth
+    from dynamics.orbital_coupling import R_earth, compute_eclipse
     ORBITAL_DYNAMICS_AVAILABLE = True
 except ImportError:
     ORBITAL_DYNAMICS_AVAILABLE = False
@@ -43,7 +43,7 @@ def update_temperature_euler(
     emissivity: float,
     specific_heat: float,
     dt: float,
-    position_eci: Optional[np.ndarray] = None,  # km - position in ECI frame for eclipse check
+    position_eci: np.ndarray | None = None,  # km - position in ECI frame for eclipse check
     enable_eclipse: bool = False,  # Enable automatic eclipse detection
     ambient_temp: float = DEEP_SPACE_TEMP,  # K - deep space temperature
     stefan_boltzmann: float = STEFAN_BOLTZMANN,  # W/m²/K**4
@@ -54,10 +54,10 @@ def update_temperature_euler(
 ) -> float:
     """
     Update packet temperature using Euler integration with radiative cooling.
-    
+
     Models radiative heat transfer: P = εσA(T**4 - T_ambient**4)
     Temperature change: dT/dt = (P_solar - P_rad)/(mc)
-    
+
     Args:
         temperature: Current temperature (K)
         mass: Packet mass (kg)
@@ -73,7 +73,7 @@ def update_temperature_euler(
         eddy_heating_power: Eddy-current heating power from drag (W), default 0
         shape: Shape type for surface area calculation ("sphere" or "prolate_spheroid")
         aspect_ratio: Aspect ratio for prolate spheroid (c/a where c is axial, a is transverse)
-    
+
     Returns:
         Updated temperature (K)
     """
@@ -92,14 +92,14 @@ def update_temperature_euler(
         raise ValueError(f"eddy_heating_power must be >= 0, got {eddy_heating_power}")
     if aspect_ratio < 1.0:
         raise ValueError(f"aspect_ratio must be >= 1.0 for prolate spheroid, got {aspect_ratio}")
-    
+
     # Check eclipse if enabled and position
     effective_solar_flux = solar_flux
     if enable_eclipse and position_eci is not None and compute_eclipse is not None:
         in_eclipse = compute_eclipse(position_eci)
         if in_eclipse:
             effective_solar_flux = 0.0  # No solar heating during eclipse
-    
+
     # Calculate surface area based on shape
     if shape == "sphere":
         surface_area = 4 * np.pi * radius**2
@@ -117,42 +117,42 @@ def update_temperature_euler(
             surface_area = 4 * np.pi * a**2
     else:
         raise ValueError(f"Unknown shape type: {shape}")
-    
+
     # Radiative cooling power (W)
     power_out = emissivity * stefan_boltzmann * surface_area * (temperature**4 - ambient_temp**4)
-    
+
     # Solar heating power (W) - use effective_solar_flux to account for eclipse
     power_in = effective_solar_flux * surface_area
-    
+
     # Add eddy-current heating
     power_in += eddy_heating_power
-    
+
     # Net power (heating - cooling)
     power_net = power_in - power_out
-    
+
     # Temperature change
     temp_change = power_net * dt / (mass * specific_heat)
-    
+
     # Update temperature
     new_temp = temperature + temp_change
-    
+
     # Prevent temperature from going below ambient (physical limit)
     new_temp = max(new_temp, ambient_temp)
-    
+
     return new_temp
 
 
 def check_thermal_limits(
     temperature: float,
     limits: ThermalLimits,
-) -> Tuple[bool, Optional[str]]:
+) -> tuple[bool, str | None]:
     """
     Check if temperature is within safe limits.
-    
+
     Args:
         temperature: Current temperature (K)
         limits: ThermalLimits object with max/min temperatures
-    
+
     Returns:
         Tuple of (within_limits: bool, violation_type: Optional[str])
         violation_type is None if within limits, otherwise describes the violation
@@ -172,15 +172,15 @@ def eddy_heating_power(
 ) -> float:
     """
     Compute eddy-current heating power from velocity-dependent drag.
-    
+
     Eddy-current drag force: F_drag = k_drag * v
     Heating power: P_eddy = F_drag * v = k_drag * v^2
-    
+
     Args:
         velocity: Packet velocity (m/s)
         k_drag: Drag coefficient (N·s/m)
         radius: Packet radius (m) - for skin depth correction
-    
+
     Returns:
         Eddy-current heating power (W)
     """
@@ -212,10 +212,10 @@ def steady_state_temperature(
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
         shape: Shape type for surface area calculation ("sphere" or "prolate_spheroid")
         aspect_ratio: Aspect ratio for prolate spheroid
-    
+
     Returns:
         Steady-state temperature (K)
-    
+
     Note:
         Steady-state temperature is independent of mass and specific heat.
         These parameters were removed from the signature as they had no effect.
@@ -233,11 +233,11 @@ def steady_state_temperature(
             surface_area = 4 * np.pi * a**2
     else:
         raise ValueError(f"Unknown shape type: {shape}")
-    
+
     # Solve radiative balance: P_in = εσA(T**4 - T_ambient**4)
     temp_fourth = power_in / (emissivity * stefan_boltzmann * surface_area) + ambient_temp**4
     steady_temp = temp_fourth**0.25
-    
+
     return steady_temp
 
 

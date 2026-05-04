@@ -3,8 +3,8 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from sgms_anchor_calibration import load_anchor_calibration, resolve_calibrated_params
-from sgms_anchor_claims import load_anchor_claims, resolve_claim_context
+from sgms_anchor_calibration import resolve_calibrated_params
+from sgms_anchor_claims import resolve_claim_context
 from sgms_anchor_pipeline import run_experiment_suite
 
 

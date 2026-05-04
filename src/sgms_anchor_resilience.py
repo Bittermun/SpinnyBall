@@ -4,10 +4,13 @@ Formalizes the 'Catcher-Recovery' and 'VPD Compression' protocols.
 Targets < 0.5mm displacement during 'Stream Fracture' events.
 """
 
-import numpy as np
-import matplotlib.pyplot as plt
 from pathlib import Path
-from sgms_anchor_v1 import analytical_metrics, DEFAULT_PARAMS, _stream_forces
+
+import matplotlib.pyplot as plt
+import numpy as np
+
+from sgms_anchor_v1 import _stream_forces, analytical_metrics
+
 
 def simulate_resilience_event(params: dict, fracture_idx: int = 50, n_compensation: int = 10):
     """
@@ -18,14 +21,14 @@ def simulate_resilience_event(params: dict, fracture_idx: int = 50, n_compensati
     t_max = params["t_max"]
     dt = 0.0001
     t = np.arange(0, t_max, dt)
-    
+
     # Pre-calculate packet arrival times
     # Normal arrivals every period
     t_arrivals = np.arange(period, t_max + period, period)
-    
+
     # 1. TRIGGER FRACTURE (Delete one packet)
     t_arrivals = np.delete(t_arrivals, fracture_idx)
-    
+
     # 2. APPLY VPD COMPRESSION (Shift next N packets to fill momentum void)
     # The 'Gap' is one full period. To fill it over 'n' packets,
     # we reduce each of the next n packet delays by (period / n).
@@ -39,7 +42,7 @@ def simulate_resilience_event(params: dict, fracture_idx: int = 50, n_compensati
     x = np.zeros_like(t)
     vx = np.zeros_like(t)
     force = np.zeros_like(t)
-    
+
     # Initial displacement (trim)
     x[0] = params["x0"]
     vx[0] = params["v0"]
@@ -71,15 +74,15 @@ def simulate_resilience_event(params: dict, fracture_idx: int = 50, n_compensati
     for i in range(len(t) - 1):
         # Active control + Pinning
         fp, fm, fpin, fd = _stream_forces(x[i], vx[i], 0.0, params)
-        
+
         # Modulate by discretized stream (with fracture)
         f_net = fp * plus_stream[i] + fm * minus_stream[i] + fpin + fd
         force[i] = f_net
-        
+
         # RK4
         k1v = f_net / ms
         k1x = vx[i]
-        
+
         # (Simplified Euler for this resilience high-res pass to save cycles)
         vx[i+1] = vx[i] + k1v * dt
         x[i+1] = x[i] + k1x * dt
@@ -89,16 +92,16 @@ def simulate_resilience_event(params: dict, fracture_idx: int = 50, n_compensati
 def plot_resilience(t, x, force, fracture_time, filename="artifacts/resilience_recovery.png"):
     Path("artifacts").mkdir(exist_ok=True)
     fig, axes = plt.subplots(2, 1, figsize=(10, 8), sharex=True)
-    
+
     # Highlight the fracture window
     window = (t > fracture_time - 0.2) & (t < fracture_time + 1.0)
-    
+
     axes[0].plot(t[window], x[window] * 1000, color="#79c0ff", linewidth=2)
     axes[0].axvline(fracture_time, color="#ff7b72", linestyle="--", alpha=0.8, label="Fracture Event")
     axes[0].set_ylabel("Displacement (mm)")
     axes[0].set_title("Stream Resilience: VPD Compensation Protocol")
     axes[0].grid(True, alpha=0.3)
-    
+
     # 0.5mm target line
     axes[0].axhline(0.5, color="#f2cc60", linestyle=":", alpha=0.6, label="Compliance Limit (0.5mm)")
     axes[0].axhline(-0.5, color="#f2cc60", linestyle=":", alpha=0.6)
@@ -108,7 +111,7 @@ def plot_resilience(t, x, force, fracture_time, filename="artifacts/resilience_r
     axes[1].set_ylabel("Force (N)")
     axes[1].set_xlabel("Time (s)")
     axes[1].grid(True, alpha=0.3)
-    
+
     plt.tight_layout()
     plt.savefig(filename, dpi=150)
     print(f"Resilience plot saved to {filename}")
@@ -130,7 +133,7 @@ if __name__ == "__main__":
         "x0": 0.0,
         "v0": 0.0
     }
-    
+
     t, x, f, f_time = simulate_resilience_event(res_params)
     peak_err = np.max(np.abs(x)) * 1000
     print(f"Peak Fracture Deviation: {peak_err:.4f} mm")
@@ -138,5 +141,5 @@ if __name__ == "__main__":
         print("RESULT: SUCCESS (< 0.5mm limit maintained)")
     else:
         print("RESULT: FAILURE (> 0.5mm limit breached)")
-        
+
     plot_resilience(t, x, f, f_time)

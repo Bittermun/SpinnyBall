@@ -10,9 +10,11 @@ sys.path.insert(0, str(REPO_ROOT / "monte_carlo"))
 sys.path.insert(0, str(REPO_ROOT / "dynamics"))
 sys.path.insert(0, str(REPO_ROOT / "control_layer"))
 
-import pytest
 import numpy as np
-from params.canonical_values import MATERIAL_PROPERTIES, SIMULATION_PARAMS
+import pytest
+
+from params.canonical_values import MATERIAL_PROPERTIES
+
 
 @pytest.fixture
 def canonical_gdbco():

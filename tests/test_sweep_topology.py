@@ -1,11 +1,10 @@
 """Test that sweep factories create non-trivial stream topology."""
 import numpy as np
-import pytest
 
 MIN_PACKETS = 3  # Minimum for meaningful cascade dynamics
 
 def test_quick_profile_sweep_topology():
-    from scripts.quick_profile_sweep import _make_stream_factory, PROFILES
+    from scripts.quick_profile_sweep import PROFILES, _make_stream_factory
     for name, params in PROFILES.items():
         factory = _make_stream_factory(params)
         stream = factory()
@@ -25,7 +24,7 @@ def test_sweep_fault_cascade_topology():
 
 def test_packets_have_spatial_distribution():
     """Packets must not all be at the origin."""
-    from scripts.quick_profile_sweep import _make_stream_factory, PROFILES
+    from scripts.quick_profile_sweep import PROFILES, _make_stream_factory
     params = PROFILES['operational']
     stream = _make_stream_factory(params)()
     positions = [p.body.position for p in stream.packets]

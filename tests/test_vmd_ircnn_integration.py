@@ -3,15 +3,14 @@ Integration tests for VMD-IRCNN system.
 """
 
 import numpy as np
-import pytest
 
 from control_layer import (
     LinearizedROM,
+    MLIntegrationLayer,
     ROMParameters,
     StateConverter,
-    MLIntegrationLayer,
-    get_ml_integration,
     create_rom,
+    get_ml_integration,
 )
 
 

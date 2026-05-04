@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Simulate data to recreate the 0.24mm success
 t = np.linspace(0, 1.0, 1000)
@@ -28,7 +28,7 @@ for i in range(len(t)-1):
     f_restore = -k_stiff * (x[i] - target_x[i]) - c_damp * v[i]
     if 0.5 <= t[i] <= 0.51: # 10ms impulse
         f_restore += (payload_mass * v_rel) / 0.01
-    
+
     a = f_restore / node_mass
     v[i+1] = v[i] + a * dt
     x[i+1] = x[i] + v[i+1] * dt
@@ -41,7 +41,7 @@ for i in range(len(t)-1):
         q_in = 100000 # 100kJ impulse
     else:
         q_in = 0
-    
+
     # Simple radiative cooling simulation
     q_out = 5.67e-8 * 0.9 * 2.0 * (temp[i]**4 - 3**4) # Simplified
     dT = (q_in - q_out) * dt / (100 * 500) # Heat capacity

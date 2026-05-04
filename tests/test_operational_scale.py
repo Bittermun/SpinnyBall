@@ -18,8 +18,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from dynamics.rigid_body import RigidBody
 from dynamics.gyro_matrix import gyroscopic_coupling
+from dynamics.rigid_body import RigidBody
 
 
 class TestOperationalScalePhysics:
@@ -30,7 +30,6 @@ class TestOperationalScalePhysics:
         """Create a body with operational paper parameters."""
         # Paper target: 8.0 kg BFRP sleeve, r≈0.1m
         mass = 8.0  # kg
-        radius = 0.1  # m
 
         # Prolate spheroid inertia (a=0.1m, b=c=0.046m)
         a = 0.1  # semi-major axis (m)
@@ -59,7 +58,7 @@ class TestOperationalScalePhysics:
         L_norm_initial = np.linalg.norm(L_initial)
 
         # Integrate for 1 second at operational scale
-        result = operational_body.integrate(
+        operational_body.integrate(
             t_span=(0.0, 1.0),
             torques=zero_torque,
             method="RK45",
@@ -85,7 +84,7 @@ class TestOperationalScalePhysics:
         omega = 5236.0  # rad/s
         a_expected = r * omega**2  # m/s²
         g = 9.81  # m/s²
-        a_g_expected = a_expected / g
+        a_expected / g
 
         # Calculate from body state
         omega_vec = operational_body.angular_velocity

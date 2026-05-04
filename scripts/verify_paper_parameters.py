@@ -13,6 +13,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
 import numpy as np
+
 from sgms_anchor_profiles import load_anchor_profiles, resolve_profile_params
 from sgms_anchor_v1 import analytical_metrics
 
@@ -36,12 +37,12 @@ print(f"  Station mass (ms): {operational_params['ms']:.1f} kg")
 # Verify k_eff calculation
 print("\n2. k_eff CALCULATION VERIFICATION")
 print("-" * 70)
-k_eff_manual = (operational_params['lam'] * operational_params['u']**2 * 
+k_eff_manual = (operational_params['lam'] * operational_params['u']**2 *
                 operational_params['g_gain'] + operational_params['k_fp'])
 metrics = analytical_metrics(operational_params)
 k_eff_computed = metrics['k_eff']
 
-print(f"  Manual calculation: k_eff = λ·u²·g_gain + k_fp")
+print("  Manual calculation: k_eff = λ·u²·g_gain + k_fp")
 print(f"  k_eff = {operational_params['lam']:.2f} × {operational_params['u']:.1f}² × {operational_params['g_gain']:.6f} + {operational_params['k_fp']:.2f}")
 print(f"  k_eff = {operational_params['lam']:.2f} × {operational_params['u']**2:.0f} × {operational_params['g_gain']:.6f} + {operational_params['k_fp']:.2f}")
 print(f"  k_eff = {operational_params['lam'] * operational_params['u']**2:.0f} × {operational_params['g_gain']:.6f} + {operational_params['k_fp']:.2f}")
@@ -51,14 +52,14 @@ print(f"  Computed k_eff: {k_eff_computed:.2f} N/m")
 print(f"  Match: {np.isclose(k_eff_manual, k_eff_computed, rtol=1e-6)}")
 
 # Check if k_eff is in reasonable range
-print(f"\n  Target range: 6000-10000 N/m (paper claim)")
+print("\n  Target range: 6000-10000 N/m (paper claim)")
 print(f"  Operational k_eff: {k_eff_computed:.2f} N/m")
 if 6000 <= k_eff_computed <= 10000:
-    print(f"  ✓ IN TARGET RANGE")
+    print("  ✓ IN TARGET RANGE")
 elif k_eff_computed > 10000:
-    print(f"  ⚠ ABOVE TARGET RANGE (stiffer than required)")
+    print("  ⚠ ABOVE TARGET RANGE (stiffer than required)")
 else:
-    print(f"  ✗ BELOW TARGET RANGE (insufficient stiffness)")
+    print("  ✗ BELOW TARGET RANGE (insufficient stiffness)")
 
 # Verify stress calculation
 print("\n3. STRESS CALCULATION VERIFICATION")
@@ -71,16 +72,16 @@ stress_limit = 8.0e8  # Pa (800 MPa with SF=1.5)
 stress = density * radius**2 * omega**2
 stress_mpa = stress / 1e6
 
-print(f"  Hoop stress formula: σ_θ = ρ·r²·ω²")
+print("  Hoop stress formula: σ_θ = ρ·r²·ω²")
 print(f"  σ_θ = {density} × {radius}² × {omega}²")
 print(f"  σ_θ = {density} × {radius**2:.4f} × {omega**2:.0f}")
 print(f"  σ_θ = {stress:.2e} Pa = {stress_mpa:.2f} MPa")
 print(f"  Stress limit: {stress_limit/1e6:.0f} MPa")
 print(f"  Safety margin: {(stress_limit - stress)/stress_limit * 100:.1f}%")
 if stress < stress_limit:
-    print(f"  ✓ WITHIN SAFE LIMIT")
+    print("  ✓ WITHIN SAFE LIMIT")
 else:
-    print(f"  ✗ EXCEEDS SAFE LIMIT")
+    print("  ✗ EXCEEDS SAFE LIMIT")
 
 # Verify thermal calculation
 print("\n4. THERMAL CALCULATION VERIFICATION")
@@ -93,28 +94,28 @@ sigma_sb = 5.67e-8
 
 temp_steady = (power_heating / (emissivity * surface_area * sigma_sb))**0.25
 
-print(f"  Radiative cooling: T = (P / (ε·A·σ))^0.25")
+print("  Radiative cooling: T = (P / (ε·A·σ))^0.25")
 print(f"  T = ({power_heating} / ({emissivity} × {surface_area} × {sigma_sb:.2e}))^0.25")
 print(f"  T = {temp_steady:.1f} K")
 print(f"  Thermal limit: {thermal_limit} K")
 print(f"  Safety margin: {(thermal_limit - temp_steady)/thermal_limit * 100:.1f}%")
 if temp_steady < thermal_limit:
-    print(f"  ✓ WITHIN THERMAL LIMIT")
+    print("  ✓ WITHIN THERMAL LIMIT")
 else:
-    print(f"  ✗ EXCEEDS THERMAL LIMIT")
+    print("  ✗ EXCEEDS THERMAL LIMIT")
 
 # Verify momentum flux
 print("\n5. MOMENTUM FLUX VERIFICATION")
 print("-" * 70)
 momentum_flux = operational_params['lam'] * operational_params['u']**2
-print(f"  Momentum flux: F = λ·u²")
+print("  Momentum flux: F = λ·u²")
 print(f"  F = {operational_params['lam']:.2f} × {operational_params['u']:.1f}²")
 print(f"  F = {momentum_flux:.2e} N")
-print(f"  Reasonable range: 1e3 - 1e7 N")
+print("  Reasonable range: 1e3 - 1e7 N")
 if 1e3 <= momentum_flux <= 1e7:
-    print(f"  ✓ IN REASONABLE RANGE")
+    print("  ✓ IN REASONABLE RANGE")
 else:
-    print(f"  ⚠ OUTSIDE EXPECTED RANGE")
+    print("  ⚠ OUTSIDE EXPECTED RANGE")
 
 # Verify parameter scaling
 print("\n6. PARAMETER SCALING CHECKS")

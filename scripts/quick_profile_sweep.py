@@ -8,9 +8,10 @@ N=100 MC runs per point — publication-grade results (CI width ~3.7%).
 
 import json
 import sys
-import numpy as np
 from datetime import datetime
 from pathlib import Path
+
+import numpy as np
 
 # Resolve project root so imports work when run from any directory
 _HERE = Path(__file__).resolve().parent
@@ -20,9 +21,9 @@ if str(_ROOT) not in sys.path:
 if str(_ROOT / "src") not in sys.path:
     sys.path.insert(0, str(_ROOT / "src"))
 
-from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
-from dynamics.rigid_body import RigidBody
+from dynamics.rigid_body import RigidBody, geometry_profile_to_inertia
+from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 
 
 def _make_stream_factory(params: dict):
@@ -32,7 +33,7 @@ def _make_stream_factory(params: dict):
         radius = params.get("radius", 0.1)
         # Nominal spin 50k RPM = 5236 rad/s (axial z-direction)
         omega = np.array([0.0, 0.0, 5236.0])
-        
+
         # Use geometry_profile if available, otherwise use default inertia
         geometry_profile = params.get("geometry_profile")
         if geometry_profile is not None:
@@ -254,31 +255,31 @@ def run_profile_sweep(profile_name: str, params: dict, n_mc: int = 100):
         results['nodes_affected_mean'].append(result['nodes_affected_mean'])
         results['nodes_affected_std'].append(result['nodes_affected_std'])
         results['converged'].append(result['converged'])
-    
+
     return results
 
 def main():
     """Run quick profile sweep."""
-    
+
     print("Starting quick T3 profile sweep...")
-    
+
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     output_dir = Path(f"profile_sweep_quick_{timestamp}")
     output_dir.mkdir(exist_ok=True)
-    
+
     all_results = {}
-    
+
     # Run all 4 profiles
     for profile_name, params in PROFILES.items():
         results = run_profile_sweep(profile_name, params)
         all_results[profile_name] = results
-        
+
         # Save individual profile
         filename = output_dir / f"t3_sweep_{profile_name}.json"
         with open(filename, 'w') as f:
             json.dump(results, f, indent=2)
         print(f"  Saved: {filename}")
-    
+
     # Save summary
     summary = {
         'timestamp': timestamp,
@@ -290,14 +291,14 @@ def main():
         'total_mc_runs': 4 * 8 * 100,
         'results': all_results
     }
-    
+
     with open(output_dir / "summary.json", 'w') as f:
         json.dump(summary, f, indent=2)
-    
-    print(f"\nQuick profile sweep complete!")
+
+    print("\nQuick profile sweep complete!")
     print(f"Results saved to: {output_dir}")
     print(f"Profiles tested: {list(PROFILES.keys())}")
-    
+
     return output_dir
 
 if __name__ == "__main__":

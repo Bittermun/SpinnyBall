@@ -6,8 +6,12 @@ Models radiative cooling and conductive heat transfer between components.
 """
 
 from dataclasses import dataclass
+from typing import TYPE_CHECKING, Optional
+
 import numpy as np
-from typing import Optional
+
+if TYPE_CHECKING:
+    from dynamics.cryocooler_model import CryocoolerModel
 
 
 @dataclass
@@ -31,12 +35,12 @@ class LumpedThermalParams:
     # Operating conditions
     ambient_temp: float = 4.0  # K (deep space)
     initial_temp: float = 77.0  # K (operating temperature)
-    
+
     # Coil switching losses
     enable_switching_losses: bool = False
     switching_power_stator: float = 0.0  # W - average switching power dissipated in stator
     switching_power_rotor: float = 0.0  # W - average switching power dissipated in rotor
-    
+
     # Cryocooler
     enable_cryocooler: bool = False
     cryocooler_cooling_power: float = 5.0  # W - cooling power at 77K (deprecated, use cryocooler_model)
@@ -52,13 +56,13 @@ class LumpedThermalModel:
         Args:
             params: LumpedThermalParams
             dt: Time step (s)
-        
+
         Raises:
             ValueError: If dt <= 0 or any parameter is invalid
         """
         if dt <= 0:
             raise ValueError(f"dt must be > 0, got {dt}")
-        
+
         # Validate parameters
         if params.stator_mass <= 0:
             raise ValueError(f"stator_mass must be > 0, got {params.stator_mass}")
@@ -70,7 +74,7 @@ class LumpedThermalModel:
             raise ValueError(f"rotor_specific_heat must be > 0, got {params.rotor_specific_heat}")
         if params.cryocooler_cooling_power < 0:
             raise ValueError(f"cryocooler_cooling_power must be >= 0, got {params.cryocooler_cooling_power}")
-        
+
         self.params = params
         self.dt = dt
 
@@ -90,7 +94,7 @@ class LumpedThermalModel:
         # Extract heat inputs
         Q_stator = heat_sources.get('stator', 0.0)
         Q_rotor = heat_sources.get('rotor', 0.0)
-        
+
         # Add switching losses if enabled
         if self.params.enable_switching_losses:
             Q_stator += self.params.switching_power_stator
@@ -127,12 +131,12 @@ class LumpedThermalModel:
         # Temperature change (Euler integration)
         stator_thermal_mass = self.params.stator_mass * self.params.stator_specific_heat
         rotor_thermal_mass = self.params.rotor_mass * self.params.rotor_specific_heat
-        
+
         if stator_thermal_mass <= 0:
             raise ValueError("stator thermal mass must be > 0")
         if rotor_thermal_mass <= 0:
             raise ValueError("rotor thermal mass must be > 0")
-        
+
         dT_stator = Q_net_stator * self.dt / stator_thermal_mass
         dT_rotor = Q_net_rotor * self.dt / rotor_thermal_mass
 

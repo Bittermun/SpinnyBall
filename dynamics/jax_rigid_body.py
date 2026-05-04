@@ -9,7 +9,7 @@ config.update("jax_enable_x64", True)
 def euler_rhs_jax(state, I, I_inv, tau):
     """
     Euler rotational dynamics in JAX.
-    
+
     State: [qx, qy, qz, qw, wx, wy, wz] (quaternion + angular velocity)
     Convention: Scalar-last quaternion (x,y,z,w)
     """
@@ -22,15 +22,15 @@ def euler_rhs_jax(state, I, I_inv, tau):
     qx = q[0]
     qy = q[1]
     qz = q[2]
-    
+
     ow, ox, oy, oz = 0.0, omega[0], omega[1], omega[2]
-    
+
     # dq = 0.5 * q_sf * omega_sf
     dq_w = 0.5 * (qw*ow - qx*ox - qy*oy - qz*oz)
     dq_x = 0.5 * (qw*ox + qx*ow + qy*oz - qz*oy)
     dq_y = 0.5 * (qw*oy - qx*oz + qy*ow + qz*ox)
     dq_z = 0.5 * (qw*oz + qx*oy - qy*ox + qz*ow)
-    
+
     # Back to scalar-last [qx, qy, qz, qw]
     dq = jnp.array([dq_x, dq_y, dq_z, dq_w])
 
@@ -44,24 +44,25 @@ def euler_rhs_jax(state, I, I_inv, tau):
 
     # Angular acceleration: alpha = I_inv * (tau - gyro)
     alpha = I_inv @ (tau - gyro)
-    
+
     return jnp.concatenate([dq, alpha])
 
 @jax.jit
 def rk4_step_jax(state, I, I_inv, tau, dt):
     """Single fixed-step RK4 update."""
-    f = lambda s: euler_rhs_jax(s, I, I_inv, tau)
+    def f(s):
+        return euler_rhs_jax(s, I, I_inv, tau)
     k1 = dt * f(state)
     k2 = dt * f(state + 0.5 * k1)
     k3 = dt * f(state + 0.5 * k2)
     k4 = dt * f(state + k3)
-    
+
     new_state = state + (k1 + 2*k2 + 2*k3 + k4) / 6.0
-    
+
     # Normalize quaternion to prevent numerical drift
     q = new_state[:4]
     q_norm = jnp.linalg.norm(q)
     # Avoid div by zero
     safe_q = q / jnp.where(q_norm > 1e-12, q_norm, 1.0)
-    
+
     return new_state.at[:4].set(safe_q)

@@ -1,13 +1,13 @@
 """Test simulation method correctness and MC invariants."""
 import numpy as np
-import pytest
+
 
 def test_poisson_faults_are_presampled():
     """Poisson mode must pre-sample fault times before the simulation loop."""
     # Run a small MC with Poisson mode and fixed seed — verify deterministic fault count
-    from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
     from dynamics.multi_body import MultiBodyStream, Packet, SNode
     from dynamics.rigid_body import RigidBody
+    from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 
     config = MonteCarloConfig(
         n_realizations=5, time_horizon=10.0, dt=0.1,
@@ -30,10 +30,9 @@ def test_poisson_faults_are_presampled():
 
 def test_provenance_stream_factory_call_count():
     """stream_factory should be called at most once for provenance metadata."""
-    from unittest.mock import MagicMock, wraps
-    from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
     from dynamics.multi_body import MultiBodyStream, Packet, SNode
     from dynamics.rigid_body import RigidBody
+    from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
 
     call_count = 0
     def counting_factory():
@@ -52,21 +51,22 @@ def test_provenance_stream_factory_call_count():
 
 def test_velocity_verlet_energy_conservation():
     """Anchor simulation should conserve energy for undamped oscillator."""
-    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
     import numpy as np
-    
+
+    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
+
     class MockFluxModel:
         def get_stiffness(self, x, B, T): return 6000.0
         def get_critical_current(self, T, B): return 100.0
-        
+
     params = {
-        "ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0, 
+        "ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0,
         "k_fp": 6000.0, "k_structural": 0.0, "lam": 1.0, "u": 100.0,
         "g_gain": 0.0, "theta_bias": 0.0, "eps": 0.0
     }
-    t_eval = np.linspace(0, 2, 2000) 
+    t_eval = np.linspace(0, 2, 2000)
     results = simulate_anchor_with_flux_pinning(params, t_eval, flux_model=MockFluxModel())
-    
+
     # Check energy: E = 0.5*m*v^2 + 0.5*k*x^2
     x_arr = np.array(results['x'])
     v_arr = np.array(results['v'])
@@ -78,21 +78,22 @@ def test_velocity_verlet_energy_conservation():
 
 def test_energy_conservation_at_50k_rpm():
     """Verify energy conservation holds even at 50,000 RPM (extreme centrifugal state)."""
-    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
     import numpy as np
-    
+
+    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
+
     class MockFluxModel:
         def get_stiffness(self, x, B, T): return 9000.0
         def get_critical_current(self, T, B): return 100.0
 
     params = {
-        "ms": 1.0, "c_damp": 0.0, "x0": 0.01, "v0": 0.0, 
+        "ms": 1.0, "c_damp": 0.0, "x0": 0.01, "v0": 0.0,
         "k_fp": 9000.0, "omega": 5236.0, "r": 0.1,
         "lam": 1.0, "u": 100.0, "g_gain": 0.0, "theta_bias": 0.0, "eps": 0.0
     }
     t_eval = np.linspace(0, 0.5, 2000)
     results = simulate_anchor_with_flux_pinning(params, t_eval, flux_model=MockFluxModel())
-    
+
     x_arr = np.array(results['x'])
     v_arr = np.array(results['v'])
     k_arr = np.array(results['k_eff'])

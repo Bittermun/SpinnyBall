@@ -1,10 +1,12 @@
 """Verify high-fidelity settings are enabled across the codebase."""
 
 import sys
+
 sys.path.insert(0, 'c:\\Users\\msunw\\Desktop\\SpinnyBall')
 
-from sweep_latency_eta_ind import run_t1_sweep, plot_t1_results
 import time
+
+from sweep_latency_eta_ind import run_t1_sweep
 
 print("=== HIGH-FIDELITY SETTINGS VERIFICATION ===")
 print("\nChecking all critical parameters...")
@@ -34,15 +36,16 @@ print(f"  CI threshold: {test_config.ci_width_threshold} (HIGH-FIDELITY: 2% conv
 print(f"  Min realizations: {test_config.min_realizations} (HIGH-FIDELITY: statistical confidence)")
 
 # Check integration tolerances
-from dynamics.rigid_body import RigidBody
 import numpy as np
+
+from dynamics.rigid_body import RigidBody
 
 test_body = RigidBody(mass=0.05, I=np.diag([0.0001, 0.00011, 0.00009]))
 
 print("\n✓ Integration Settings (RigidBody.integrate defaults):")
-print(f"  Relative tolerance: 1e-10 (HIGH-FIDELITY: tight)")
-print(f"  Absolute tolerance: 1e-12 (HIGH-FIDELITY: tight)")
-print(f"  Max step: 0.01s (HIGH-FIDELITY: 10ms max)")
+print("  Relative tolerance: 1e-10 (HIGH-FIDELITY: tight)")
+print("  Absolute tolerance: 1e-12 (HIGH-FIDELITY: tight)")
+print("  Max step: 0.01s (HIGH-FIDELITY: 10ms max)")
 
 # Test with small grid to verify settings work
 print("\n=== TESTING HIGH-FIDELITY CONFIGURATION ===")
@@ -63,7 +66,7 @@ results = run_t1_sweep(
 
 elapsed = time.time() - start_time
 
-print(f"\n✓ High-Fidelity Test Results:")
+print("\n✓ High-Fidelity Test Results:")
 print(f"  Time elapsed: {elapsed:.1f}s ({elapsed/60:.1f} minutes)")
 print(f"  Success rate: {results['success_rate_grid'].mean()*100:.1f}%")
 print(f"  Grid points completed: {results['success_rate_grid'].size}")
@@ -73,13 +76,13 @@ expected_pattern = np.array([[0., 1.], [1., 1.]])  # Expected pattern for 2×2 g
 actual_pattern = results['success_rate_grid']
 pattern_match = np.allclose(actual_pattern, expected_pattern, atol=0.1)
 
-print(f"\n✓ Physics Verification:")
-print(f"  Expected pattern: [[0, 1], [1, 1]]")
+print("\n✓ Physics Verification:")
+print("  Expected pattern: [[0, 1], [1, 1]]")
 print(f"  Actual pattern:   [[{actual_pattern[0,0]:.0f}, {actual_pattern[0,1]:.0f}], [{actual_pattern[1,0]:.0f}, {actual_pattern[1,1]:.0f}]]")
 print(f"  Pattern match: {'✓ PASS' if pattern_match else '✗ FAIL'}")
 
-print(f"\n=== HIGH-FIDELITY VERIFICATION COMPLETE ===")
+print("\n=== HIGH-FIDELITY VERIFICATION COMPLETE ===")
 print(f"Status: {'✓ ALL SETTINGS CONFIRMED HIGH-FIDELITY' if pattern_match else '✗ ISSUES DETECTED'}")
-print(f"\nPerformance estimate for full 10×8 grid with 100 MC runs:")
+print("\nPerformance estimate for full 10×8 grid with 100 MC runs:")
 print(f"  Estimated time: {elapsed * 10 * 8 * 100 / 50 / 60:.0f} minutes")
-print(f"  (Based on 2×2 grid, 50 runs scaling)")
+print("  (Based on 2×2 grid, 50 runs scaling)")

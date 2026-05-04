@@ -5,22 +5,23 @@ Compares scipy RK45 (adaptive timestep) vs Velocity Verlet (fixed timestep)
 for anchor simulation accuracy and performance.
 """
 
-import numpy as np
-import time
-from pathlib import Path
-from typing import Dict, Any
 import json
 import sys
+import time
+from pathlib import Path
+from typing import Any
+
+import numpy as np
 
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-from src.sgms_anchor_v1 import simulate_anchor, simulate_anchor_with_flux_pinning, DEFAULT_PARAMS
-from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.bean_london_model import BeanLondonModel
+from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
+from src.sgms_anchor_v1 import DEFAULT_PARAMS, simulate_anchor, simulate_anchor_with_flux_pinning
 
 
-def run_rk45_simulation(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str, Any]:
+def run_rk45_simulation(params: dict[str, Any], t_eval: np.ndarray) -> dict[str, Any]:
     """Run simulation with RK45 integrator (default)."""
     start_time = time.time()
     result = simulate_anchor(params, t_eval=t_eval, seed=42)
@@ -30,17 +31,17 @@ def run_rk45_simulation(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str,
     return result
 
 
-def run_velocity_verlet_simulation(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str, Any]:
+def run_velocity_verlet_simulation(params: dict[str, Any], t_eval: np.ndarray) -> dict[str, Any]:
     """Run simulation with Velocity Verlet integrator."""
     # Initialize flux model
     material = GdBCOMaterial(GdBCOProperties())
     geometry = {"thickness": 1e-6, "width": 0.012, "length": 1.0}
     flux_model = BeanLondonModel(material, geometry)
-    
+
     # Temperature and field profiles (constant for comparison)
     T_profile = np.full_like(t_eval, 77.0)
     B_profile = np.full_like(t_eval, 1.0)
-    
+
     start_time = time.time()
     result = simulate_anchor_with_flux_pinning(params, t_eval, T_profile, B_profile, flux_model)
     elapsed = time.time() - start_time
@@ -49,7 +50,7 @@ def run_velocity_verlet_simulation(params: Dict[str, Any], t_eval: np.ndarray) -
     return result
 
 
-def compute_energy_conservation(result: Dict[str, Any], params: Dict[str, Any]) -> float:
+def compute_energy_conservation(result: dict[str, Any], params: dict[str, Any]) -> float:
     """Compute energy drift as percentage of initial energy."""
     # Handle nested structure for RK45 results
     if 'metrics' in result:
@@ -58,21 +59,21 @@ def compute_energy_conservation(result: Dict[str, Any], params: Dict[str, Any]) 
     else:
         x = np.array(result['x'])
         v = np.array(result['v'])
-    
+
     k_eff = np.array(result.get('k_eff', 6000.0))
-    
+
     # Energy: E = 0.5*m*v^2 + 0.5*k*x^2
     E = 0.5 * params['ms'] * v**2 + 0.5 * k_eff * x**2
     E_drift = abs(E[-1] - E[0]) / E[0] if E[0] > 0 else 0.0
     return E_drift
 
 
-def compare_integrators(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str, Any]:
+def compare_integrators(params: dict[str, Any], t_eval: np.ndarray) -> dict[str, Any]:
     """Run both integrators and compare results."""
-    print(f"\n=== Integrator Comparison ===")
+    print("\n=== Integrator Comparison ===")
     print(f"Parameters: u={params['u']} m/s, mp={params['mp']} kg, k_fp={params.get('k_fp', 6000)} N/m")
     print(f"Time span: {t_eval[0]:.1f} to {t_eval[-1]:.1f} s ({len(t_eval)} points)")
-    
+
     # Run RK45
     print("\n--- Running RK45 ---")
     rk45_result = run_rk45_simulation(params, t_eval)
@@ -80,7 +81,7 @@ def compare_integrators(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str,
     print(f"  x_final: {rk45_result['metrics']['x_final_m']:.6f} m")
     print(f"  vx_final: {rk45_result['metrics']['vx_final_m_s']:.6f} m/s")
     print(f"  x_peak: {rk45_result['metrics']['x_peak_m']:.6f} m")
-    
+
     # Run Velocity Verlet
     print("\n--- Running Velocity Verlet ---")
     vv_result = run_velocity_verlet_simulation(params, t_eval)
@@ -88,7 +89,7 @@ def compare_integrators(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str,
     print(f"  x_final: {vv_result['x'][-1]:.6f} m")
     print(f"  v_final: {vv_result['v'][-1]:.6f} m/s")
     print(f"  x_peak: {max(np.abs(vv_result['x'])):.6f} m")
-    
+
     # Compare results
     print("\n--- Comparison ---")
     x_diff = abs(rk45_result['metrics']['x_final_m'] - vv_result['x'][-1])
@@ -132,10 +133,10 @@ def compare_integrators(params: Dict[str, Any], t_eval: np.ndarray) -> Dict[str,
     }
 
 
-def run_parameter_sweep_comparison() -> Dict[str, Any]:
+def run_parameter_sweep_comparison() -> dict[str, Any]:
     """Run small-scale parameter sweep comparing integrators."""
     print("\n=== Parameter Sweep Comparison ===")
-    
+
     # Test parameters (small subset for quick comparison)
     test_cases = [
         {"u": 100.0, "mp": 8.0, "k_fp": 6000.0},
@@ -144,11 +145,11 @@ def run_parameter_sweep_comparison() -> Dict[str, Any]:
         {"u": 1600.0, "mp": 4.0, "k_fp": 6000.0},
         {"u": 1600.0, "mp": 16.0, "k_fp": 6000.0},
     ]
-    
+
     results = []
     for i, test_params in enumerate(test_cases):
         print(f"\n--- Test Case {i+1}/{len(test_cases)} ---")
-        
+
         # Build full parameter set using DEFAULT_PARAMS as base
         params = DEFAULT_PARAMS.copy()
         params.update({
@@ -167,17 +168,17 @@ def run_parameter_sweep_comparison() -> Dict[str, Any]:
             "max_step": 0.1,
             **test_params
         })
-        
+
         t_eval = np.linspace(0, params["t_max"], 1000)
         comparison = compare_integrators(params, t_eval)
         results.append(comparison)
-    
+
     # Summary statistics
     print("\n=== Summary Statistics ===")
     x_diffs = [r['differences']['x_diff'] for r in results]
     v_diffs = [r['differences']['v_diff'] for r in results]
     time_ratios = [r['differences']['time_ratio'] for r in results]
-    
+
     print(f"  Mean x difference: {np.mean(x_diffs):.2e} m")
     print(f"  Max x difference: {np.max(x_diffs):.2e} m")
     print(f"  Mean v difference: {np.mean(v_diffs):.2e} m/s")
@@ -185,7 +186,7 @@ def run_parameter_sweep_comparison() -> Dict[str, Any]:
     print(f"  Mean time ratio: {np.mean(time_ratios):.2f}x")
     print(f"  Min time ratio: {np.min(time_ratios):.2f}x")
     print(f"  Max time ratio: {np.max(time_ratios):.2f}x")
-    
+
     return {
         'test_cases': test_cases,
         'results': results,
@@ -205,7 +206,7 @@ def main():
     """Main entry point."""
     print("RK45 vs Velocity Verlet Integrator Comparison")
     print("=" * 50)
-    
+
     # Run single comparison
     params = DEFAULT_PARAMS.copy()
     params.update({
@@ -228,23 +229,23 @@ def main():
     })
     t_eval = np.linspace(0, params["t_max"], 1000)
     single_comparison = compare_integrators(params, t_eval)
-    
+
     # Run parameter sweep
     sweep_results = run_parameter_sweep_comparison()
-    
+
     # Save results
     output_dir = Path("results")
     output_dir.mkdir(exist_ok=True)
-    
+
     output_file = output_dir / "integrator_comparison.json"
     with open(output_file, 'w') as f:
         json.dump({
             'single_comparison': single_comparison,
             'sweep_results': sweep_results
         }, f, indent=2)
-    
+
     print(f"\nResults saved to {output_file}")
-    
+
     # Recommendation
     print("\n=== Recommendation ===")
     if sweep_results['summary']['max_x_diff'] < 1e-4:

@@ -3,14 +3,15 @@
 Document gaps in research summary and create status report.
 """
 
-from pathlib import Path
 from datetime import datetime
+from pathlib import Path
+
 
 def main():
     """Create gaps documentation."""
-    
+
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
-    
+
     gaps_report = f"""# Research Gaps Documentation
 **Generated**: {timestamp}
 
@@ -98,12 +99,12 @@ def main():
 3. `t3_plots_*/` - Publication figures
 4. `sweep_results/campaign_20260428-090746/` - Update when T1 complete
 """
-    
+
     # Save gaps report
     output_file = Path(f"research_gaps_{timestamp}.md")
     with open(output_file, 'w', encoding='utf-8') as f:
         f.write(gaps_report)
-    
+
     print(f"Gaps documentation saved to: {output_file}")
     print("\nKey gaps identified:")
     print("  - Only 1/4 profiles tested in T3 sweep")

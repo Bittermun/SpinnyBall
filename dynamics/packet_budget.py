@@ -15,11 +15,11 @@ critical for accurate mass budgeting in mission-level analysis.
 """
 
 from dataclasses import dataclass
-from typing import Dict, Any
+
 import numpy as np
 
 
-@dataclass 
+@dataclass
 class PacketBudget:
     """Complete packet inventory breakdown."""
     N_stream: int           # Packets in the active stream (current N_packets)
@@ -45,7 +45,7 @@ def compute_packet_budget(
 ) -> PacketBudget:
     """
     Compute total packet inventory including pipeline, spares, and slingshot.
-    
+
     Args:
         N_stream: Packets needed in the active stream
         mp: Packet mass (kg)
@@ -57,7 +57,7 @@ def compute_packet_budget(
         slingshot_fraction: Fraction of stream packets in slingshot pipeline at any time
         spare_margin: Fractional spare inventory
         injection_lead_time_days: Time to prepare a replacement packet
-    
+
     Returns:
         PacketBudget with complete inventory breakdown
     """
@@ -66,23 +66,23 @@ def compute_packet_budget(
         N_slingshot = int(np.ceil(N_stream * slingshot_fraction))
     else:
         N_slingshot = 0
-    
+
     # Replacement rate from faults
     replacements_per_year = fault_rate_per_hr * N_stream * 8760
-    
+
     # Injection queue: packets being prepared (lead time × replacement rate)
     injection_rate_per_day = replacements_per_year / 365
     N_injection = int(np.ceil(injection_rate_per_day * injection_lead_time_days))
     N_injection = max(N_injection, 1)  # At least 1 in queue
-    
+
     # Spares: buffer inventory
     N_spares = int(np.ceil(N_stream * spare_margin))
-    
+
     # Total
     N_total = N_stream + N_slingshot + N_spares + N_injection
     M_total = N_total * mp
     multiplier = N_total / N_stream if N_stream > 0 else 1.0
-    
+
     return PacketBudget(
         N_stream=N_stream,
         N_slingshot_pipeline=N_slingshot,
@@ -100,17 +100,17 @@ def compute_replacement_schedule(
     mission_duration_years: float,
     mp: float,
     u: float,
-) -> Dict[str, float]:
+) -> dict[str, float]:
     """
     Compute packet replacement schedule over mission lifetime.
-    
+
     Args:
         N_stream: Number of packets in active stream
         fault_rate_per_hr: Failure rate per packet per hour
         mission_duration_years: Mission duration
         mp: Packet mass (kg)
         u: Stream velocity (m/s)
-    
+
     Returns:
         Dict with:
             - total_replacements: Total packets replaced over mission
@@ -120,11 +120,11 @@ def compute_replacement_schedule(
     """
     # Total replacements over mission
     total_replacements = fault_rate_per_hr * N_stream * 8760 * mission_duration_years
-    
+
     # Energy needed to inject each replacement packet
     KE_per_packet = 0.5 * mp * u**2
     total_energy = total_replacements * KE_per_packet
-    
+
     return {
         'total_replacements': total_replacements,
         'replacements_per_year': total_replacements / mission_duration_years,
@@ -140,16 +140,16 @@ def estimate_slingshot_pipeline_capacity(
 ) -> int:
     """
     Estimate number of packets in slingshot pipeline at any time.
-    
+
     The pipeline holds packets that are currently on lunar transfer
     orbits being velocity-pumped. This is a fraction of the total
     stream, determined by the cycle time and replenishment strategy.
-    
+
     Args:
         N_stream: Active stream packet count
         slingshot_cycle_days: Duration of one slingshot cycle
         replenishment_fraction: Fraction of stream in pipeline
-    
+
     Returns:
         Number of packets in slingshot pipeline
     """

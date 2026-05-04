@@ -1,13 +1,14 @@
 """Heritage scaling configuration shared across stress and stiffness modules."""
 
 from __future__ import annotations
+
 from dataclasses import dataclass
 
 
 @dataclass
 class HeritageScalingConfig:
     """Configuration for heritage scaling multipliers from FMECA v1.2.
-    
+
     Used by both stress_monitoring and stiffness_verification modules.
     """
     stress_multiplier: float = 1.0

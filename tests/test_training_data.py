@@ -3,7 +3,6 @@ Unit tests for training data generator.
 """
 
 import numpy as np
-import pytest
 
 from control_layer.training_data_generator import (
     GeneratorConfig,
@@ -188,13 +187,13 @@ class TestTrainingDataGenerator:
         """Test same seed produces same dataset."""
         config1 = GeneratorConfig(random_seed=42)
         config2 = GeneratorConfig(random_seed=42)
-        
+
         generator1 = TrainingDataGenerator(config1)
         generator2 = TrainingDataGenerator(config2)
-        
+
         signals1, labels1 = generator1.generate_wobble_dataset(n_samples=50)
         signals2, labels2 = generator2.generate_wobble_dataset(n_samples=50)
-        
+
         np.testing.assert_array_equal(signals1, signals2)
         np.testing.assert_array_equal(labels1, labels2)
 
@@ -202,12 +201,12 @@ class TestTrainingDataGenerator:
         """Test different seed produces different dataset."""
         config1 = GeneratorConfig(random_seed=42)
         config2 = GeneratorConfig(random_seed=123)
-        
+
         generator1 = TrainingDataGenerator(config1)
         generator2 = TrainingDataGenerator(config2)
-        
+
         signals1, labels1 = generator1.generate_wobble_dataset(n_samples=50)
         signals2, labels2 = generator2.generate_wobble_dataset(n_samples=50)
-        
+
         # Should be different
         assert not np.array_equal(signals1, signals2)

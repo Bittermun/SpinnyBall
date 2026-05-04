@@ -13,7 +13,6 @@ from pathlib import Path
 from monte_carlo.pass_fail_gates import (
     create_default_gate_set,
     evaluate_monte_carlo_gates,
-    GateStatus,
 )
 
 
@@ -39,10 +38,10 @@ def test_pass_fail_gates_with_experiment_metrics():
     results = gate_set.evaluate_all(metrics)
 
     # Get overall status
-    overall_status = gate_set.get_overall_status(results)
+    gate_set.get_overall_status(results)
 
     # Verify k_eff gate (this is the real metric from experiment)
-    k_eff_result = next(r for r in results if r.gate_name == "k_eff")
+    next(r for r in results if r.gate_name == "k_eff")
 
     # Note: k_eff from paper-baseline is 2.5 N/m, which is below the 6000 N/m threshold
     # This is expected for the reduced-order model and would fail the gate
@@ -60,7 +59,7 @@ def test_monte_carlo_gate_evaluation():
         "cascade_probability": 1e-7,
     }
 
-    summary = evaluate_monte_carlo_gates(monte_carlo_results)
+    evaluate_monte_carlo_gates(monte_carlo_results)
 
 
 def test_artifact_integrity():
