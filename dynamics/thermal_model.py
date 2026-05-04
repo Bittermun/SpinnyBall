@@ -195,10 +195,8 @@ def eddy_heating_power(
 
 def steady_state_temperature(
     power_in: float,
-    mass: float,
     radius: float,
     emissivity: float,
-    specific_heat: float,
     ambient_temp: float = 4.0,
     stefan_boltzmann: float = 5.67e-8,
     shape: str = "sphere",
@@ -212,10 +210,8 @@ def steady_state_temperature(
 
     Args:
         power_in: Constant power input (W)
-        mass: Packet mass (kg)
         radius: Packet radius (m)
         emissivity: Surface emissivity (0-1)
-        specific_heat: Specific heat capacity (J/kg/K)
         ambient_temp: Ambient temperature (K)
         stefan_boltzmann: Stefan-Boltzmann constant (W/m²/K**4)
         shape: Shape type for surface area calculation ("sphere" or "prolate_spheroid")
@@ -223,6 +219,10 @@ def steady_state_temperature(
     
     Returns:
         Steady-state temperature (K)
+    
+    Note:
+        Steady-state temperature is independent of mass and specific heat.
+        These parameters were removed from the signature as they had no effect.
     """
     # Calculate surface area based on shape
     if shape == "sphere":

@@ -194,16 +194,20 @@ class VMDDecomposer:
         Returns:
             Updated center frequency ω_k
         """
-        # Compute gradient: ω_k = argmin ||∂_t (u_k * exp(-jω_k t))||²
+        # Compute gradient: ω_k = argmin ||∂_t (u_k * exp(-jω_k t))²
         mode_hat = scipy.fft.fft(mode)
         
-        # Compute derivative in frequency domain
-        derivative = 1j * 2 * np.pi * self.freqs * mode_hat
+        # VMD finds the center frequency where the mode's energy is concentrated
+        # This is the frequency where the power spectrum is maximized (center of mass)
+        power_spectrum = np.abs(mode_hat) ** 2
         
-        # Find frequency that minimizes derivative magnitude (center frequency)
-        # VMD finds ω_k where the mode is most stationary (derivative is smallest)
-        power_spectrum = np.abs(derivative) ** 2
-        omega_k = self.freqs[np.argmin(power_spectrum)]
+        # Compute center frequency as weighted average (center of mass of power spectrum)
+        total_power = np.sum(power_spectrum)
+        if total_power > 1e-15:
+            omega_k = np.sum(self.freqs * power_spectrum) / total_power
+        else:
+            # Fallback: find peak frequency
+            omega_k = self.freqs[np.argmax(power_spectrum)]
         
         # Ensure positive frequency
         omega_k = abs(omega_k)

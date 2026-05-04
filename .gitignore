@@ -1,33 +1,42 @@
-# Python compiled files
-*.pyc
+```
+# Python cache
 __pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Dependencies
+.venv/
+venv/
+env/
+.env
+.env.local
+*.env.*
+
+# Build artifacts
+build/
+dist/
+*.egg-info/
+
+# Editors
+.vscode/
+.idea/
+*.swp
+*.swo
 
 # Logs
 *.log
 
-# IDE
-.idea/
-.vscode/
-*.swp
-
-# Cache directories
-.mypy_cache/
-.pytest_cache/
+# Coverage
 .coverage
+coverage/
 htmlcov/
 
-# Large data files (keep examples, exclude bulk)
-data/*_train.npz
-data/*_val.npz
-data/models/*/checkpoint*.pth
-!data/models/*/checkpoint_best.pth
+# Temporary files
+*.tmp
+*.temp
 
-# Analysis results
-mission_analysis_results/*.npz
-
-# Jupyter checkpoints
-.ipynb_checkpoints/
-
-# OS files
+# OS specific
 .DS_Store
 Thumbs.db
+```

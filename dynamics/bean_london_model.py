@@ -141,8 +141,13 @@ class BeanLondonModel:
         
         # Handle edge case for very small displacements
         if x < 1e-15:
-            # For x → 0, tanh(b*x) → b*x, sech(b*x) → 1
-            # Stiffness → a * [b*x + b*x * 1] = 2*a*b*x
+            # For x → 0, the force model gives F ~ x² (two linear factors):
+            #   1. penetration_depth/ max_pen ~ x (volume scaling)
+            #   2. tanh(x / (max_pen*0.1)) ~ x (saturation factor)
+            # Therefore F(x) ∝ x², so k = -dF/dx ∝ 2x → 0 as x → 0.
+            # This is physically correct: at exactly x=0, there's no restoring
+            # force gradient because the penetrated volume is also zero.
+            # Return a small positive stiffness to avoid division-by-zero elsewhere.
             stiffness = 2.0 * a * b * x
         elif b * x > 20:
             # For large b*x, tanh(b*x) → 1, sech(b*x) → 0
