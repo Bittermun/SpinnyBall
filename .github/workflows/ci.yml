@@ -104,7 +104,7 @@ jobs:
     
     - name: Check angular momentum conservation tolerance
       run: |
-        python -c "
+        poetry run python -c "
         import numpy as np
         from dynamics.rigid_body import RigidBody
         
