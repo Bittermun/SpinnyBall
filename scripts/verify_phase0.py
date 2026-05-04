@@ -16,7 +16,7 @@ def verify_phase0():
             print(f"[FAIL] {d} missing")
 
     # 2. Check profiles
-    with open("anchor_profiles.json") as f:
+    with open("anchor_profiles.json", encoding="utf-8") as f:
         profiles_data = json.load(f)
     profiles = profiles_data["profiles"] if isinstance(profiles_data, dict) else profiles_data
     profile_names = [p["name"] for p in profiles]
@@ -26,7 +26,7 @@ def verify_phase0():
         print("[FAIL] 'paper-recommended' profile missing")
 
     # 3. Check claims
-    with open("results/anchor_claims.json") as f:
+    with open("results/anchor_claims.json", encoding="utf-8") as f:
         claims_data = json.load(f)
 
     # Handle both list and dict-with-anchor_claims formats
