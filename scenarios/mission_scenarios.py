@@ -6,16 +6,18 @@ Provides predefined orbital scenarios for launch, transfer, station-keeping, and
 
 import sys
 from pathlib import Path
+
 # Add parent directory to path for imports
 sys.path.insert(0, str(Path(__file__).parent.parent))
 
-import numpy as np
-from typing import Optional, List
 from dataclasses import dataclass
+from typing import List, Optional
+
+import numpy as np
 
 from dynamics.orbital_coupling import (
-    OrbitalState, OrbitalPropagator, OrbitalElements,
-    create_circular_orbit, eci_to_lvlh, lvlh_to_eci
+    OrbitalState,
+    create_circular_orbit,
 )
 
 
@@ -40,7 +42,7 @@ def create_leo_scenario(altitude: float = 400.0, inclination: float = 51.6) -> M
         MissionScenario for LEO operations
     """
     initial_state = create_circular_orbit(altitude, inclination)
-    
+
     return MissionScenario(
         name="LEO Station-Keeping",
         description=f"Low Earth Orbit at {altitude} km altitude, {inclination}° inclination",
@@ -66,17 +68,17 @@ def create_transfer_scenario(
     """
     # Initial circular orbit
     initial_state = create_circular_orbit(r1, inclination)
-    
+
     # Target circular orbit
     target_state = create_circular_orbit(r2, inclination)
-    
+
     # Hohmann transfer time (half period of transfer ellipse)
     mu = 398600.4418  # Earth gravitational parameter (km^3/s^2)
     r1_km = r1 + 6371.0
     r2_km = r2 + 6371.0
     a_transfer = (r1_km + r2_km) / 2.0
     transfer_time = np.pi * np.sqrt(a_transfer**3 / mu)
-    
+
     return MissionScenario(
         name="Hohmann Transfer",
         description=f"Transfer from {r1} km to {r2} km altitude",
@@ -100,14 +102,14 @@ def create_deorbit_scenario(
         MissionScenario for deorbit operations
     """
     initial_state = create_circular_orbit(initial_altitude, inclination)
-    
+
     # Target: suborbital trajectory
     # Simplified: reduce velocity to start decay
     target_state = OrbitalState(
         r=initial_state.r.copy(),
         v=initial_state.v * 0.8,  # 80% of orbital velocity
     )
-    
+
     return MissionScenario(
         name="Deorbit",
         description=f"Deorbit from {initial_altitude} km altitude",
@@ -127,7 +129,7 @@ def create_polar_scenario(altitude: float = 600.0) -> MissionScenario:
         MissionScenario for polar orbit
     """
     initial_state = create_circular_orbit(altitude, inclination=98.0)
-    
+
     return MissionScenario(
         name="Polar Orbit",
         description=f"Polar orbit at {altitude} km altitude for Earth observation",
@@ -144,7 +146,7 @@ def create_geo_scenario() -> MissionScenario:
     """
     # GEO altitude: ~35,786 km
     initial_state = create_circular_orbit(35786.0, inclination=0.0)
-    
+
     return MissionScenario(
         name="Geostationary Orbit",
         description="Geostationary orbit at 35,786 km altitude",

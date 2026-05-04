@@ -93,8 +93,12 @@ def _copy_params(base_params: dict | None = None) -> dict:
 
 def evaluate_parameter_vector(vector: np.ndarray, base_params: dict | None = None) -> dict:
     params = _copy_params(base_params)
-    u, g_gain, eps, lam, mp = [float(v) for v in vector]
-    params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam, "mp": mp})
+    if len(vector) == 4:
+        u, g_gain, eps, lam = (float(v) for v in vector)
+        params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam})
+    else:
+        u, g_gain, eps, lam, mp = (float(v) for v in vector)
+        params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam, "mp": mp})
     return analytical_metrics(params)
 
 
@@ -148,10 +152,13 @@ def run_sobol_sensitivity(
     samples = sample_anchor_problem(problem, N=N, calc_second_order=calc_second_order, seed=seed)
     values = evaluate_sample_matrix(samples, outputs=outputs, base_params=base_params)
 
+    analysis_problem = dict(problem)
+    analysis_problem["names"] = np.asarray(problem["names"], dtype=object)
+
     indices = {}
     for output in outputs:
         indices[output] = sobol_analyze.analyze(
-            problem,
+            analysis_problem,
             values[output],
             calc_second_order=calc_second_order,
             print_to_console=False,
@@ -237,7 +244,7 @@ def evaluate_mission_vector(
     Returns:
         Dictionary with mission outputs
     """
-    u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing = [float(v) for v in vector]
+    u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing = (float(v) for v in vector)
 
     return mission_level_metrics(
         u=u,

@@ -4,7 +4,6 @@ Implements Payload Catch/Launch physics for the mass-packet stream.
 """
 
 import numpy as np
-
 from sgms_anchor_v1 import _stream_forces, analytical_metrics
 
 try:

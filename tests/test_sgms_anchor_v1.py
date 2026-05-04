@@ -4,7 +4,6 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-
 from sgms_anchor_v1 import (
     DEFAULT_PARAMS,
     analytical_metrics,

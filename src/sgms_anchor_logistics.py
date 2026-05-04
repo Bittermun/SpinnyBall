@@ -4,9 +4,9 @@ Integrates Kinetic Metabolism, VPD-FeedForward Control, and Thermal flow.
 """
 
 import numpy as np
+from sgms_anchor_v1 import _stream_forces, analytical_metrics
 
 from dynamics.thermal_model import eddy_heating_power
-from sgms_anchor_v1 import _stream_forces, analytical_metrics
 
 # Constants
 SIGMA_BOLTZMANN = 5.670374419e-8 # W/(m^2*K^4)

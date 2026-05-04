@@ -4,7 +4,6 @@ import unittest
 from pathlib import Path
 
 import numpy as np
-
 from sgms_anchor_sensitivity import (
     DEFAULT_PROBLEM,
     evaluate_parameter_vector,

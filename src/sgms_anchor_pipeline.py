@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-
 from sgms_anchor_calibration import load_anchor_calibration, resolve_calibrated_params
 from sgms_anchor_claims import load_anchor_claims, resolve_claim_context
 from sgms_anchor_control import (
