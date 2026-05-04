@@ -2,7 +2,7 @@
 
 ## Abstract
 
-We present a high-fidelity analysis of a closed-loop gyroscopic mass-stream anchor system for station-keeping in cislunar space. The architecture employs spin-stabilized magnetic packets (50,000 RPM) coupled to flux-pinned orbiting nodes. Using a JAX-accelerated XLA engine, we achieve a 3,751x speedup in Monte Carlo validation, enabling an ultra-high-resolution stability campaign (N=256,000 realizations). Results confirm robust fault containment at operational rates (10⁻⁶–10⁻³/hr) and identify a control-latency stability boundary at $t_{delay} \approx 65\text{ms}$. Global sensitivity analysis (Sobol, N=1024) identifies stream velocity as the dominant design driver. We demonstrate that transitioning from cryogenic GdBCO to Samarium Cobalt (SmCo) magnets at 15 km/s enables passive thermal stability with a 99% mass reduction compared to low-velocity baselines, achieving a 280 kg infrastructure for a 4.2 N station-keeping requirement.
+We present a high-fidelity analysis of a closed-loop gyroscopic mass-stream anchor system for station-keeping in cislunar space. The architecture employs spin-stabilized magnetic packets (50,000 RPM) coupled to flux-pinned orbiting nodes. Using a JAX-accelerated XLA engine, we achieve a 3,751x speedup in Monte Carlo validation, enabling an ultra-high-resolution stability campaign (N=256,000 realizations). Results confirm robust fault containment at operational rates (10⁻⁶–10⁻³/hr). Global sensitivity analysis (Sobol, N=1024) identifies stream velocity as the dominant design driver. We demonstrate that transitioning from cryogenic GdBCO to Samarium Cobalt (SmCo) magnets at 15 km/s enables passive thermal stability with a 99% mass reduction compared to low-velocity baselines, achieving a 280 kg infrastructure for a 4.2 N station-keeping requirement.
 
 ---
 
@@ -66,7 +66,7 @@ A configuration is feasible if it satisfies:
 
 ### 2.3 Sensitivity Analysis
 
-Global sensitivity analysis uses Sobol' indices computed via Saltelli sampling (N=1024 base samples, 10,240 total evaluations for 8 parameters). Parameters explored:
+Global sensitivity analysis uses Sobol' indices computed via Saltelli sampling (N=1024 base samples, 20,480 total evaluations for 9 parameters). Parameters explored:
 - Stream velocity $u$: [500, 15,000] m/s
 - Packet mass $m_p$: [1, 50] kg
 - Packet radius $r$: [0.02, 0.15] m
@@ -75,6 +75,7 @@ Global sensitivity analysis uses Sobol' indices computed via Saltelli sampling (
 - Station mass $m_s$: [100, 10,000] kg
 - Control gain $g_{gain}$: [10⁻⁴, 10⁻²]
 - Flux-pinning stiffness $k_{fp}$: [1,000, 15,000] N/m
+- Packet spacing: [0.1, 10] m
 
 ### 2.4 Monte Carlo Cascade Analysis
 
@@ -90,17 +91,17 @@ Fault propagation modeled as stochastic cascade on 10-node network. Each node fa
 
 | Parameter | S₁ (Mass) | S₁ (k_eff) | Physical Interpretation |
 |-----------|-----------|------------|------------------------|
-| Velocity $u$ | 0.491 | 0.575 | Dominates via $u^2$ scaling in momentum flux |
-| Packet mass $m_p$ | 0.312 | 0.000 | Direct mass contribution; no stiffness impact in ROM |
-| Control gain $g_{gain}$ | 0.000 | 0.214 | Active stiffness tuning |
-| Radius $r$ | 0.041 | 0.000 | Weak stress coupling |
-| Spin rate $\omega$ | 0.156 | 0.000 | Stress via centrifugal loading |
+| Velocity $u$ | 0.787 | 0.811 | Dominates via $u^2$ scaling in momentum flux |
+| Packet mass $m_p$ | 0.007 | 0.000 | Direct mass contribution; no stiffness impact in ROM |
+| Radius $r$ | 0.000 | 0.153 | Weak stress coupling |
+| Spin rate $\omega$ | 0.000 | 0.000 | Stress via centrifugal loading |
+| Control gain $g_{gain}$ | 0.000 | 0.000 | Active stiffness tuning |
 
-**Key Finding:** Velocity accounts for 49.1% of total mass variance and 57.5% of stiffness variance. This reflects the $u^2$ dependence in the momentum-flux force law: higher velocities enable fewer packets for equivalent force, reducing infrastructure mass.
+**Key Finding:** Velocity accounts for 78.7% of total mass variance and 81.1% of stiffness variance. This reflects the $u^2$ dependence in the momentum-flux force law: higher velocities enable fewer packets for equivalent force, reducing infrastructure mass.
 
 ### 3.2 Minimum-Cost Configuration
 
-Optimization over 10,240 Sobol samples yields:
+Optimization over 20,480 Sobol samples yields:
 
 **Table 2: Optimal Design Point**
 
@@ -125,10 +126,9 @@ Optimization over 10,240 Sobol samples yields:
 **Figure 1: Cascade Probability vs. Fault Rate** (see `sweep_t3_fault_cascade.png`)
 
 Monte Carlo analysis (N=3,000 per point) shows:
-- **Operational regime** (10⁻⁸–10⁻²/hr): Zero cascades observed across 256,000 realizations.
+- **Operational regime** (10⁻⁸–10⁻²/hr): Zero cascades observed across 45,000 realizations (N=3,000 per point × 15 fault rates).
 - **Cascade onset**: $\lambda_{crit} \approx 215$/hr (stress test, N=1,500)
 - **Safety margin**: >10⁶ over expected environmental rates (~10⁻⁴/hr)
-- **Control Stability**: High-resolution JAX sweeps identify a stability boundary at 65ms latency for $\eta_{ind} = 0.90$.
 
 **Containment mechanism:** The 5% stiffness-reduction-per-failure model requires ≥20 simultaneous failures to trigger cascade. At operational fault rates, the probability of 20+ concurrent failures in the 10-node network is negligible.
 
@@ -154,7 +154,7 @@ The SGMS anchor represents a propellantless alternative to traditional station-k
 | Hydrazine | 4.2 | 220 | 6,170 | 0 | ~30 |
 | Hall effect | 4.2 | 1,500 | 905 | 1.5 | ~20 |
 | Ion (NSTAR) | 4.2 | 3,100 | 437 | 2.3 | ~30 |
-| **SGMS (SmCo)** | **4.2** | **N/A** | **0** | **0.006** | **280** |
+| **SGMS (SmCo)** | **4.2** | **N/A** | **0** | **0.054** | **280** |
 
 **Finding:** While SGMS has a higher initial infrastructure mass than an ion thruster, it eliminates propellant replenishment cycles entirely. At 15 km/s, the SmCo profile consumes near-zero power (passive cooling), outperforming all active propulsion methods in multi-year mission scenarios.
 
@@ -254,7 +254,7 @@ where:
 - Closed-loop control activation
 
 **Energy budget:**
-- **Injection**: 4.5 TJ (one-time) ≈ 1,250 kWh
+- **Injection**: 4.5 TJ (one-time) ≈ 1,250 MWh
 - **Spin-up**: 900 kW × 7 days ≈ 150 MWh
 - **Steady-state**: Cryocooler (GdBCO) ~2 MW continuous
 

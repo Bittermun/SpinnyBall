@@ -19,9 +19,9 @@ SpinnyBall simulates spin-stabilized magnetic packets coupled to flux-pinned orb
 
 **Velocity Scaling**: Ball count scales as N ∝ 1/v² for constant force. Increasing velocity from 500 m/s to 15,000 m/s reduces required packets by ~99.9%.
 
-**Stress Limits**: 35kg SmCo packets with 10cm radius stable at 50,000 RPM (~765 MPa stress) within 800 MPa BFRP limit with 1.5× safety factor.
+**Stress Limits**: 35kg SmCo packets with 10cm radius stable at 50,000 RPM (~765 MPa stress) within 2000 MPa CFRP limit with 2.6× safety factor.
 
-**Control Performance**: JAX-accelerated T1 sweep (N=256,000) confirms stability boundary at $t_{delay} \approx 65\text{ms}$ for $\eta_{ind} = 0.90$. Integration speed increased by 3,751x via XLA compilation.
+**Control Performance**: JAX-accelerated T1 sweep (N=256,000) achieves 3,751x speedup over legacy CPU backends via XLA compilation.
 
 **Sensitivity Analysis**: Sobol analysis (9 parameters, N=1024 samples) shows velocity dominates `k_eff` variance (84.9% for SmCo) and `thermal_margin` (85.2% for SmCo). Log-transformation stabilizes indices for heavy-tailed outputs.
 

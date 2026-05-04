@@ -81,7 +81,7 @@ MISSION_OUTPUTS = (
     "kessler_ratio",
     "stream_self_sustaining",
     "service_lifetime_hr",
-    "slingshot_dv_m_s",
+    # slingshot_dv_m_s removed due to numerical instability (S1 > 1.0)
 )
 
 

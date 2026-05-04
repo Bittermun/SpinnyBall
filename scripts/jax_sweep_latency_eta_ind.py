@@ -1,10 +1,15 @@
 import os
+import sys
 import time
 import json
 import jax
 import jax.numpy as jnp
 import numpy as np
 from datetime import datetime
+from pathlib import Path
+
+# Add parent directory to path for imports
+sys.path.insert(0, str(Path(__file__).parent.parent))
 
 from monte_carlo.lqr_gain import compute_lqr_gain
 from monte_carlo.jax_cascade_runner import run_full_sweep_vmap
@@ -30,26 +35,34 @@ def run_jax_sweep():
     I_inv = np.linalg.inv(I)
     K = compute_lqr_gain(I)
     
-    # Target state: zero angular velocity + identity quaternion
-    state0 = jnp.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-    
     # JAX Arrays
     I_jax = jnp.array(I)
     I_inv_jax = jnp.array(I_inv)
     K_jax = jnp.array(K)
     
     # 3. Prepare Batch Data
-    # For every grid point, we need N_REALIZATIONS keys and latencies
+    # For every grid point, we need N_REALIZATIONS keys and perturbed states
     key = jax.random.PRNGKey(42)
     
-    # We want a grid of shape (n_eta, n_lat, n_realizations)
-    # But run_sweep_vmap expects:
-    # keys: (n_realizations)
-    # latency_s: (n_realizations)
-    # eta_ind: scalar (vmapped)
+    # Split keys for perturbations and realizations
+    perturb_key, sweep_key = jax.random.split(key)
     
-    # Let's simplify: keys are independent per realization
-    keys = jax.random.split(key, N_REALIZATIONS)
+    # Generate random perturbations for each realization
+    # Perturbation range: 10-500 rad/s (~95-4775 RPM) - realistic disturbance
+    perturb_keys = jax.random.split(perturb_key, N_REALIZATIONS)
+    # Use vmap to generate perturbations in parallel
+    generate_perturbation = lambda k: jax.random.uniform(k, (3,), minval=10.0, maxval=500.0)
+    omega_perturbations = jax.vmap(generate_perturbation)(perturb_keys)
+    
+    # Create batch of perturbed initial states
+    # Base state: identity quaternion, zero omega
+    base_state = jnp.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
+    state0_batch = jnp.tile(base_state, (N_REALIZATIONS, 1))
+    # Apply perturbations to omega components (indices 4-6)
+    state0_batch = state0_batch.at[:, 4:7].set(omega_perturbations)
+    
+    # Split keys for realizations
+    keys = jax.random.split(sweep_key, N_REALIZATIONS)
     
     # Latency sampling logic: we'll use fixed latency per grid point for now 
     # (plus optional jitter inside the realization if needed)
@@ -71,7 +84,7 @@ def run_jax_sweep():
         keys,
         eta_arr,
         latency_arr,
-        state0,
+        state0_batch,  # Now passing batch of perturbed states
         I_jax,
         I_inv_jax,
         K_jax,
