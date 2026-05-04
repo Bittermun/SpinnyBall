@@ -512,8 +512,8 @@ class MPCController:
             freqs = np.logspace(-2, 3, 1000)  # 0.01 to 1000 rad/s
             # Create state-space system for frequency response
             C_out = np.eye(3)[0:1, :]  # First output only
-            D_out = np.zeros((1, 3))
-            sys_ss = signal.StateSpace(A_cl, B_omega, C_out, D_out)
+            D_out = np.zeros((1, 1))
+            sys_ss = signal.StateSpace(A_cl, B_omega[:, 0:1], C_out, D_out)
             w_out, H = sys_ss.freqresp(w=freqs)
             mag = np.abs(H).flatten()
             phase = np.angle(H).flatten()
