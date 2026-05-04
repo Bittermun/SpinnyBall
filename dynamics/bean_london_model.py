@@ -135,7 +135,7 @@ class BeanLondonModel:
         max_penetration = self.geometry["thickness"] / 2.0
 
         # Analytical derivative parameters
-        a = Jc * volume / max_penetration
+        a = Jc * B_field * volume / max_penetration
         b = 1.0 / (max_penetration * 0.1)
         x = abs(displacement)
 
