@@ -254,9 +254,7 @@ class EarthMoonPumpingSimulator:
                 # Tangential thrust direction
                 a_flux = self.max_flux_force / self.ball_mass * v_hat
                 
-                # Track work done
-                power = np.dot(self.max_flux_force * v_hat, state.v)
-                state.total_flux_work += power * dt
+                # Track cumulative dV (work is tracked in integrate_step to avoid double-counting)
                 state.cumulative_dv += np.linalg.norm(a_flux) * dt
             else:
                 a_flux = np.zeros(3)
@@ -433,6 +431,9 @@ class EarthMoonPumpingSimulator:
         dt_max = 3600.0  # 1 hour maximum (at apogee)
         current_dt = dt_base
         
+        # Initialize r_max to track apogee distance (fix for UnboundLocalError)
+        r_max = np.linalg.norm(state.r)
+        
         while state.t < max_time:
             # Check lunar encounter
             in_soi, altitude = self.check_lunar_encounter(state)
@@ -461,10 +462,7 @@ class EarthMoonPumpingSimulator:
             v_radial = np.dot(state.v, state.r) / r_mag  # Radial velocity component
             
             # Track apogee (maximum distance)
-            if state.t == 0:
-                r_max = r_mag
-            else:
-                r_max = max(r_max, r_mag)
+            r_max = max(r_max, r_mag)
             
             # Complete cycle when: (1) been to apogee, (2) back near perigee, (3) moving inward
             if r_max > D_EM * 0.5 and r_mag < R_EARTH + 500e3 and v_radial < -100:

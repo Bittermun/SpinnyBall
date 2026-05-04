@@ -1246,14 +1246,11 @@ def mission_level_metrics(
             P_total_heat = P_eddy + P_solar
             
             # Use steady_state_temperature from thermal_model
-            # Specific heat: SmCo ~180, NdFeB ~440 J/kg/K
-            specific_heat_pm = 180 if magnet_material == "SmCo" else 440
+            # Note: mass and specific_heat are not used in steady-state calculation
             T_steady_state = steady_state_temperature(
                 power_in=P_total_heat,
-                mass=mp,
                 radius=r,
                 emissivity=emissivity,
-                specific_heat=specific_heat_pm,
                 ambient_temp=3.0
             )
             

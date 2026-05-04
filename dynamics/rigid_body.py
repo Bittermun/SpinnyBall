@@ -496,7 +496,7 @@ class RigidBody:
     def integrate_numba_rk4_zero_torque(
         self,
         t_span: tuple[float, float],
-        dt: float = 0.01,
+        dt: float = 0.0005,  # 0.5ms: supports up to 50k RPM (Nyquist: period=1.2ms → dt≤0.6ms)
     ) -> dict:
         """
         Integrate using Numba-compiled RK4 with zero torque (no function callback).
@@ -606,7 +606,7 @@ class RigidBody:
         self,
         t_span: tuple[float, float],
         torques: Callable[[float, np.ndarray], np.ndarray],
-        dt: float = 0.01,
+        dt: float = 0.0005,  # 0.5ms: supports up to 50k RPM (Nyquist: period=1.2ms → dt≤0.6ms)
     ) -> dict:
         """
         Integrate using Numba-compiled RK4 (much faster than solve_ivp).
@@ -646,6 +646,11 @@ class RigidBody:
         for i in range(n_steps):
             current_state = _rk4_step(rhs, current_t, current_state, dt)
             current_t += dt
+
+            # Renormalize quaternion to prevent drift during integration
+            q_norm = np.linalg.norm(current_state[:4])
+            if q_norm > 1e-12:
+                current_state[:4] = current_state[:4] / q_norm
 
             t_values[i + 1] = current_t
             state_values[:, i + 1] = current_state
