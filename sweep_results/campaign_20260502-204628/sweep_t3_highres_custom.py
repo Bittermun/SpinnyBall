@@ -14,7 +14,7 @@ results = run_t3_sweep(
     containment_threshold=2,
     n_nodes=10,
     n_realizations_per_point=200,  # More MC runs
-    time_horizon=10.0,
+    time_horizon=3600.0,  # 1 hour - required for rare-event fault statistics at 1e-8 to 1e-2/hr
 )
 
 plot_t3_results(results, output_file='sweep_t3_highres.png')

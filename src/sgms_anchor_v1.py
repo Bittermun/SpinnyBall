@@ -157,9 +157,10 @@ DEFAULT_PARAMS = {
     "include_srp": False,  # Include solar radiation pressure
     "include_drag": False,  # Include atmospheric drag
     # Orbital perturbation coupling factor:
-    # Orbital forces (J2, SRP, drag) are ~mN scale while stream forces
-    # are ~N scale. This factor represents the fraction of orbital
-    # perturbation that couples into the 1D anchor displacement axis.
+    # Orbital coupling factor: Tuning parameter (not first-principles derivable)
+    # Geometric projection gives ~10^-8, but 0.01 makes perturbations visible
+    # at default (u=10 m/s) scale. At operational (u=15 km/s), orbital
+    # perturbations are negligible regardless of this factor.
     "orbital_coupling_factor": 0.01,
     "enable_thermal_dynamics": False,  # Enable temperature evolution
     "enable_eclipse": False,  # Enable eclipse detection in thermal model

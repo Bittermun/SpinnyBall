@@ -3,6 +3,10 @@ Bean-London critical-state model for flux-pinning.
 
 Models the critical state where current density equals J_c everywhere
 in the superconductor, creating a magnetization that opposes field changes.
+
+Note: This model assumes Zero-Field-Cooled (ZFC) initial conditions.
+For Field-Cooled (FC) operation, the stiffness near equilibrium would be
+higher due to trapped flux and enhanced pinning forces.
 """
 
 from dataclasses import dataclass, field

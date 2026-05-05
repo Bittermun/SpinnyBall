@@ -125,7 +125,7 @@ The transition from GdBCO to Samarium Cobalt (SmCo) for the heavy-lift (15 km/s)
 The station is modeled in a 550 km Sun-Synchronous Orbit (SSO):
 - **J2 Perturbation**: Primary driver of nodal regression. The stream momentum flux must be re-oriented at a rate of 0.98°/day to maintain alignment.
 - **Solar Radiation Pressure (SRP)**: Adds a cyclic force of ~0.08 N, easily compensated by the k_eff = 2.3e6 N/m stiffness.
-- **Atmospheric Drag**: At 550 km, drag is negligible (10^-9 N) for the packet stream but non-zero for the 1000kg station node.
+- **Atmospheric Drag**: Neglected at 550 km altitude (defensible assumption). Drag forces are orders of magnitude smaller than stream forces.
 - **Eclipse Effects**: 35-minute eclipse per 95-minute orbit causes packet temperature to fluctuate between 280K and 379K. SmCo stiffness variance over this range is < 2%.
 
 ### Control-Latency Stability Boundary
@@ -171,9 +171,9 @@ Simulation: 5.0 s, 1,000 steps, initial displacement 0.1 m, seed 42.
 
 | Metric | Value |
 |--------|-------|
-| Natural frequency | 3.45 rad/s |
-| Oscillation period | 1.82 s |
-| Damping ratio | 0.047 |
+| Natural frequency | 5.93 rad/s |
+| Oscillation period | 1.06 s |
+| Damping ratio | 0.000337 |
 | Static offset | 0.062 m |
 | Settling time | ~3.5 s |
 
