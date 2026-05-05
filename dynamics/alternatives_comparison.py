@@ -15,7 +15,7 @@ by providing a quantitative comparison across key metrics.
 """
 
 from dataclasses import dataclass
-from typing import Dict, List
+
 import numpy as np
 
 
@@ -38,20 +38,20 @@ def compare_alternatives(
     F_required_N: float = 4.2,
     mission_years: float = 15.0,
     station_mass_kg: float = 1000.0,
-) -> List[StationKeepingSystem]:
+) -> list[StationKeepingSystem]:
     """
     Compare station-keeping alternatives for given requirements.
-    
+
     Args:
         F_required_N: Required station-keeping force (N)
         mission_years: Mission duration
         station_mass_kg: Station mass (kg)
-    
+
     Returns:
         List of StationKeepingSystem objects for comparison
     """
     systems = []
-    
+
     # 1. Hall-effect thruster
     isp_hall = 1500  # s
     m_dot_hall = F_required_N / (isp_hall * 9.81)  # kg/s
@@ -69,7 +69,7 @@ def compare_alternatives(
         trl=9,
         notes="Mature technology. Requires propellant resupply."
     ))
-    
+
     # 2. Hydrazine monopropellant
     isp_hydrazine = 220  # s
     m_dot_hyd = F_required_N / (isp_hydrazine * 9.81)
@@ -87,7 +87,7 @@ def compare_alternatives(
         trl=9,
         notes="Simple but massive propellant requirement."
     ))
-    
+
     # 3. EDT (from archived_edt module)
     # Lorentz force: F = I * L * B, typical: 0.1-1 N for 10 km tether
     systems.append(StationKeepingSystem(
@@ -103,7 +103,7 @@ def compare_alternatives(
         trl=5,
         notes="Propellantless but only works in LEO (needs ionosphere). Cross-track only."
     ))
-    
+
     # 4. Solar sail
     # F = 2 * P_solar * A / c, where P_solar = 1361 W/m², c = 3e8 m/s
     # For 4.2 N: A = 4.2 * 3e8 / (2 * 1361) = 462,000 m² = 680m × 680m
@@ -122,7 +122,7 @@ def compare_alternatives(
         trl=6,
         notes=f"Requires {sail_area/1e6:.1f} km² sail. Force direction limited by Sun angle."
     ))
-    
+
     # 5. SGMS Packet Stream (this project)
     # Use mission_level_metrics defaults
     systems.append(StationKeepingSystem(
@@ -138,11 +138,11 @@ def compare_alternatives(
         trl=2,
         notes="Propellantless with slingshot replenishment. Extreme stiffness for precision."
     ))
-    
+
     return systems
 
 
-def format_comparison_table(systems: List[StationKeepingSystem]) -> str:
+def format_comparison_table(systems: list[StationKeepingSystem]) -> str:
     """Format comparison as markdown table."""
     header = "| System | Force (N) | k_eff (N/m) | Power (kW) | Mass (kg) | Precision (m) | TRL |\n"
     header += "|--------|-----------|-------------|------------|-----------|---------------|-----|\n"
@@ -159,36 +159,36 @@ def generate_comparison_report(
 ) -> str:
     """
     Generate a full comparison report with analysis.
-    
+
     Args:
         F_required_N: Required force (N)
         mission_years: Mission duration
-    
+
     Returns:
         Markdown-formatted comparison report
     """
     systems = compare_alternatives(F_required_N, mission_years)
-    
+
     report = "# Station-Keeping System Comparison\n\n"
-    report += f"## Requirements\n"
+    report += "## Requirements\n"
     report += f"- Force: {F_required_N:.1f} N\n"
     report += f"- Mission Duration: {mission_years:.1f} years\n\n"
-    
+
     report += "## Comparison Table\n\n"
     report += format_comparison_table(systems)
     report += "\n\n"
-    
+
     report += "## Key Findings\n\n"
-    
+
     # Find the best in each category
     min_mass = min(systems, key=lambda s: s.mass_kg)
     max_stiffness = max(systems, key=lambda s: s.stiffness_N_m)
     best_precision = min(systems, key=lambda s: s.precision_m)
-    
+
     report += f"- **Lowest Mass**: {min_mass.name} ({min_mass.mass_kg:.0f} kg)\n"
     report += f"- **Highest Stiffness**: {max_stiffness.name} ({max_stiffness.stiffness_N_m:.0e} N/m)\n"
     report += f"- **Best Precision**: {best_precision.name} ({best_precision.precision_m:.1e} m)\n\n"
-    
+
     report += "## Detailed Analysis\n\n"
     for s in systems:
         report += f"### {s.name}\n\n"
@@ -202,5 +202,5 @@ def generate_comparison_report(
         report += f"- **Precision**: {s.precision_m:.1e} m\n"
         report += f"- **TRL**: {s.trl}\n"
         report += f"- **Notes**: {s.notes}\n\n"
-    
+
     return report

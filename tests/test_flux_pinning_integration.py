@@ -8,10 +8,10 @@ in the governing equation, with full integration validation.
 import numpy as np
 import pytest
 
-from dynamics.rigid_body import RigidBody
 from dynamics.bean_london_model import BeanLondonModel
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
-from dynamics.multi_body import MultiBodyStream, Packet, SNode, PacketState
+from dynamics.multi_body import MultiBodyStream, Packet, SNode
+from dynamics.rigid_body import RigidBody
 
 
 class TestFluxPinningIntegration:
@@ -149,7 +149,7 @@ class TestFluxPinningIntegration:
         L_initial = rigid_body.angular_momentum.copy()
 
         # Apply flux-pinning force (should not change L if no external torque)
-        force_torque = rigid_body.compute_flux_pinning_force(B_field, temp, displacement)
+        rigid_body.compute_flux_pinning_force(B_field, temp, displacement)
 
         # Flux-pinning provides internal restoring torque, not external
         # So angular momentum should be conserved in absence of external torques
@@ -329,7 +329,7 @@ class TestAngularMomentumConservation:
 
         # Integrate for short time (libration period)
         dt = 0.001  # Small step
-        result = isolated_system.integrate(dt=dt, torques=zero_torque)
+        isolated_system.integrate(dt=dt, torques=zero_torque)
 
         # Final angular momentum
         L_final = packet.body.angular_momentum

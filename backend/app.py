@@ -12,13 +12,11 @@ import logging
 import os
 
 import numpy as np  # noqa: F401
-
-from backend.logging_config import setup_logging
-
 from fastapi import FastAPI, HTTPException  # noqa: E402
 from fastapi.middleware.cors import CORSMiddleware  # noqa: E402
 from pydantic import BaseModel, field_validator  # noqa: E402
 
+from backend.logging_config import setup_logging
 from dynamics.multi_body import MultiBodyStream, Packet, SNode  # noqa: E402
 from dynamics.rigid_body import RigidBody  # noqa: E402
 from monte_carlo.cascade_runner import (  # noqa: E402
@@ -468,9 +466,9 @@ async def health_check():
     """Health check endpoint."""
     try:
         stream, _, _ = await simulation_state.get_state()
-        return {"status": "healthy", "simulation_initialized": stream is not None}
     except HTTPException:
-        return {"status": "unhealthy", "simulation_initialized": False}
+        stream = None
+    return {"status": "healthy", "simulation_initialized": stream is not None}
 
 
 # ============================================================

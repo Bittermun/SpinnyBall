@@ -6,8 +6,8 @@ in the superconductor, creating a magnetization that opposes field changes.
 """
 
 from dataclasses import dataclass, field
+
 import numpy as np
-from typing import Optional
 
 from dynamics.gdBCO_material import GdBCOMaterial
 
@@ -22,14 +22,14 @@ class BeanLondonState:
 
 class BeanLondonModel:
     """Bean-London critical-state model for flux-pinning.
-    
+
     Models the critical state where current density equals J_c everywhere
     in the superconductor, creating a magnetization that opposes field changes.
     """
-    
+
     def __init__(self, material: GdBCOMaterial, geometry: dict, initial_B_field: float = 0.0):
         """Initialize Bean-London model.
-        
+
         Args:
             material: GdBCO material properties
             geometry: Dictionary with geometric parameters
@@ -37,7 +37,7 @@ class BeanLondonModel:
                 - width: Tape width (m)
                 - length: Tape length (m)
             initial_B_field: Initial magnetic field (T), default 0.0
-        
+
         Raises:
             ValueError: If geometry parameters are invalid
         """
@@ -48,42 +48,42 @@ class BeanLondonModel:
             raise ValueError(f"width must be > 0, got {geometry.get('width')}")
         if geometry.get('length', 0) <= 0:
             raise ValueError(f"length must be > 0, got {geometry.get('length')}")
-        
+
         self.material = material
         self.geometry = geometry
         self.state = BeanLondonState(penetration_depth=0.0)
-        
-    def compute_pinning_force(self, displacement: float, B_field: float, 
+
+    def compute_pinning_force(self, displacement: float, B_field: float,
                             temperature: float) -> float:
         """Compute flux-pinning force from Bean-London model.
-        
+
         F_pin = ∫(J × B) dV
-        
+
         For simplified geometry:
         F_pin = J_c(B, T) * B_field * volume * f(displacement)
-        
+
         where f(displacement) models force saturation at large displacements.
-        
+
         Args:
             displacement: Relative displacement (m)
             B_field: Magnetic flux density (T)
             temperature: Temperature (K)
-        
+
         Returns:
             Pinning force (N)
         """
         # Get critical current density
         Jc = self.material.critical_current_density(B_field, temperature)
-        
+
         # Compute penetration depth (increases with displacement)
         max_penetration = self.geometry["thickness"] / 2.0
         if max_penetration <= 0:
             raise ValueError("max_penetration must be > 0")
-        
+
         # Penetration depth saturates at max_penetration
         penetration_depth = min(abs(displacement), max_penetration)
         self.state.penetration_depth = penetration_depth  # Update state
-        
+
         # Effective volume with critical current
         volume = self.geometry["thickness"] * self.geometry["width"] * \
                  self.geometry["length"]
@@ -91,62 +91,64 @@ class BeanLondonModel:
             effective_volume = volume * (penetration_depth / max_penetration)
         else:
             effective_volume = 0.0
-        
+
         # Pinning force density: f_p = J_c × B
         force_density = Jc * B_field
-        
+
         # Total pinning force (with saturation)
         F_pin = force_density * effective_volume
-        
+
         # Saturation factor (force doesn't increase indefinitely)
         if max_penetration > 0:
             saturation_factor = np.tanh(abs(displacement) / (max_penetration * 0.1))
             F_pin *= saturation_factor
-        
+
         # Direction opposes displacement
         F_pin *= -np.sign(displacement)
-        
+
         return F_pin
-    
+
     def get_stiffness(self, displacement: float, B_field: float,
                      temperature: float) -> float:
         """Compute effective stiffness k_fp = -dF_pin/dx using analytical derivative.
-        
+
         For x > 0: F_pin = -a * x * tanh(b*x)
         where a = Jc * B * volume / max_penetration
               b = 1/(max_penetration * 0.1)
-        
+
         Derivative: dF/dx = -a * [tanh(b*x) + b*x * sech²(b*x)]
         Stiffness: k = -dF/dx = a * [tanh(b*x) + b*x * sech²(b*x)]
-        
+
         Args:
             displacement: Relative displacement (m)
             B_field: Magnetic flux density (T)
             temperature: Temperature (K)
-        
+
         Returns:
             Effective stiffness (N/m)
         """
         # Get critical current density
         Jc = self.material.critical_current_density(B_field, temperature)
-        
+
         # Geometry parameters
         volume = self.geometry["thickness"] * self.geometry["width"] * self.geometry["length"]
         max_penetration = self.geometry["thickness"] / 2.0
-        
+
         # Analytical derivative parameters
         a = Jc * B_field * volume / max_penetration
         b = 1.0 / (max_penetration * 0.1)
         x = abs(displacement)
-        
+
         # Handle edge case for very small displacements
         if x < 1e-15:
-            # For x → 0, tanh(b*x) → b*x, sech(b*x) → 1
-            # Stiffness → a * [b*x + b*x * 1] = 2*a*b*x
-            # Return the analytical limit 2*a*b*x, but enforce a minimum floor
-            # to prevent division-by-zero in downstream calculations (e.g., omega_n = sqrt(k/m)).
-            # The floor is set to 1% of the saturated stiffness 'a' as a numerical guard.
-            stiffness = max(2.0 * a * b * x, a * 0.01)
+            # For x → 0, the force model gives F ~ x² (two linear factors):
+            #   1. penetration_depth/ max_pen ~ x (volume scaling)
+            #   2. tanh(x / (max_pen*0.1)) ~ x (saturation factor)
+            # Therefore F(x) ∝ x², so k = -dF/dx ∝ 2x → 0 as x → 0.
+            # This is physically correct: at exactly x=0, there's no restoring
+            # force gradient because the penetrated volume is also zero.
+            # Return a small positive stiffness to avoid division-by-zero elsewhere.
+            stiffness = 2.0 * a * b * x
         elif b * x > 20:
             # For large b*x, tanh(b*x) → 1, sech(b*x) → 0
             # Stiffness → a * [1 + 0] = a
@@ -156,12 +158,12 @@ class BeanLondonModel:
             tanh_bx = np.tanh(b * x)
             sech_bx = 1.0 / np.cosh(b * x)
             stiffness = a * (tanh_bx + b * x * sech_bx**2)
-        
+
         return stiffness
 
     def update_magnetization(self, B_field: float, temperature: float) -> None:
         """Update magnetization history for hysteresis tracking.
-        
+
         Args:
             B_field: Current magnetic field magnitude (T)
             temperature: Temperature (K)
@@ -171,11 +173,11 @@ class BeanLondonModel:
         Jc = self.material.critical_current_density(B_field, temperature)
         penetration = self.state.penetration_depth
         magnetization = -Jc * penetration
-        
+
         # Update history (keep last 100 entries)
         self.state.magnetization = np.append(self.state.magnetization, magnetization)
         self.state.previous_field = np.append(self.state.previous_field, B_field)
-        
+
         # Limit history size
         if len(self.state.magnetization) > 100:
             self.state.magnetization = self.state.magnetization[-100:]

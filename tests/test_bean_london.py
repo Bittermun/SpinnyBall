@@ -2,11 +2,9 @@
 Unit tests for Bean-London critical-state model.
 """
 
-import numpy as np
-import pytest
 
+from dynamics.bean_london_model import BeanLondonModel
 from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
-from dynamics.bean_london_model import BeanLondonModel, BeanLondonState
 
 
 def test_bean_london_initialization():
@@ -19,7 +17,7 @@ def test_bean_london_initialization():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     assert model.material == material
     assert model.geometry == geometry
     assert model.state.magnetization.shape == (1,)
@@ -36,7 +34,7 @@ def test_compute_pinning_force():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     # Test with displacement
     force = model.compute_pinning_force(0.001, 1.0, 77.0)
     assert isinstance(force, float)
@@ -52,10 +50,10 @@ def test_pinning_force_direction():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     force_pos = model.compute_pinning_force(0.001, 1.0, 77.0)
     force_neg = model.compute_pinning_force(-0.001, 1.0, 77.0)
-    
+
     # Forces should oppose displacement
     assert force_pos < 0
     assert force_neg > 0
@@ -71,10 +69,10 @@ def test_pinning_force_temperature_dependence():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     force_low = model.compute_pinning_force(0.001, 1.0, 77.0)
     force_high = model.compute_pinning_force(0.001, 1.0, 85.0)
-    
+
     # Higher temperature should reduce pinning force
     assert abs(force_high) < abs(force_low)
 
@@ -109,10 +107,10 @@ def test_update_magnetization():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     # Update magnetization
     model.update_magnetization(1.0, 77.0)
-    
+
     # History should grow
     assert len(model.state.magnetization) == 2
     assert len(model.state.previous_field) == 2
@@ -128,11 +126,11 @@ def test_magnetization_history_limit():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     # Add many updates
     for i in range(150):
         model.update_magnetization(i * 0.01, 77.0)
-    
+
     # History should be limited to 100
     assert len(model.state.magnetization) == 100
     assert len(model.state.previous_field) == 100
@@ -179,15 +177,15 @@ def test_penetration_depth_update():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     # Small displacement
     model.compute_pinning_force(1e-7, 1.0, 77.0)
     depth_small = model.state.penetration_depth
-    
+
     # Large displacement
     model.compute_pinning_force(1e-4, 1.0, 77.0)
     depth_large = model.state.penetration_depth
-    
+
     # Larger displacement should increase penetration depth
     assert depth_large > depth_small
 
@@ -202,10 +200,10 @@ def test_penetration_depth_saturation():
         "length": 1.0,
     }
     model = BeanLondonModel(material, geometry)
-    
+
     # Very large displacement
     model.compute_pinning_force(1.0, 1.0, 77.0)
     depth = model.state.penetration_depth
-    
+
     # Should saturate at half thickness
     assert depth <= geometry["thickness"] / 2.0

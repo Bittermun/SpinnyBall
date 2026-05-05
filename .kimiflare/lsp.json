@@ -1,0 +1,12 @@
+{
+  "lspEnabled": true,
+  "lspServers": {
+    "python": {
+      "command": [
+        "pyright-langserver",
+        "--stdio"
+      ],
+      "enabled": true
+    }
+  }
+}

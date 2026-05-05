@@ -3,8 +3,6 @@ Unit tests for true VMD decomposition implementation.
 """
 
 import numpy as np
-import pytest
-import scipy.fft
 
 from control_layer.vmd_decomposition import VMDDecomposer, VMDParameters
 
@@ -73,13 +71,13 @@ class TestVMDDecomposer:
         """Test VMD signal reconstruction accuracy (< 50% error)."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=4, max_iter=200))
         signal = np.random.randn(1000)
-        
+
         modes = decomposer.decompose(signal)
-        
+
         # Check reconstruction error: ||signal - Σ modes||² / ||signal||²
         reconstructed = np.sum(modes, axis=0)
         reconstruction_error = np.linalg.norm(signal - reconstructed) / np.linalg.norm(signal)
-        
+
         # Relaxed tolerance - VMD has convergence issues on random signals
         assert reconstruction_error < 0.50, f"Reconstruction error {reconstruction_error:.4f} exceeds 50%"
 
@@ -87,9 +85,9 @@ class TestVMDDecomposer:
         """Test modes are approximately orthogonal."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=4, max_iter=50))
         signal = np.random.randn(1000)
-        
+
         modes = decomposer.decompose(signal)
-        
+
         # Check correlation between different modes
         for i in range(modes.shape[0]):
             for j in range(i + 1, modes.shape[0]):
@@ -101,7 +99,7 @@ class TestVMDDecomposer:
         """Test VMD converges within max iterations."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=4, max_iter=100, tol=1e-7))
         signal = np.random.randn(1000)
-        
+
         modes = decomposer.decompose(signal)
         # Should complete without exception
         assert modes.shape == (4, 1000)
@@ -110,7 +108,7 @@ class TestVMDDecomposer:
         """Test VMD handles short signals gracefully."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=2, max_iter=10))
         signal = np.random.randn(100)
-        
+
         modes = decomposer.decompose(signal)
         assert modes.shape == (2, 100)
 
@@ -118,7 +116,7 @@ class TestVMDDecomposer:
         """Test VMD handles constant signal."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=2, max_iter=10))
         signal = np.ones(1000)
-        
+
         modes = decomposer.decompose(signal)
         assert modes.shape == (2, 1000)
 
@@ -126,7 +124,7 @@ class TestVMDDecomposer:
         """Test get_model_info returns correct metadata."""
         params = VMDParameters(num_modes=8, alpha=5000.0)
         decomposer = VMDDecomposer(params)
-        
+
         info = decomposer.get_model_info()
         assert info['num_modes'] == 8
         assert info['alpha'] == 5000.0
@@ -135,13 +133,13 @@ class TestVMDDecomposer:
     def test_different_initializations(self):
         """Test different initialization methods."""
         signal = np.random.randn(500)
-        
+
         # Uniform initialization
         params_uniform = VMDParameters(init=1, max_iter=10)
         decomposer_uniform = VMDDecomposer(params_uniform)
         modes_uniform = decomposer_uniform.decompose(signal)
         assert modes_uniform.shape == (4, 500)
-        
+
         # Random initialization
         params_random = VMDParameters(init=2, max_iter=10)
         decomposer_random = VMDDecomposer(params_random)
@@ -151,17 +149,17 @@ class TestVMDDecomposer:
     def test_bandwidth_parameter(self):
         """Test effect of bandwidth parameter alpha."""
         signal = np.random.randn(500)
-        
+
         # Low bandwidth (looser mode separation)
         params_low = VMDParameters(alpha=100.0, max_iter=10)
         decomposer_low = VMDDecomposer(params_low)
         modes_low = decomposer_low.decompose(signal)
-        
+
         # High bandwidth (stricter mode separation)
         params_high = VMDParameters(alpha=5000.0, max_iter=10)
         decomposer_high = VMDDecomposer(params_high)
         modes_high = decomposer_high.decompose(signal)
-        
+
         assert modes_low.shape == (4, 500)
         assert modes_high.shape == (4, 500)
 
@@ -169,7 +167,7 @@ class TestVMDDecomposer:
         """Test VMD with 2 modes."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=2, max_iter=50))
         signal = np.random.randn(1000)
-        
+
         modes = decomposer.decompose(signal)
         assert modes.shape == (2, 1000)
 
@@ -177,21 +175,21 @@ class TestVMDDecomposer:
         """Test VMD with 8 modes."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=8, max_iter=50))
         signal = np.random.randn(1000)
-        
+
         modes = decomposer.decompose(signal)
         assert modes.shape == (8, 1000)
 
     def test_frequency_extraction_known_signal(self):
         """Test VMD can process known sinusoidal signal (smoke test)."""
         decomposer = VMDDecomposer(VMDParameters(num_modes=2, max_iter=100, tol=1e-8))
-        
+
         # Create signal with two known frequencies
         t = np.linspace(0, 1, 1000)
         f1, f2 = 0.1, 0.3  # Normalized frequencies (0-0.5 Nyquist)
         signal = np.sin(2 * np.pi * f1 * t) + 0.5 * np.sin(2 * np.pi * f2 * t)
-        
+
         modes = decomposer.decompose(signal)
-        
+
         # Just verify it completes without error and returns correct shape
         assert modes.shape == (2, 1000)
 
@@ -202,13 +200,13 @@ class TestVMDPerformance:
     def test_latency_target(self):
         """Test VMD decomposition meets latency target (< 10 ms for 1000 samples)."""
         import time
-        
+
         decomposer = VMDDecomposer(VMDParameters(num_modes=4, max_iter=50))
         signal = np.random.randn(1000)
-        
+
         # Warmup
         decomposer.decompose(signal)
-        
+
         # Benchmark
         n_iterations = 10
         start = time.perf_counter()
@@ -216,5 +214,5 @@ class TestVMDPerformance:
             decomposer.decompose(signal)
         elapsed = time.perf_counter() - start
         latency_ms = (elapsed / n_iterations) * 1000
-        
+
         assert latency_ms < 10.0, f"Latency {latency_ms:.2f} ms exceeds target 10 ms"

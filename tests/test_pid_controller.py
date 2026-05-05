@@ -2,8 +2,6 @@
 Unit tests for PID controller implementation.
 """
 
-import numpy as np
-import pytest
 
 from sgms_anchor_control import (
     PIDController,
@@ -50,7 +48,7 @@ def test_pid_derivative_filtering():
     params = PIDParameters(kp=0.0, ki=0.0, kd=1.0, tau_filter=0.1)
     pid = PIDController(params, dt=0.01)
     # Step input should produce filtered derivative
-    output1 = pid.update(0.0)
+    pid.update(0.0)
     output2 = pid.update(1.0)
     assert abs(output2) < 100.0  # Should be filtered
 
@@ -88,10 +86,10 @@ def test_pid_setpoint_tracking():
     pid = PIDController(params, dt=0.01)
     errors = []
     setpoint = 1.0
-    for i in range(100):
+    for _i in range(100):
         measurement = 0.0  # Start at 0
         error = setpoint - measurement
-        output = pid.update(error)
+        pid.update(error)
         errors.append(abs(error))
     # Errors should decrease over time
     assert errors[-1] < errors[0]
@@ -113,17 +111,17 @@ def test_pid_delay_compensation():
     """Test delay compensation actually delays output."""
     params = PIDParameters(kp=1.0, ki=0.0, kd=0.0, delay_steps=3)
     pid = PIDController(params, dt=0.01)
-    
+
     # Feed constant error of 1.0
     outputs = []
     for i in range(5):
         output = pid.update(1.0)
         outputs.append(output)
-    
+
     # First delay_steps outputs should be 0 (buffered)
     for i in range(3):
         assert outputs[i] == 0.0, f"Output at step {i} should be 0 during buffering, got {outputs[i]}"
-    
+
     # After delay_steps, output should appear
     assert outputs[3] == 1.0, f"Output at step 3 should be 1.0 after delay, got {outputs[3]}"
     assert outputs[4] == 1.0, f"Output at step 4 should be 1.0, got {outputs[4]}"
@@ -140,7 +138,7 @@ def test_pid_integral_only():
     """Test I-only controller."""
     params = PIDParameters(kp=0.0, ki=1.0, kd=0.0)
     pid = PIDController(params, dt=0.01)
-    
+
     # Constant error should cause integral to grow
     for _ in range(10):
         output = pid.update(1.0)
@@ -151,9 +149,9 @@ def test_pid_derivative_only():
     """Test D-only controller."""
     params = PIDParameters(kp=0.0, ki=0.0, kd=1.0)
     pid = PIDController(params, dt=0.01)
-    
+
     # Step change should produce derivative response
-    output1 = pid.update(0.0)
+    pid.update(0.0)
     output2 = pid.update(1.0)
     assert output2 != 0  # Derivative should respond to change
 
@@ -162,7 +160,7 @@ def test_pid_proportional_only():
     """Test P-only controller."""
     params = PIDParameters(kp=5.0, ki=0.0, kd=0.0)
     pid = PIDController(params, dt=0.01)
-    
+
     output = pid.update(1.0)
     assert output == 5.0  # P-only: output = kp * error
 
@@ -171,7 +169,7 @@ def test_pid_zero_error():
     """Test response to zero error."""
     params = PIDParameters(kp=1.0, ki=0.1, kd=0.01)
     pid = PIDController(params, dt=0.01)
-    
+
     # Zero error should produce small output (only from derivative of previous error)
     output = pid.update(0.0)
     # First step: derivative of previous error (0 - 0) = 0

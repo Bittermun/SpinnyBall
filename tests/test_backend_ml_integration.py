@@ -9,7 +9,7 @@ import time
 import numpy as np
 import pytest
 
-from backend.ml_integration import MLIntegrationLayer, TRUE_VMD_AVAILABLE
+from backend.ml_integration import TRUE_VMD_AVAILABLE, MLIntegrationLayer
 
 
 class TestMLIntegrationLayer:
@@ -68,7 +68,7 @@ class TestMLIntegrationLayer:
         signals = [np.random.randn(1000) for _ in range(100)]
 
         start = time.perf_counter()
-        results = ml.detect_wobble_batch(signals, threshold=0.1)
+        ml.detect_wobble_batch(signals, threshold=0.1)
         elapsed = (time.perf_counter() - start) / len(signals) * 1000
 
         # Average latency should be < 10 ms with stub

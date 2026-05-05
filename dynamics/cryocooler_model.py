@@ -6,6 +6,7 @@ of GdBCO superconductors in the anchor system.
 """
 
 from dataclasses import dataclass
+
 import numpy as np
 from scipy.interpolate import CubicSpline
 
@@ -17,16 +18,16 @@ class CryocoolerSpecs:
     cooling_power_at_70k: float  # W
     cooling_power_at_80k: float  # W
     cooling_power_at_90k: float  # W
-    
+
     # Input power parameters
     input_power_at_70k: float  # W
     input_power_at_80k: float  # W
     input_power_at_90k: float  # W
-    
+
     # Thermal properties
     cooldown_time: float  # s (from 300K to 77K)
     warmup_time: float  # s (from 77K to 300K during quench)
-    
+
     # Physical properties
     mass: float  # kg
     volume: float  # m³
@@ -35,17 +36,17 @@ class CryocoolerSpecs:
 
 class CryocoolerModel:
     """Cryocooler performance model with temperature-dependent cooling power."""
-    
+
     def __init__(self, specs: CryocoolerSpecs):
         """Initialize cryocooler model.
-        
+
         Args:
             specs: CryocoolerSpecs with performance parameters
         """
         self.specs = specs
         # Fit cooling power curve using cubic spline for smooth interpolation
         self._fit_cooling_curve()
-        
+
     def _fit_cooling_curve(self):
         """Fit cubic spline curve to cooling power data for smooth interpolation."""
         T = np.array([70.0, 80.0, 90.0])
@@ -59,13 +60,13 @@ class CryocoolerModel:
         # Also store quadratic coeffs for backward compatibility
         coeffs = np.polyfit(T, P, 2)
         self.cooling_coeffs = coeffs
-        
+
     def cooling_power(self, temperature: float) -> float:
         """Compute cooling power at given temperature.
-        
+
         Args:
             temperature: Current temperature (K)
-        
+
         Returns:
             Cooling power (W)
         """
@@ -76,15 +77,15 @@ class CryocoolerModel:
         else:
             # Use cubic spline for smooth interpolation
             return float(self.cooling_spline(temperature))
-    
+
     def input_power(self, temperature: float) -> float:
         """Compute input power at given temperature.
-        
+
         Uses piecewise linear interpolation between known data points.
-        
+
         Args:
             temperature: Current temperature (K)
-        
+
         Returns:
             Input power (W)
         """
@@ -103,13 +104,13 @@ class CryocoolerModel:
             t = (T - 80.0) / (90.0 - 80.0)
             return (1 - t) * self.specs.input_power_at_80k + \
                    t * self.specs.input_power_at_90k
-    
+
     def cop(self, temperature: float) -> float:
         """Compute coefficient of performance (cooling power / input power).
-        
+
         Args:
             temperature: Current temperature (K)
-        
+
         Returns:
             Coefficient of performance (dimensionless)
         """

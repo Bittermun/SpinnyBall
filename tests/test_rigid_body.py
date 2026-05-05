@@ -11,40 +11,40 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from dynamics.gyro_matrix import gyroscopic_coupling, skew_symmetric, verify_skew_properties
 from dynamics.rigid_body import (
     RigidBody,
     euler_equations,
-    quaternion_derivative,
     normalize_quaternion,
-    scalar_last_to_first,
+    quaternion_derivative,
     scalar_first_to_last,
+    scalar_last_to_first,
 )
-from dynamics.gyro_matrix import skew_symmetric, gyroscopic_coupling, verify_skew_properties
 
 
 class TestQuaternion:
     """Test quaternion operations."""
-    
+
     def test_quaternion_normalization(self):
         """Quaternion normalization preserves direction."""
         q = np.array([1.0, 2.0, 3.0, 4.0])
         q_norm = normalize_quaternion(q)
         norm = np.linalg.norm(q_norm)
         assert np.abs(norm - 1.0) < 1e-12
-    
+
     def test_identity_quaternion(self):
         """Identity quaternion represents no rotation."""
         q_identity = np.array([0.0, 0.0, 0.0, 1.0])
         q_norm = normalize_quaternion(q_identity)
         assert np.allclose(q_norm, q_identity)
-    
+
     def test_quaternion_derivative_zero_omega(self):
         """Zero angular velocity gives zero quaternion derivative."""
         q = np.array([0.0, 0.0, 0.0, 1.0])
         omega = np.array([0.0, 0.0, 0.0])
         dq = quaternion_derivative(q, omega)
         assert np.allclose(dq, 0.0)
-    
+
     def test_quaternion_derivative_magnitude(self):
         """Quaternion derivative magnitude scales with omega magnitude."""
         q = np.array([0.0, 0.0, 0.0, 1.0])
@@ -56,30 +56,30 @@ class TestQuaternion:
 
 class TestGyroMatrix:
     """Test skew-symmetric matrix properties."""
-    
+
     def test_skew_symmetric_properties(self):
         """Skew-symmetric matrix has correct mathematical properties."""
         omega = np.array([1.0, 2.0, 3.0])
         results = verify_skew_properties(omega, tol=1e-12)
-        
+
         assert results["antisymmetric"], "Matrix should be antisymmetric"
         assert results["zero_diagonal"], "Diagonal should be zero"
         assert results["zero_trace"], "Trace should be zero"
         assert results["cross_product_equivalence"], "Should equal cross product"
-    
+
     def test_skew_symmetric_zero(self):
         """Zero vector gives zero skew-symmetric matrix."""
         omega = np.array([0.0, 0.0, 0.0])
         S = skew_symmetric(omega)
         assert np.allclose(S, 0.0)
-    
+
     def test_gyroscopic_coupling_zero_omega(self):
         """Zero angular velocity gives zero gyroscopic coupling."""
         I = np.eye(3)
         omega = np.array([0.0, 0.0, 0.0])
         tau = gyroscopic_coupling(I, omega)
         assert np.allclose(tau, 0.0)
-    
+
     def test_gyroscopic_coupling_symmetric_inertia(self):
         """For spherical inertia, coupling simplifies to ω × (Iω) = I(ω × ω) = 0."""
         I = 2.0 * np.eye(3)  # Spherical inertia
@@ -91,43 +91,43 @@ class TestGyroMatrix:
 
 class TestRigidBody:
     """Test RigidBody class."""
-    
+
     def test_initialization(self):
         """RigidBody initializes correctly."""
         mass = 1.0
         I = np.diag([0.01, 0.02, 0.03])
         body = RigidBody(mass, I)
-        
+
         assert body.mass == mass
         assert np.allclose(body.I, I)
         assert np.allclose(body.position, [0.0, 0.0, 0.0])
         assert np.allclose(body.velocity, [0.0, 0.0, 0.0])
         assert np.allclose(body.quaternion, [0.0, 0.0, 0.0, 1.0])
         assert np.allclose(body.angular_velocity, [0.0, 0.0, 0.0])
-    
+
     def test_inertia_tensor_shape(self):
         """Inertia tensor must be 3×3."""
         with pytest.raises(ValueError):
             RigidBody(1.0, np.eye(2))
-    
+
     def test_angular_momentum(self):
         """Angular momentum L = I * ω."""
         I = np.diag([0.01, 0.02, 0.03])
         omega = np.array([10.0, 5.0, 2.0])
         body = RigidBody(1.0, I, angular_velocity=omega)
-        
+
         L_expected = I @ omega
         assert np.allclose(body.angular_momentum, L_expected)
-    
+
     def test_rotational_energy(self):
         """Rotational energy E = 0.5 * ωᵀ * I * ω."""
         I = np.diag([0.01, 0.02, 0.03])
         omega = np.array([10.0, 5.0, 2.0])
         body = RigidBody(1.0, I, angular_velocity=omega)
-        
+
         E_expected = 0.5 * omega @ (I @ omega)
         assert np.allclose(body.rotational_energy, E_expected)
-    
+
     def test_rotation_matrix_identity(self):
         """Identity quaternion gives identity rotation matrix."""
         body = RigidBody(1.0, np.eye(3))
@@ -138,11 +138,11 @@ class TestRigidBody:
 class TestTorqueFreePrecession:
     """
     Test torque-free precession: should conserve angular momentum and energy.
-    
+
     This is the critical physics gate test. Without the explicit skew-symmetric
     gyroscopic term, angular momentum would not be conserved under perturbation.
     """
-    
+
     @pytest.fixture
     def asymmetric_body(self):
         """Create a body with asymmetric inertia (triaxial)."""
@@ -152,110 +152,110 @@ class TestTorqueFreePrecession:
         I_sphere = (2.0/5.0) * mass * radius**2
         # Add slight asymmetry to induce precession
         I = np.diag([I_sphere, I_sphere * 1.1, I_sphere * 0.9])
-        
+
         # Initial spin about intermediate axis (unstable, induces precession)
         omega0 = np.array([0.0, 100.0, 10.0])  # rad/s (~950 rpm)
         q0 = np.array([0.0, 0.0, 0.0, 1.0])
-        
+
         return RigidBody(mass, I, angular_velocity=omega0, quaternion=q0)
-    
+
     def test_angular_momentum_conservation(self, asymmetric_body):
         """
         Angular momentum should be conserved to 1e-9 relative tolerance.
-        
+
         This is the PHYSICS GATE test. Any failure indicates the gyroscopic
         coupling term is incorrectly implemented.
         """
         def zero_torque(t, state):
             return np.array([0.0, 0.0, 0.0])
-        
+
         L_initial = asymmetric_body.angular_momentum
         L_norm_initial = np.linalg.norm(L_initial)
-        
+
         # Integrate for several precession periods
-        result = asymmetric_body.integrate(
+        asymmetric_body.integrate(
             t_span=(0.0, 10.0),
             torques=zero_torque,
             method="RK45",
             rtol=1e-10,
             atol=1e-12,
         )
-        
+
         L_final = asymmetric_body.angular_momentum
         L_norm_final = np.linalg.norm(L_final)
-        
+
         # Relative error should be < 1e-6 (Numba RK4 has slightly higher error than solve_ivp)
         relative_error = np.abs(L_norm_final - L_norm_initial) / L_norm_initial
         assert relative_error < 1e-6, f"Angular momentum not conserved: rel_err={relative_error:.2e}"
-        
+
         # Vector direction should also be conserved (in inertial frame)
         # In body frame, L precesses, so we check magnitude only
-    
+
     def test_rotational_energy_conservation(self, asymmetric_body):
         """Rotational kinetic energy should be conserved (torque-free)."""
         def zero_torque(t, state):
             return np.array([0.0, 0.0, 0.0])
-        
+
         E_initial = asymmetric_body.rotational_energy
-        
-        result = asymmetric_body.integrate(
+
+        asymmetric_body.integrate(
             t_span=(0.0, 10.0),
             torques=zero_torque,
             method="RK45",
             rtol=1e-10,
             atol=1e-12,
         )
-        
+
         E_final = asymmetric_body.rotational_energy
-        
+
         relative_error = np.abs(E_final - E_initial) / E_initial
         assert relative_error < 1e-5, f"Energy not conserved: rel_err={relative_error:.2e}"
-    
+
     def test_quaternion_normalization_drift(self, asymmetric_body):
         """Quaternion should remain normalized after integration."""
         def zero_torque(t, state):
             return np.array([0.0, 0.0, 0.0])
-        
+
         initial_norm = np.linalg.norm(asymmetric_body.quaternion)
         assert np.abs(initial_norm - 1.0) < 1e-12
-        
+
         asymmetric_body.integrate(
             t_span=(0.0, 10.0),
             torques=zero_torque,
             method="RK45",
         )
-        
+
         final_norm = np.linalg.norm(asymmetric_body.quaternion)
         assert np.abs(final_norm - 1.0) < 1e-12, f"Quaternion norm drifted: {final_norm}"
 
 
 class TestEulerEquations:
     """Test the Euler equations implementation."""
-    
+
     def test_zero_torque_zero_derivative(self):
         """With zero torque and zero omega, derivative should be zero."""
         I = np.eye(3)
         state = np.array([0.0, 0.0, 0.0, 1.0, 0.0, 0.0, 0.0])
-        
+
         def zero_torque(t, state):
             return np.array([0.0, 0.0, 0.0])
-        
+
         deriv = euler_equations(0.0, state, I, zero_torque)
         assert np.allclose(deriv, 0.0)
-    
+
     def test_gyroscopic_term_present(self):
         """Gyroscopic term should produce non-zero alpha even with zero torque."""
         I = np.diag([0.01, 0.02, 0.03])  # Asymmetric
         q = np.array([0.0, 0.0, 0.0, 1.0])
         omega = np.array([10.0, 5.0, 2.0])
         state = np.concatenate([q, omega])
-        
+
         def zero_torque(t, state):
             return np.array([0.0, 0.0, 0.0])
-        
+
         deriv = euler_equations(0.0, state, I, zero_torque)
         alpha = deriv[4:]  # Angular acceleration
-        
+
         # Alpha should be non-zero due to gyroscopic coupling
         assert not np.allclose(alpha, 0.0), "Gyroscopic term not producing effect"
 

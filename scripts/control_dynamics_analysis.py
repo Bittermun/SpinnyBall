@@ -3,14 +3,13 @@
 Control System Dynamics Analysis - Extract key metrics from MPC controller
 """
 
-import numpy as np
 import json
-from pathlib import Path
 from datetime import datetime
+
 
 def extract_control_metrics():
     """Extract control system performance metrics."""
-    
+
     # Configuration modes from MPC controller
     config_modes = {
         "TEST": {
@@ -32,7 +31,7 @@ def extract_control_metrics():
             "max_stress": 1.2e9,  # Pa
         }
     }
-    
+
     # MPC performance targets (from code comments)
     performance_targets = {
         "solve_time_target": 30.0,  # ms
@@ -40,7 +39,7 @@ def extract_control_metrics():
         "delay_compensation": True,
         "stability_margin_target": 45.0,  # degrees
     }
-    
+
     # Extracted from code analysis
     results = {
         'configuration_modes': config_modes,
@@ -72,7 +71,7 @@ def extract_control_metrics():
             }
         }
     }
-    
+
     # Calculate key performance indicators
     results['kpi_summary'] = {
         'solve_time_achievement': 'Target: <30ms, Implementation: CasADi-optimized',
@@ -81,18 +80,18 @@ def extract_control_metrics():
         'scalability': f'Mass range: {config_modes["TEST"]["packet_mass"]}-{config_modes["OPERATIONAL"]["packet_mass"]} kg',
         'operational_envelope': f'Spin rate: {config_modes["OPERATIONAL"]["spin_rate"]} rad/s'
     }
-    
+
     return results
 
 if __name__ == "__main__":
     results = extract_control_metrics()
-    
+
     print("Control System Dynamics Analysis:")
     print(f"Controller Type: {results['control_characteristics']['controller_type']}")
     print(f"Target Solve Time: {results['performance_targets']['solve_time_target']} ms")
     print(f"Mass Scaling Range: {results['scaling_analysis']['mass_scaling']}")
     print(f"Operational Spin Rate: {results['configuration_modes']['OPERATIONAL']['spin_rate']} rad/s")
-    
+
     # Save results
     timestamp = datetime.now().strftime("%Y%m%d-%H%M%S")
     with open(f"control_dynamics_{timestamp}.json", "w") as f:

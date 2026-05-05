@@ -13,6 +13,12 @@ from __future__ import annotations
 import csv
 from pathlib import Path
 
+try:
+    from joblib import Parallel, delayed
+    _JOBLIB_AVAILABLE = True
+except ImportError:
+    _JOBLIB_AVAILABLE = False
+
 import matplotlib
 
 matplotlib.use("Agg")
@@ -22,7 +28,6 @@ from SALib.analyze import sobol as sobol_analyze
 from SALib.sample import sobol as sobol_sample
 
 from src.sgms_anchor_v1 import DEFAULT_PARAMS, analytical_metrics, mission_level_metrics
-
 
 DEFAULT_PROBLEM = {
     "num_vars": 5,
@@ -75,7 +80,7 @@ MISSION_OUTPUTS = (
     "kessler_ratio",
     "stream_self_sustaining",
     "service_lifetime_hr",
-    "slingshot_dv_m_s",
+    # slingshot_dv_m_s removed due to numerical instability (S1 > 1.0)
 )
 
 
@@ -88,8 +93,12 @@ def _copy_params(base_params: dict | None = None) -> dict:
 
 def evaluate_parameter_vector(vector: np.ndarray, base_params: dict | None = None) -> dict:
     params = _copy_params(base_params)
-    u, g_gain, eps, lam, mp = [float(v) for v in vector]
-    params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam, "mp": mp})
+    if len(vector) == 4:
+        u, g_gain, eps, lam = (float(v) for v in vector)
+        params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam})
+    else:
+        u, g_gain, eps, lam, mp = (float(v) for v in vector)
+        params.update({"u": u, "g_gain": g_gain, "eps": eps, "lam": lam, "mp": mp})
     return analytical_metrics(params)
 
 
@@ -113,10 +122,19 @@ def evaluate_sample_matrix(
     samples: np.ndarray,
     outputs: tuple[str, ...] = DEFAULT_OUTPUTS,
     base_params: dict | None = None,
+    n_jobs: int = -1,
 ) -> dict[str, np.ndarray]:
-    values = {output: np.empty(samples.shape[0]) for output in outputs}
-    for i, sample in enumerate(samples):
-        metrics = evaluate_parameter_vector(sample, base_params=base_params)
+    """Evaluate sample matrix, parallelised across rows with joblib."""
+    if _JOBLIB_AVAILABLE and n_jobs != 1:
+        results = Parallel(n_jobs=n_jobs, backend="loky")(
+            delayed(evaluate_parameter_vector)(sample, base_params=base_params)
+            for sample in samples
+        )
+    else:
+        results = [evaluate_parameter_vector(s, base_params=base_params) for s in samples]
+
+    values: dict[str, np.ndarray] = {output: np.empty(len(samples)) for output in outputs}
+    for i, metrics in enumerate(results):
         for output in outputs:
             values[output][i] = metrics[output]
     return values
@@ -134,10 +152,13 @@ def run_sobol_sensitivity(
     samples = sample_anchor_problem(problem, N=N, calc_second_order=calc_second_order, seed=seed)
     values = evaluate_sample_matrix(samples, outputs=outputs, base_params=base_params)
 
+    analysis_problem = dict(problem)
+    analysis_problem["names"] = np.asarray(problem["names"], dtype=object)
+
     indices = {}
     for output in outputs:
         indices[output] = sobol_analyze.analyze(
-            problem,
+            analysis_problem,
             values[output],
             calc_second_order=calc_second_order,
             print_to_console=False,
@@ -180,7 +201,7 @@ def plot_sobol_indices(indices: dict, names: list[str], filename: str = "sgms_an
     outputs = list(indices.keys())
     fig, axes = plt.subplots(len(outputs), 1, figsize=(10, 3.4 * len(outputs)), squeeze=False)
 
-    for ax, output in zip(axes.ravel(), outputs):
+    for ax, output in zip(axes.ravel(), outputs, strict=False):
         data = indices[output]
         x = np.arange(len(names))
         width = 0.38
@@ -208,23 +229,23 @@ def print_sensitivity_summary(result: dict) -> None:
 
 
 def evaluate_mission_vector(
-    vector: np.ndarray, 
+    vector: np.ndarray,
     magnet_material: str = "SmCo",
-    jacket_material: str = "BFRP"
+    jacket_material: str = "CFRP"
 ) -> dict:
     """
     Evaluate mission-level metrics for a single parameter vector.
-    
+
     Args:
         vector: 9-element array [u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing]
         magnet_material: "SmCo" or "GdBCO"
         jacket_material: "BFRP", "CFRP", or "CNT_yarn"
-    
+
     Returns:
         Dictionary with mission outputs
     """
-    u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing = [float(v) for v in vector]
-    
+    u, mp, r, omega, h_km, ms, g_gain, k_fp, spacing = (float(v) for v in vector)
+
     return mission_level_metrics(
         u=u,
         mp=mp,
@@ -242,24 +263,24 @@ def evaluate_mission_vector(
 
 def run_mission_sobol_analysis(
     magnet_material: str = "SmCo",
-    jacket_material: str = "BFRP",
+    jacket_material: str = "CFRP",
     N: int = 1024,
     calc_second_order: bool = True,
     seed: int = 42,
 ) -> dict:
     """
     Run Sobol sensitivity analysis on mission-level metrics.
-    
+
     This function performs a comprehensive global sensitivity analysis
     across 8 design parameters with second-order interaction terms.
-    
+
     Args:
         magnet_material: Magnet type ("SmCo" or "GdBCO")
         jacket_material: Jacket material ("BFRP", "CFRP", or "CNT_yarn")
         N: Number of samples (>= 1024 recommended for 8 parameters)
         calc_second_order: Include S2 interaction indices
         seed: Random seed for reproducibility
-    
+
     Returns:
         Dictionary with Sobol results including:
         - problem: Problem definition
@@ -273,7 +294,7 @@ def run_mission_sobol_analysis(
     config_name = f"{magnet_material}_{jacket_material}"
     print(f"Running mission-level Sobol analysis for {config_name}...")
     print(f"  N={N}, calc_second_order={calc_second_order}, seed={seed}")
-    
+
     # Generate samples
     samples = sobol_sample.sample(
         MISSION_PROBLEM,
@@ -282,41 +303,49 @@ def run_mission_sobol_analysis(
         scramble=True,
         seed=seed,
     )
-    
+
     print(f"  Generated {samples.shape[0]} samples")
-    
-    # Evaluate mission metrics for each sample
+
+    # Evaluate mission metrics in parallel
     n_samples = samples.shape[0]
     outputs_dict = {output: np.empty(n_samples) for output in MISSION_OUTPUTS}
     feasible_array = np.empty(n_samples, dtype=bool)
-    
-    for i, sample in enumerate(samples):
-        metrics = evaluate_mission_vector(
-            sample, 
-            magnet_material=magnet_material,
-            jacket_material=jacket_material
+
+    if _JOBLIB_AVAILABLE:
+        print(f"  Evaluating {n_samples} samples in parallel (joblib)...")
+        all_metrics = Parallel(n_jobs=-1, backend="loky")(
+            delayed(evaluate_mission_vector)(sample, magnet_material, jacket_material)
+            for sample in samples
         )
+    else:
+        print(f"  Evaluating {n_samples} samples serially...")
+        all_metrics = [
+            evaluate_mission_vector(sample, magnet_material, jacket_material)
+            for sample in samples
+        ]
+
+    for i, metrics in enumerate(all_metrics):
         for output in MISSION_OUTPUTS:
             if output == "feasible":
                 feasible_array[i] = metrics[output]
             else:
                 outputs_dict[output][i] = metrics[output]
-    
+
     print(f"  Evaluation complete. Feasible: {np.sum(feasible_array)}/{n_samples}")
-    
+
     # Run Sobol analysis on continuous outputs
     indices = {}
     for output in MISSION_OUTPUTS:
         if output == "feasible":
             continue  # Skip boolean output
-        
+
         Y = outputs_dict[output]
-        
+
         # Log-transform heavy-tailed outputs to stabilize variance estimation (Task 5)
         HEAVY_TAILED_OUTPUTS = {"N_packets", "N_total_inventory", "M_total_kg", "P_total_kW", "k_eff"}
         if output in HEAVY_TAILED_OUTPUTS:
             Y = np.log10(np.clip(Y, 1e-10, None))
-        
+
         # Check for constant outputs (all same value)
         if np.std(Y) < 1e-10:
             print(f"  Warning: {output} has near-zero variance, skipping Sobol analysis")
@@ -327,7 +356,7 @@ def run_mission_sobol_analysis(
                 "S2": np.zeros((MISSION_PROBLEM["num_vars"], MISSION_PROBLEM["num_vars"])) if calc_second_order else None,
             }
             continue
-        
+
         try:
             indices[output] = sobol_analyze.analyze(
                 MISSION_PROBLEM,
@@ -343,7 +372,7 @@ def run_mission_sobol_analysis(
                 "ST": np.zeros(MISSION_PROBLEM["num_vars"]),
                 "S2": np.zeros((MISSION_PROBLEM["num_vars"], MISSION_PROBLEM["num_vars"])) if calc_second_order else None,
             }
-    
+
     return {
         "problem": MISSION_PROBLEM,
         "samples": samples,
@@ -362,35 +391,35 @@ def run_mission_sobol_analysis(
 def plot_mission_results(results: dict, filename_prefix: str = "mission_sobol") -> None:
     """
     Plot mission-level Sobol results.
-    
+
     Creates bar charts of S1 and ST indices for each output,
     plus a feasibility heatmap if second-order indices are available.
-    
+
     Args:
         results: Results from run_mission_sobol_analysis
         filename_prefix: Prefix for output filenames
     """
     import matplotlib.pyplot as plt
-    
+
     names = results["problem"]["names"]
     indices = results["indices"]
     outputs = list(indices.keys())
-    
+
     if not outputs:
         print("No outputs to plot")
         return
-    
+
     # Plot first-order and total-order indices
     fig, axes = plt.subplots(len(outputs), 1, figsize=(12, 3.5 * len(outputs)), squeeze=False)
-    
-    for ax, output in zip(axes.ravel(), outputs):
+
+    for ax, output in zip(axes.ravel(), outputs, strict=False):
         data = indices[output]
         x = np.arange(len(names))
         width = 0.38
-        
+
         s1 = np.asarray(data["S1"])
         st = np.asarray(data["ST"])
-        
+
         ax.bar(x - width / 2, s1, width=width, label="S1 (first-order)", color="#79c0ff")
         ax.bar(x + width / 2, st, width=width, label="ST (total-order)", color="#7ee787")
         ax.set_xticks(x, names, rotation=45, ha='right')
@@ -399,26 +428,26 @@ def plot_mission_results(results: dict, filename_prefix: str = "mission_sobol") 
         ax.set_title(f"Sobol Indices: {output}")
         ax.grid(True, axis="y", alpha=0.3)
         ax.legend()
-    
+
     fig.tight_layout()
     filename = f"{filename_prefix}_indices.png"
     fig.savefig(filename, dpi=150, bbox_inches='tight')
     plt.close(fig)
     print(f"Saved {filename}")
-    
+
     # Plot feasibility summary
     if "feasible" in results:
         feasible = results["feasible"]
         feasible_frac = np.mean(feasible)
-        
+
         fig, ax = plt.subplots(1, 1, figsize=(8, 6))
-        ax.bar(["Feasible", "Infeasible"], 
+        ax.bar(["Feasible", "Infeasible"],
                [np.sum(feasible), np.sum(~feasible)],
                color=["#7ee787", "#ff7b72"])
         ax.set_ylabel("Count")
         ax.set_title(f"Feasibility: {feasible_frac:.1%} feasible ({np.sum(feasible)}/{len(feasible)})")
         ax.grid(True, axis="y", alpha=0.3)
-        
+
         filename = f"{filename_prefix}_feasibility.png"
         fig.savefig(filename, dpi=150, bbox_inches='tight')
         plt.close(fig)
@@ -436,82 +465,84 @@ def print_mission_summary(results: dict) -> None:
     print(f"Samples: {results['N']} (second-order: {results['calc_second_order']})")
     print(f"Seed: {results['seed']}")
     print("-"*60)
-    
+
     # Feasibility summary
     if "feasible" in results:
         feasible = results["feasible"]
         print(f"\nFeasibility: {np.mean(feasible):.1%} ({np.sum(feasible)}/{len(feasible)} designs)")
-    
+
     # Dominant parameters for each output
     names = results["problem"]["names"]
     print("\nDominant Parameters (by total-order index ST):")
     print("-"*60)
-    
+
     for output, data in results["indices"].items():
         st = np.asarray(data["ST"])
         if np.max(st) < 1e-6:
             continue  # Skip outputs with no variance
-        
+
         sorted_idx = np.argsort(st)[::-1]
         top_3 = [(names[i], st[i]) for i in sorted_idx[:3]]
-        
+
         print(f"\n{output}:")
         for name, value in top_3:
             print(f"  {name:12s}: ST = {value:.4f}")
 
 
-def run_2x2_material_sweep(N: int = 512, seed: int = 42) -> dict:
+def run_2x2_material_sweep(N: int = 512, seed: int = 42, n_jobs: int = -1) -> dict:
     """
-    Run the 2x2 material sweep as specified in Task 6.
-    
+    Run the 2x3 material sweep (2 magnets × 3 jackets = 6 configs) in parallel.
+
     Sweeps over:
     - Magnet materials: GdBCO, SmCo
-    - Jacket materials: BFRP, CNT_yarn
-    
-    This creates 4 configurations:
-    1. GdBCO + BFRP: Current baseline
-    2. GdBCO + CNT_yarn: Higher RPM possible (relaxed stress constraint)
-    3. SmCo + BFRP: Current smco-heavy
-    4. SmCo + CNT_yarn: Best thermal + structural
-    
+    - Jacket materials: BFRP, CFRP, CNT_yarn
+
     Args:
         N: Number of samples per configuration
         seed: Random seed
-    
+        n_jobs: Number of parallel workers (-1 = all CPUs)
+
     Returns:
-        Dictionary with all 4 results
+        Dictionary with all 6 results keyed by "<magnet>_<jacket>"
     """
     magnet_materials = ["GdBCO", "SmCo"]
-    jacket_materials = ["BFRP", "CNT_yarn"]
-    
-    all_results = {}
-    
-    for mag_mat in magnet_materials:
-        for jacket_mat in jacket_materials:
-            config_key = f"{mag_mat}_{jacket_mat}"
-            print(f"\n{'='*70}")
-            print(f"CONFIGURATION: {config_key}")
-            print('='*70)
-            
-            results = run_mission_sobol_analysis(
-                magnet_material=mag_mat,
-                jacket_material=jacket_mat,
-                N=N,
-                calc_second_order=True,
-                seed=seed,
-            )
-            
-            all_results[config_key] = results
-    
-    return all_results
+    jacket_materials = ["BFRP", "CFRP", "CNT_yarn"]
+
+    configs = [
+        (mag, jkt)
+        for mag in magnet_materials
+        for jkt in jacket_materials
+    ]
+
+    def _run_one(mag_mat, jacket_mat):
+        print(f"  [{mag_mat}+{jacket_mat}] starting...")
+        result = run_mission_sobol_analysis(
+            magnet_material=mag_mat,
+            jacket_material=jacket_mat,
+            N=N,
+            calc_second_order=True,
+            seed=seed,
+        )
+        print(f"  [{mag_mat}+{jacket_mat}] done.")
+        return f"{mag_mat}_{jacket_mat}", result
+
+    if _JOBLIB_AVAILABLE and n_jobs != 1:
+        print(f"Running {len(configs)} configs in parallel (joblib, n_jobs={n_jobs})...")
+        pairs = Parallel(n_jobs=min(len(configs), n_jobs if n_jobs > 0 else 6), backend="loky")(
+            delayed(_run_one)(mag, jkt) for mag, jkt in configs
+        )
+    else:
+        pairs = [_run_one(mag, jkt) for mag, jkt in configs]
+
+    return dict(pairs)
 
 
 def main() -> None:
     """Main entry point for sensitivity analysis."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description="Sobol Sensitivity Analysis")
-    parser.add_argument("--mission", action="store_true", 
+    parser.add_argument("--mission", action="store_true",
                        help="Run mission-level analysis (8 parameters)")
     parser.add_argument("--material", choices=["SmCo", "GdBCO", "both"], default="both",
                        help="Material profile to analyze")
@@ -521,28 +552,30 @@ def main() -> None:
                        help="Skip second-order interaction indices")
     parser.add_argument("--seed", type=int, default=42,
                        help="Random seed")
+    parser.add_argument("--material-sweep", action="store_true",
+                       help="Run 2x3 material sweep (Magnet x Jacket)")
     args = parser.parse_args()
-    
+
     if args.mission:
         # Mission-level analysis
         materials = ["SmCo", "GdBCO"] if args.material == "both" else [args.material]
-        
+
         for mat in materials:
             print(f"\n{'='*60}")
             print(f"Analyzing {mat} material profile")
             print('='*60)
-            
+
             results = run_mission_sobol_analysis(
                 magnet_material=mat,
                 N=args.N,
                 calc_second_order=not args.no_second_order,
                 seed=args.seed,
             )
-            
+
             # Save results
             output_dir = Path("mission_analysis_results")
             output_dir.mkdir(exist_ok=True)
-            
+
             # Save to NPZ
             np.savez(
                 output_dir / f"sobol_{mat.lower()}.npz",
@@ -556,22 +589,47 @@ def main() -> None:
                 calc_second_order=not args.no_second_order,
                 seed=args.seed,
             )
-            
+
             # Export indices to CSV
             export_sobol_indices_csv(
-                results["indices"], 
+                results["indices"],
                 MISSION_PROBLEM["names"],
                 output_dir / f"sobol_{mat.lower()}.csv"
             )
-            
+
             # Plot results
             plot_mission_results(results, filename_prefix=f"mission_{mat.lower()}")
-            
+
             # Print summary
             print_mission_summary(results)
-        
+
         print(f"\nAll results saved to {output_dir}/")
-    
+
+    elif args.material_sweep:
+        # Run 2x3 material sweep
+        print(f"\n{'='*60}")
+        print("RUNNING 2x3 MATERIAL SWEEP (Magnet x Jacket)")
+        print('='*60)
+
+        results = run_2x2_material_sweep(N=args.N, seed=args.seed)
+
+        output_dir = Path("mission_analysis_results")
+        output_dir.mkdir(exist_ok=True)
+
+        # Export summary table
+        summary_path = output_dir / "material_sweep_summary.csv"
+        with open(summary_path, 'w', newline='') as f:
+            writer = csv.writer(f)
+            writer.writerow(["Config", "Feasibility", "Avg_N_packets", "Avg_M_total_kg"])
+            for config, res in results.items():
+                writer.writerow([
+                    config,
+                    f"{np.mean(res['feasible']):.1%}",
+                    f"{np.mean(res['outputs']['N_packets']):.1f}",
+                    f"{np.mean(res['outputs']['M_total_kg']):.1f}"
+                ])
+        print(f"Summary saved to {summary_path}")
+
     else:
         # Legacy anchor analysis
         result = run_sobol_sensitivity(

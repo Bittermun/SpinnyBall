@@ -16,10 +16,10 @@ Reference: SGMS momentum flux physics + Bean-London dynamics
 
 from __future__ import annotations
 
-import numpy as np
-from typing import Tuple, Optional, List, Dict
 from dataclasses import dataclass
 from enum import Enum
+
+import numpy as np
 from scipy.optimize import minimize_scalar
 
 # Infrastructure cost weights (sum to 1.0)
@@ -78,7 +78,7 @@ class VelocityOptimizer:
     """
     Optimizes stream velocity to minimize infrastructure cost.
     N ~ 1/v² for constant momentum capacity
-    
+
     Note: Stream length should be set based on orbital altitude:
         L = 2 * π * (R_earth + altitude)
     For a 550 km orbit: L ≈ 43,480 km (not 4.8 m!)
@@ -113,7 +113,7 @@ class VelocityOptimizer:
                 self.stream_length = self.DEFAULT_STREAM_LENGTH
         else:
             self.stream_length = stream_length
-            
+
         self.ball_mass = ball_mass
         self.capture_efficiency = capture_efficiency
         self.stream_density = stream_density
@@ -136,7 +136,7 @@ class VelocityOptimizer:
 
     def compute_ball_count(self, velocity: float, include_slingshot: bool = False) -> int:
         """Compute number of balls required for target force.
-        
+
         Formula from TECHNICAL_SPEC.md: N = F * L / (m * v² * η)
         where F is force, L is stream length, m is ball mass, v is velocity, η is efficiency.
         """
@@ -148,7 +148,7 @@ class VelocityOptimizer:
             v_eff = velocity * 1.2
 
         # Correct dimensional formula: N = F * L / (m * v² * η)
-        N = int(np.ceil(self.target_force * self.stream_length / 
+        N = int(np.ceil(self.target_force * self.stream_length /
                         (self.ball_mass * v_eff**2 * self.capture_efficiency)))
         return max(N, 1)
 
@@ -211,7 +211,7 @@ class VelocityOptimizer:
     def optimize(
         self,
         strategy: OptimizationStrategy = OptimizationStrategy.BALANCED,
-        velocity_range: Tuple[float, float] = (500.0, 15000.0),
+        velocity_range: tuple[float, float] = (500.0, 15000.0),
         n_samples: int = 200
     ) -> OptimizationResult:
         """Optimize velocity for given strategy."""
@@ -245,7 +245,7 @@ class VelocityOptimizer:
             power_requirement=power
         )
 
-    def compare_strategies(self) -> Dict[str, OptimizationResult]:
+    def compare_strategies(self) -> dict[str, OptimizationResult]:
         """Compare all optimization strategies."""
         results = {}
         for strategy in OptimizationStrategy:
@@ -282,10 +282,10 @@ def demo_velocity_optimizer():
             print(f"  Slingshot recommended: +{result.velocity_gain_potential/1000:.1f} km/s gain")
 
     best = results["balanced"]
-    print(f"\n--- Recommended Configuration ---")
+    print("\n--- Recommended Configuration ---")
     print(f"Optimal velocity: {best.optimal_velocity/1000:.1f} km/s")
     print(f"Ball count reduction: {(1 - best.infrastructure_cost)*100:.0f}% vs baseline")
-    print(f"Key insight: N ~ 1/v², so doubling velocity = 4x fewer balls")
+    print("Key insight: N ~ 1/v², so doubling velocity = 4x fewer balls")
 
 
 if __name__ == "__main__":

@@ -3,12 +3,14 @@ Stress test to find the cascade onset boundary.
 Runs T3 fault rate sweep with significantly higher rates (up to 10/hr).
 """
 
-import numpy as np
-import logging
 import json
+import logging
 from pathlib import Path
 
+import numpy as np
+
 from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig
+
 # Direct profile parameters
 PROFILES = {
     "operational": {
@@ -33,7 +35,8 @@ PROFILES = {
 }
 
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
-from dynamics.rigid_body import RigidBody
+from dynamics.rigid_body import RigidBody, geometry_profile_to_inertia
+
 
 def _make_stream_factory(params: dict):
     """Create a stream factory compatible with CascadeRunner."""
@@ -41,15 +44,15 @@ def _make_stream_factory(params: dict):
         mass = params.get("mp", 8.0)
         radius = params.get("radius", 0.1)
         omega = np.array([0.0, 0.0, 5236.0])
-        
+
         # Use geometry_profile if available, otherwise use default inertia
         geometry_profile = params.get("geometry_profile")
         if geometry_profile is not None:
             I = geometry_profile_to_inertia(geometry_profile)
         else:
             I = np.diag([0.0001, 0.00011, 0.00009])
-        
-        packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega), 
+
+        packets = [Packet(id=0, body=RigidBody(mass, I, angular_velocity=omega),
                           radius=radius, eta_ind=0.9)]
         nodes = []
         for i in range(10):
@@ -77,12 +80,12 @@ def run_stress_test():
     # Grid: 10^-2 to 10^5 /hr (Extended range to find cascade onset)
     fault_rates = np.logspace(-2, 5, 15)
     n_realizations = 100
-    
+
     results = []
-    
+
     for rate in fault_rates:
         logger.info(f"Testing fault rate: {rate:.4f} /hr")
-        
+
         config = MonteCarloConfig(
             n_realizations=n_realizations,
             time_horizon=60.0,  # Increased to 60s to allow cascades to develop
@@ -96,20 +99,20 @@ def run_stress_test():
                 "k_eff": (6000.0, ">="),
             }
         )
-        
+
         runner = CascadeRunner(config)
         # Use operational profile
         stream_factory = _make_stream_factory(PROFILES["operational"])
-        
+
         mc_results = runner.run_monte_carlo(stream_factory)
-        
+
         results.append({
             "fault_rate": rate,
             "cascade_prob": mc_results["cascade_probability"],
             "containment_rate": mc_results["containment_rate"],
             "nodes_affected_max": mc_results["nodes_affected_max"]
         })
-        
+
         if mc_results["cascade_probability"] > 0.5:
             logger.info("Cascade boundary reached (>50% prob). Stopping.")
             break
@@ -119,7 +122,7 @@ def run_stress_test():
     output_path.parent.mkdir(parents=True, exist_ok=True)
     with open(output_path, "w") as f:
         json.dump(results, f, indent=2)
-    
+
     print("\n=== CASCADE BOUNDARY STRESS TEST RESULTS ===")
     for res in results:
         print(f"Rate: {res['fault_rate']:.4f}/hr | Prob: {res['cascade_prob']:.2f} | Max Nodes: {res['nodes_affected_max']}")

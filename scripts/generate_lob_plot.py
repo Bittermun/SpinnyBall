@@ -1,5 +1,5 @@
-import numpy as np
 import matplotlib.pyplot as plt
+import numpy as np
 
 # Phase 17 Result: 20-node Lattice Stability
 n_nodes = 20
@@ -7,7 +7,7 @@ t = np.linspace(0, 500, 1000) # ms
 
 # To show something interesting, I'll simulate a 'Minor Control Drift' (0.1% error)
 # on the feed-forward, to see the residual shockwave.
-drift_error = 0.001 
+drift_error = 0.001
 p_mag = 100000 # 100k N-s
 node_mass = 1000
 k = 100000
@@ -19,7 +19,7 @@ f_residual = (p_mag / 0.01) * drift_error # 100N residual
 # Node 0 moves a tiny amount
 x0 = (f_residual / k) * (1 - np.exp(-c/(2*node_mass) * t/1000)) # Simplified
 # Shockwave propagates at u = 1600 m/s
-# Node distance = 577 km. Delta_T = 577s. 
+# Node distance = 577 km. Delta_T = 577s.
 # On a 500ms scale, the wave hasn't reached any neighbor yet.
 # So we'll show 'Network Silence'.
 

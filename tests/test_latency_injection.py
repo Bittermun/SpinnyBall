@@ -3,11 +3,16 @@ Test latency injection in Monte-Carlo framework.
 """
 
 import numpy as np
-import pytest
-from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig, Perturbation, PerturbationType
-from monte_carlo.pass_fail_gates import LatencyGate, create_default_gate_set
-from dynamics.multi_body import MultiBodyStream, Packet, SNode
+
+from dynamics.multi_body import MultiBodyStream, Packet
 from dynamics.rigid_body import RigidBody
+from monte_carlo.cascade_runner import (
+    CascadeRunner,
+    MonteCarloConfig,
+    Perturbation,
+    PerturbationType,
+)
+from monte_carlo.pass_fail_gates import LatencyGate, create_default_gate_set
 
 
 def test_latency_perturbation_type():
@@ -25,7 +30,7 @@ def test_latency_config_parameters():
 
     assert config.latency_ms == 20.0
     assert config.latency_std_ms == 5.0
-    assert config.track_per_packet_latency == True
+    assert config.track_per_packet_latency
 
 
 def test_latency_gate_evaluation():
@@ -119,7 +124,7 @@ def test_latency_perturbation_application():
     mass = 0.05
     I = np.diag([0.0001, 0.00011, 0.00009])
     packets = [Packet(id=0, body=RigidBody(mass, I))]
-    stream = MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
+    MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
 
     # Apply latency perturbation
     perturbation = Perturbation(
@@ -198,7 +203,7 @@ def test_latency_release_time_format():
     mass = 0.05
     I = np.diag([0.0001, 0.00011, 0.00009])
     packets = [Packet(id=0, body=RigidBody(mass, I))]
-    stream = MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
+    MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
 
     # Apply latency perturbation at specific time
     current_time = 0.5
@@ -267,7 +272,7 @@ def test_multiple_latency_injections():
     mass = 0.05
     I = np.diag([0.0001, 0.00011, 0.00009])
     packets = [Packet(id=0, body=RigidBody(mass, I))]
-    stream = MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
+    MultiBodyStream(packets=packets, nodes=[], stream_velocity=100.0)
 
     # Apply multiple latency perturbations at different times
     perturbation1 = Perturbation(

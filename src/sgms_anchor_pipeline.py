@@ -9,7 +9,6 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 import numpy as np
-
 from sgms_anchor_calibration import load_anchor_calibration, resolve_calibrated_params
 from sgms_anchor_claims import load_anchor_claims, resolve_claim_context
 from sgms_anchor_control import (
@@ -46,7 +45,6 @@ from sgms_anchor_v1 import (
     sweep_anchor_grid,
     sweep_velocity,
 )
-from monte_carlo.pass_fail_gates import create_default_gate_set
 
 
 def load_experiment_config(path: str | Path) -> dict:
@@ -343,7 +341,7 @@ def run_experiment_suite(
     run_dir.mkdir(parents=True, exist_ok=True)
 
     skipped_experiments = []
-    
+
     manifest = {
         "run_label": run_label,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(timespec="seconds"),
@@ -485,13 +483,13 @@ def run_experiment_suite(
     write_dashboard_html(dashboard_payload, dashboard_path)
     manifest["dashboard_data_path"] = str(dashboard_data_path)
     manifest["dashboard_path"] = str(dashboard_path)
-    
+
     if skipped_experiments:
         manifest["skipped_experiments"] = skipped_experiments
         print(f"\nWARNING: {len(skipped_experiments)} experiment(s) skipped due to errors")
         for skipped in skipped_experiments:
             print(f"  - {skipped['name']}: {skipped['error']}")
-    
+
     _json_dump(manifest, run_dir / "manifest.json")
     return manifest
 

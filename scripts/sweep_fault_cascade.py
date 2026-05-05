@@ -8,20 +8,23 @@ Sweep parameters:
 - Question: Does the system contain failures or amplify them?
 """
 
-import sys
 import os
+import sys
 
 # Add the project root to the system path for module imports
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
-import numpy as np
-import matplotlib.pyplot as plt
-from typing import Dict, List, Tuple
 import logging
 
-from monte_carlo.cascade_runner import CascadeRunner, MonteCarloConfig, Perturbation, PerturbationType
+import matplotlib.pyplot as plt
+import numpy as np
+
 from dynamics.multi_body import MultiBodyStream, Packet, SNode
 from dynamics.rigid_body import RigidBody
+from monte_carlo.cascade_runner import (
+    CascadeRunner,
+    MonteCarloConfig,
+)
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -64,7 +67,7 @@ def create_stream_factory_with_nodes(n_nodes: int = 10):
 
 
 def run_t3_sweep(
-    fault_rate_range: Tuple[float, float] = (1e-6, 1e-3),
+    fault_rate_range: tuple[float, float] = (1e-6, 1e-3),
     n_fault_rate_points: int = 8,
     cascade_threshold: float = 1.05,
     containment_threshold: int = 2,
@@ -74,7 +77,7 @@ def run_t3_sweep(
     enable_cascade_propagation: bool = False,  # NEW: Enable cascade propagation
     fault_injection_mode: str = "rate",  # NEW: Fault injection mode
     n_guaranteed_faults: int = 0,  # NEW: Guaranteed faults
-) -> Dict:
+) -> dict:
     """
     Run T3 sweep: fault rate vs cascade/containment metrics.
 
@@ -101,14 +104,14 @@ def run_t3_sweep(
     nodes_affected_std = []
     containment_rate = []
     success_rate = []
-    
+
     # NEW: Diagnostic tracking - Trust Strategy #1
     fault_events_total_per_point = []
     sanity_warnings = []
 
     logger.info(f"Starting T3 sweep: {n_fault_rate_points} fault rate points, {n_realizations_per_point} runs each")
     logger.info(f"Total Monte-Carlo runs: {n_fault_rate_points * n_realizations_per_point}")
-    
+
     # NEW: Pre-flight sanity check - Trust Strategy #2
     expected_faults_min = fault_rates[0] * time_horizon * n_nodes / 3600.0
     if expected_faults_min < 0.01 and fault_injection_mode == "rate":
@@ -165,11 +168,11 @@ def run_t3_sweep(
         # Calculate containment rate
         containment_count = sum(1 for r in individual_results if r.containment_successful)
         containment_rate.append(containment_count / n_realizations_per_point)
-        
+
         # NEW: Track diagnostic counters - Trust Strategy #1
         faults_at_this_point = sum(r.fault_events_injected for r in individual_results)
         fault_events_total_per_point.append(faults_at_this_point)
-        
+
         # Check sanity - Trust Strategy #2
         if faults_at_this_point == 0 and fault_rate > 0 and fault_injection_mode == "rate":
             sanity_warning = f"NO FAULTS INJECTED at fault_rate={fault_rate:.2e}/hr"
@@ -177,7 +180,7 @@ def run_t3_sweep(
             logger.warning(sanity_warning)
         else:
             sanity_warnings.append("")
-        
+
         logger.info(f"  Faults injected: {faults_at_this_point}, Mean per realization: {faults_at_this_point/n_realizations_per_point:.2f}")
 
     return {
@@ -196,7 +199,7 @@ def run_t3_sweep(
     }
 
 
-def plot_t3_results(results: Dict, output_file: str = 'sweep_t3_fault_cascade.png'):
+def plot_t3_results(results: dict, output_file: str = 'sweep_t3_fault_cascade.png'):
     """Plot T3 sweep results."""
     fault_rates = results['fault_rates']
     cascade_probability = results['cascade_probability']
@@ -233,7 +236,7 @@ def plot_t3_results(results: Dict, output_file: str = 'sweep_t3_fault_cascade.pn
     logger.info(f"Saved T3 sweep plot: {output_file}")
 
 
-def analyze_containment_threshold(results: Dict) -> Dict:
+def analyze_containment_threshold(results: dict) -> dict:
     """Analyze containment threshold from sweep results."""
     fault_rates = results['fault_rates']
     cascade_probability = results['cascade_probability']
@@ -301,7 +304,7 @@ if __name__ == "__main__":
         results['fault_rates'],
         results['cascade_probability'],
         results['containment_rate'],
-        results['success_rate']
+        results['success_rate'], strict=False
     ):
         print(f"  fault_rate={fr:.2e}: cascade={cp:.2e}, containment={cr*100:.1f}%, success={sr*100:.1f}%")
 

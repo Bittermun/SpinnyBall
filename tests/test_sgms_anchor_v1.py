@@ -1,17 +1,15 @@
 import csv
-import math
 import tempfile
 import unittest
 from pathlib import Path
 
 import numpy as np
-
 from sgms_anchor_v1 import (
     DEFAULT_PARAMS,
     analytical_metrics,
-    export_sweep_csv,
     discrete_packet_force,
     estimate_period,
+    export_sweep_csv,
     make_disturbance_series,
     net_anchor_force,
     simulate_anchor,

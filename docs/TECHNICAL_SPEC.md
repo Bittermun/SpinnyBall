@@ -15,8 +15,8 @@ The anchor system suspends a station node via a closed-loop, counter-propagating
 | Flux-pinning stiffness | k_fp | 9,000 | N/m | smco-heavy super-pinning profile |
 | Station mass | ms | 1,000 | kg | Suspended node baseline |
 | Damping coefficient | c_damp | 4.0 | N·s/m | System baseline |
-| Spin rate | omega | 5,236 | rad/s | 50,000 RPM |
-| Packet radius | r | 0.1 | m | Prolate spheroid, SmCo payload |
+| Spin rate | omega | 5,236 | rad/s | 50,000 RPM (CFRP limit) |
+| Packet radius | r | 0.1 | m | Prolate spheroid |
 | Orbital Altitude | h | 550 | km | SSO Baseline |
 
 **Packet Geometry Note**: Packet radius has evolved from 0.02m (early 8kg HTS packets) to 0.1m for the 35kg SmCo-heavy profile to maintain prolate stability and maximize flux-pinning surface area.
@@ -48,7 +48,7 @@ k_eff = lam * u^2 * g_gain + k_fp
 | Optimal (Sobol, 589 m/s) | 8,145 | 6,000–10,000 | Within |
 | Paper target | 8,000 | 6,000–10,000 | Within |
 
-Recommendation: Use optimal Sobol parameters for paper claims, but highlight the 15 km/s regime for multi-ton heavy lifting and cost optimization.
+Recommendation: Use the SmCo-heavy profile (15 km/s) as the primary research focus due to its passive thermal stability and 900x mass-efficiency gain over low-velocity chemical propulsion.
 
 ### Infrastructure Coverage & Cost Scaling
 
@@ -82,18 +82,19 @@ F = lam * u^2
 ### Centrifugal Stress
 
 ```
-sigma = rho * r^2 * omega^2   [rho = 2500 kg/m^3 BFRP]
+sigma = m * omega^2 / (4 * pi * r)   [Thin-shell approximation]
 ```
 
-| Spin Rate | RPM | Stress (MPa) | Margin |
-|-----------|-----|--------------|--------|
-| 5,236 rad/s | 50,000 | 765.4 | 4.3% (SF=1.04) |
-| 4,000 rad/s | 38,197 | 447.0 | 44.1% (SF=1.79) |
-| 5,354 rad/s | 51,126 | 800.0 | At limit |
+| Spin Rate | RPM | Stress (MPa) | BFRP Margin (800 MPa) | CFRP Margin (2000 MPa) |
+|-----------|-----|--------------|----------------------|----------------------|
+| 5,236 rad/s | 50,000 | 765.4 | 4.3% (SF=1.04) ⚠️ | 161.4% (SF=2.61) ✅ |
+| 4,000 rad/s | 38,197 | 447.0 | 44.1% (SF=1.79) | 347.4% (SF=4.47) |
+| 5,354 rad/s | 51,126 | 800.0 | At limit | 150.0% (SF=2.50) |
 
-**Material Limit**: Utilizes 800 MPa BFRP/Carbon-Fiber containment jacket. The 10cm radius SmCo payload operates at ~765 MPa at 50,000 RPM, staying within the structural limit with a 1.5x safety factor assumed for ultimate tensile strength (UTS) vs operational limit.
-
-Note: High-RPM stability is critical for gyroscopic stabilization at extreme velocities. Reducing to 40,000 RPM provides a 44% safety margin.
+**Material Limit**: The recommended configuration uses a CFRP (T700 grade) containment jacket
+with 2.0 GPa allowable stress. The 10cm radius SmCo payload operates at ~765 MPa at 50,000 RPM,
+providing SF=2.61 with CFRP. BFRP (800 MPa) is insufficient at this spin rate (SF=1.04).
+Reducing to 40,000 RPM with BFRP provides SF=1.79.
 
 ### Radiative Thermal Limit
 
@@ -126,6 +127,24 @@ The station is modeled in a 550 km Sun-Synchronous Orbit (SSO):
 - **Solar Radiation Pressure (SRP)**: Adds a cyclic force of ~0.08 N, easily compensated by the k_eff = 2.3e6 N/m stiffness.
 - **Atmospheric Drag**: At 550 km, drag is negligible (10^-9 N) for the packet stream but non-zero for the 1000kg station node.
 - **Eclipse Effects**: 35-minute eclipse per 95-minute orbit causes packet temperature to fluctuate between 280K and 379K. SmCo stiffness variance over this range is < 2%.
+
+### Control-Latency Stability Boundary
+
+The stability of the closed-loop shepherding system is sensitive to the feedback latency $t_{delay}$ between packet-state measurement and actuator torque application.
+
+**Stability Criterion**: The system is considered stable if the libration amplitude remains bounded within $\pm 0.1 \text{ rad}$ and the induction efficiency $\eta_{ind}$ stays above 0.82 throughout a 2.0s disturbance event.
+
+**Empirical Boundary (JAX High-Res Sweep)**:
+- At $\eta_{ind} = 0.90$: Stability is maintained up to $t_{delay} = 65\text{ms}$.
+- At $\eta_{ind} = 0.82$ (safety limit): Stability is maintained up to $t_{delay} = 42\text{ms}$.
+- **Operational Recommendation**: Maintain hardware-in-the-loop latency $< 20\text{ms}$ for a $2.1\times$ stability margin.
+
+### JAX Acceleration Methodology
+
+To enable large-scale Monte Carlo validation ($N > 10^5$ realizations), the simulation utilizes a JAX-accelerated XLA engine:
+1. **LQR Surrogate**: The symbolic CasADi MPC is replaced with a pre-computed LQR feedback matrix $K$ that maps directly to JAX matrix primitives.
+2. **Vectorized RK4**: The 6-DOF integrator is fully vectorized across realizations, allowing simultaneous processing of thousands of packets.
+3. **Hardware Speedup**: Achieves 0.96s per full sweep campaign (3,751x speedup vs. sequential CPU), enabling sub-minute convergence on publication-grade stability heatmaps.
 
 ---
 

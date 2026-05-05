@@ -16,8 +16,8 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from dynamics.rigid_body import RigidBody
 from dynamics.gyro_matrix import gyroscopic_coupling
+from dynamics.rigid_body import RigidBody
 
 
 class TestMassSweep:
@@ -197,7 +197,7 @@ class TestRPMSweep:
             return np.array([0.0, 0.0, 0.0])
 
         # Integrate for 0.1 second
-        result = body.integrate(
+        body.integrate(
             t_span=(0.0, 0.1),
             torques=zero_torque,
             method="RK45",

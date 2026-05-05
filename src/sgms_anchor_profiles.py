@@ -19,10 +19,10 @@ def load_anchor_profiles(path: str | Path) -> dict:
 
 def load_material_catalog(path: str | Path = "paper_model/gdbco_apc_catalog.json") -> dict:
     """Load material catalog from JSON file.
-    
+
     Args:
         path: Path to material catalog JSON file
-        
+
     Returns:
         Dictionary with material profiles
     """
@@ -35,10 +35,10 @@ def load_material_catalog(path: str | Path = "paper_model/gdbco_apc_catalog.json
 
 def load_geometry_catalog(path: str | Path = "geometry_profiles.json") -> dict:
     """Load geometry catalog from JSON file.
-    
+
     Args:
         path: Path to geometry catalog JSON file
-        
+
     Returns:
         Dictionary with geometry profiles
     """
@@ -51,10 +51,10 @@ def load_geometry_catalog(path: str | Path = "geometry_profiles.json") -> dict:
 
 def load_environment_catalog(path: str | Path = "environment_profiles.json") -> dict:
     """Load environment catalog from JSON file.
-    
+
     Args:
         path: Path to environment catalog JSON file
-        
+
     Returns:
         Dictionary with environment profiles
     """
@@ -70,15 +70,15 @@ def _profile_lookup(profile_data: dict) -> dict[str, dict]:
 
 
 def _material_lookup(material_data: dict) -> dict[str, dict]:
-    return {name: profile for name, profile in material_data.get("material_profiles", {}).items()}
+    return dict(material_data.get("material_profiles", {}).items())
 
 
 def _geometry_lookup(geometry_data: dict) -> dict[str, dict]:
-    return {name: profile for name, profile in geometry_data.get("geometry_profiles", {}).items()}
+    return dict(geometry_data.get("geometry_profiles", {}).items())
 
 
 def _environment_lookup(environment_data: dict) -> dict[str, dict]:
-    return {name: profile for name, profile in environment_data.get("environment_profiles", {}).items()}
+    return dict(environment_data.get("environment_profiles", {}).items())
 
 
 def _validate_material_profile(material_profile: dict) -> None:
@@ -87,7 +87,7 @@ def _validate_material_profile(material_profile: dict) -> None:
     for field in required_fields:
         if field not in material_profile:
             raise ValueError(f"Material profile missing required field: {field}")
-    
+
     if "k_fp_range" in material_profile:
         k_fp_range = material_profile["k_fp_range"]
         if not isinstance(k_fp_range, list) or len(k_fp_range) != 2:
@@ -104,12 +104,12 @@ def _validate_geometry_profile(geometry_profile: dict) -> None:
     for field in required_fields:
         if field not in geometry_profile:
             raise ValueError(f"Geometry profile missing required field: {field}")
-    
+
     if not isinstance(geometry_profile["mass"], (int, float)):
         raise ValueError("Geometry profile mass must be a number")
     if geometry_profile["mass"] <= 0:
         raise ValueError("Geometry profile mass must be positive")
-    
+
     if not isinstance(geometry_profile["radius"], (int, float)):
         raise ValueError("Geometry profile radius must be a number")
     if geometry_profile["radius"] <= 0:
@@ -122,12 +122,12 @@ def _validate_environment_profile(environment_profile: dict) -> None:
     for field in required_fields:
         if field not in environment_profile:
             raise ValueError(f"Environment profile missing required field: {field}")
-    
+
     if not isinstance(environment_profile["temperature"], (int, float)):
         raise ValueError("Environment profile temperature must be a number")
     if environment_profile["temperature"] < 0:
         raise ValueError("Environment profile temperature must be non-negative (in Kelvin)")
-    
+
     if not isinstance(environment_profile["B_field"], (int, float)):
         raise ValueError("Environment profile B_field must be a number")
     if environment_profile["B_field"] < 0:

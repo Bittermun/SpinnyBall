@@ -16,15 +16,12 @@ Validation Metrics:
 MuJoCo serves as the ground-truth oracle for 6-DoF rigid-body dynamics.
 """
 
+import os
+from dataclasses import dataclass
+
 import mujoco
 import mujoco.viewer
 import numpy as np
-from dataclasses import dataclass
-import time
-from pathlib import Path
-from typing import Tuple, Dict, Optional
-from scipy.spatial.transform import Rotation as R
-import os
 
 # Configuration: Debug vs Operational mode
 # Set environment variable SPINNYBALL_MODE=operational to use operational values
@@ -105,14 +102,8 @@ class SpinPacketValidation:
 
     def _build_xml(self):
         # Use canonical inertia from RKN XML v1.1
-        m = self.p.mp
-        a = self.p.major_axis
-        c = self.p.minor_axis
         # Canonical values from RKN XML v1.1: I_axial ≈ 0.00128 kg·m², I_trans ≈ 0.00208 kg·m²
-        ix = 0.00128  # I_axial (about major axis)
-        iy = 0.00208  # I_trans (about transverse axes)
-        iz = iy
-        
+
         xml = f"""
         <mujoco model="spin_packet_validation">
           <option timestep="0.0005" integrator="RK4"/>
@@ -123,7 +114,7 @@ class SpinPacketValidation:
           <worldbody>
             <light pos="0 0 10" dir="0 0 -1" diffuse="1 1 1"/>
             <geom name="floor" type="plane" size="10 10 .1" material="grid"/>
-            
+
             <body name="node" pos="0 0 0">
               <camera name="track" pos="3 3 3" mode="trackcom"/>
               <geom type="box" size="0.2 0.2 0.2" mass="{self.p.node_mass}" rgba="0.8 0.8 0.8 1"/>
@@ -132,7 +123,7 @@ class SpinPacketValidation:
 
             {"".join(f'''
             <body name="packet{i}" pos="{(i-20)*0.12} 0 0.5">
-              <geom type="ellipsoid" size="{self.p.major_axis} {self.p.minor_axis} {self.p.minor_axis}" 
+              <geom type="ellipsoid" size="{self.p.major_axis} {self.p.minor_axis} {self.p.minor_axis}"
                     mass="{self.p.mp}" rgba="0.2 0.6 1.0 1"/>
               <joint type="free"/>
             </body>''' for i in range(self.p.num_packets))}
@@ -156,7 +147,7 @@ class SpinPacketValidation:
         for i in range(2, self.model.nbody): # packets start at body 2
             p_pos = self.data.xpos[i]
             r = p_pos - node_pos
-            dist = np.linalg.norm(r)
+            np.linalg.norm(r)
 
             # 1. Momentum Flux Restoration (Reduced Order Law)
             # F = lambda * u^2 * theta
@@ -194,7 +185,7 @@ class SpinPacketValidation:
 
         self.trajectory_history.append(frame_data)
 
-    def get_validation_metrics(self) -> Dict:
+    def get_validation_metrics(self) -> dict:
         """
         Compute validation metrics from recorded trajectory.
 
@@ -229,7 +220,7 @@ class SpinPacketValidation:
             'final_time': self.trajectory_history[-1]['time'],
         }
 
-def run_validation(gui=True, steps=2000) -> Dict:
+def run_validation(gui=True, steps=2000) -> dict:
     """
     Run MuJoCo 6-DoF oracle validation.
 
@@ -243,7 +234,7 @@ def run_validation(gui=True, steps=2000) -> Dict:
     p = PacketParams()
     sim = SpinPacketValidation(p)
 
-    print(f"Starting 6-DOF Oracle Validation")
+    print("Starting 6-DOF Oracle Validation")
     print(f"  Spin: {p.omega_spin / (2*np.pi):.1f} Hz (~{p.omega_spin * 60 / (2*np.pi):.0f} RPM)")
     print(f"  Pinning stiffness: {p.k_fp} N/m")
     print(f"  Packet mass: {p.mp} kg")
@@ -260,7 +251,7 @@ def run_validation(gui=True, steps=2000) -> Dict:
             sim.step()
 
     metrics = sim.get_validation_metrics()
-    print(f"\n=== Oracle Validation Results ===")
+    print("\n=== Oracle Validation Results ===")
     print(f"  Peak node Y-displacement: {metrics['peak_displacement_mm']:.3f} mm")
     print(f"  Angular momentum conservation error: {metrics['angular_momentum_conservation_error']:.2e}")
     print(f"  Simulation time: {metrics['final_time']:.3f} s")

@@ -46,8 +46,8 @@ P_total_kW,k_fp,0.0,0.0
 P_total_kW,spacing,0.0,0.0
 stress_margin,u,0.0,0.0
 stress_margin,mp,0.40485061105693293,0.8869852570600495
-stress_margin,r,0.23777733349644817,0.3054222384452972
-stress_margin,omega,0.11894916068421554,0.4553104519524645
+stress_margin,r,0.23777733349644822,0.30542223844529726
+stress_margin,omega,0.1189491606842155,0.45531045195246445
 stress_margin,h_km,0.0,0.0
 stress_margin,ms,0.0,0.0
 stress_margin,g_gain,0.0,0.0

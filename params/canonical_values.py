@@ -12,41 +12,41 @@ DISCREPANCY RESOLUTION:
 - k_fp: Context-dependent - see MATERIAL_PROPERTIES for scaling relationships
 """
 
-from typing import Dict, Any
+from typing import Any
 
 # =============================================================================
 # PHYSICAL CONSTANTS (Universal, from CODATA/NIST where applicable)
 # =============================================================================
 
-PHYSICAL_CONSTANTS: Dict[str, Any] = {
+PHYSICAL_CONSTANTS: dict[str, Any] = {
     # Stefan-Boltzmann constant
     'stefan_boltzmann': {
         'value': 5.670374419e-8,  # W/(m²·K⁴)
         'uncertainty': 0.0,  # Exact by definition (2019 SI redefinition)
         'source': 'CODATA 2018',
     },
-    
+
     # Boltzmann constant
     'boltzmann': {
         'value': 1.380649e-23,  # J/K
         'uncertainty': 0.0,  # Exact by definition (2019 SI redefinition)
         'source': 'CODATA 2018',
     },
-    
+
     # Elementary charge
     'elementary_charge': {
         'value': 1.602176634e-19,  # C
         'uncertainty': 0.0,  # Exact by definition
         'source': 'CODATA 2018',
     },
-    
+
     # Vacuum permeability
     'mu0': {
         'value': 1.25663706212e-6,  # H/m (N/A²)
         'uncertainty': 1.9e-16,
         'source': 'CODATA 2018',
     },
-    
+
     # Vacuum permittivity
     'eps0': {
         'value': 8.8541878128e-12,  # F/m
@@ -59,7 +59,7 @@ PHYSICAL_CONSTANTS: Dict[str, Any] = {
 # MATERIAL PROPERTIES (GdBCO Superconductor)
 # =============================================================================
 
-MATERIAL_PROPERTIES: Dict[str, Any] = {
+MATERIAL_PROPERTIES: dict[str, Any] = {
     'GdBCO': {
         # Critical temperature
         'Tc': {
@@ -68,7 +68,7 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'source': 'Standard REBCO properties',
             'note': 'Gadolinium Barium Copper Oxide critical temperature',
         },
-        
+
         # Critical current density at 0K, 0T
         'Jc0': {
             'value': 3e10,  # A/m²
@@ -77,7 +77,7 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'note': 'RESOLVED: Previously had 15x discrepancy between modules. '
                     'Unified to 3e10 A/m² based on thin-film tape measurements.',
         },
-        
+
         # Flux pinning stiffness range (bulk samples)
         'k_fp_bulk_range': {
             'value': [80000, 120000],  # N/m
@@ -86,35 +86,35 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'note': 'Measured from bulk samples (10mm x 10mm x 1mm). '
                     'Apply geometry scaling for thin-film tape.',
         },
-        
+
         # Geometry scaling factor for thin-film tape
         'geometry_scaling_factor': {
             'value': 0.12,  # dimensionless
             'calculation': '(1e-6 × 0.012 × 1.0) / (0.01 × 0.01 × 0.001)',
             'note': 'Volume ratio: V_tape / V_bulk. Use to scale k_fp from bulk to tape geometry.',
         },
-        
+
         # n-exponent for E-J power law
         'n_exponent': {
             'value': 1.5,
             'uncertainty': 0.5,
             'source': 'HTS flux creep literature',
         },
-        
+
         # Characteristic magnetic field
         'B0': {
             'value': 5.0,  # T
             'uncertainty': 1.0,
             'source': 'Bean-London model parameter',
         },
-        
+
         # Field dependence exponent
         'alpha': {
             'value': 0.5,
             'uncertainty': 0.1,
             'source': 'Kim-Anderson model',
         },
-        
+
         # Physical properties
         'density': {
             'value': 6380,  # kg/m³
@@ -131,36 +131,36 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'note': 'At 77K',
         },
     },
-    
+
     'YBCO': {
         # Critical temperature
         'Tc': {
             'value': 92.0,  # K
             'source': 'Standard REBCO',
         },
-        
+
         # Critical current density at 0K, 0T
         'Jc0': {
             'value': 3e10,  # A/m²
             'source': 'Comparable to GdBCO',
         },
-        
+
         # n-exponent for E-J power law
         'n_exponent': {
             'value': 1.5,
         },
-        
+
         # Characteristic magnetic field (lower irreversibility field than GdBCO)
         'B0': {
             'value': 3.0,  # T
             'note': 'Lower irreversibility field than GdBCO',
         },
-        
+
         # Field dependence exponent
         'alpha': {
             'value': 0.5,
         },
-        
+
         # Physical properties
         'density': {
             'value': 6380,  # kg/m³
@@ -173,14 +173,14 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'value': 3.0,  # W/m/K at 77K
             'note': 'At 77K',
         },
-        
+
         # Flux pinning stiffness range (bulk samples) - lower than GdBCO
         'k_fp_bulk_range': {
             'value': [30000, 60000],  # N/m
             'note': 'Lower than GdBCO',
         },
     },
-    
+
     'BFRP': {
         # Density
         'density': {
@@ -188,7 +188,7 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'uncertainty': 100,
             'source': 'Composite materials handbook',
         },
-        
+
         # Tensile strength limit
         'tensile_strength': {
             'value': 1.2e9,  # Pa (1.2 GPa)
@@ -197,7 +197,7 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'safety_factor': 1.5,
             'allowable_stress': 8e8,  # 800 MPa with SF=1.5
         },
-        
+
         # Thermal emissivity
         'emissivity': {
             'value': 0.85,
@@ -205,106 +205,106 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'source': 'Surface coating data',
         },
     },
-    
+
     'CFRP': {
         # Density
         'density': {
             'value': 1580,  # kg/m³
         },
-        
+
         # Tensile strength (T700 grade)
         'tensile_strength': {
             'value': 3.0e9,  # Pa (3.0 GPa)
             'note': 'T700 grade',
         },
-        
+
         # Safety factor
         'safety_factor': {
             'value': 1.5,
         },
-        
+
         # Allowable stress
         'allowable_stress': {
             'value': 2.0e9,  # Pa (2.0 GPa)
         },
-        
+
         # Thermal emissivity
         'emissivity': {
             'value': 0.88,
         },
-        
+
         # Maximum operating temperature (epoxy limited)
         'max_operating_temp': {
             'value': 423,  # K (150C)
             'note': 'K (150C, epoxy limited)',
         },
     },
-    
+
     'CNT_yarn': {
         # Density
         'density': {
             'value': 1400,  # kg/m³
         },
-        
+
         # Tensile strength (state-of-art CNT yarn)
         'tensile_strength': {
             'value': 5.0e9,  # Pa (5.0 GPa)
             'note': 'State-of-art CNT yarn',
         },
-        
+
         # Safety factor (higher for less mature technology)
         'safety_factor': {
             'value': 2.0,
         },
-        
+
         # Allowable stress
         'allowable_stress': {
             'value': 2.5e9,  # Pa (2.5 GPa)
         },
-        
+
         # Thermal emissivity (near-blackbody)
         'emissivity': {
             'value': 0.98,
             'note': 'Near-blackbody',
         },
-        
+
         # Maximum operating temperature
         'max_operating_temp': {
             'value': 873,  # K (600C in vacuum)
             'note': 'K (600C in vacuum)',
         },
     },
-    
+
     'NdFeB': {
         # Remanence (N52 grade)
         'remanence': {
             'value': 1.45,  # T
             'source': 'N52 grade',
         },
-        
+
         # Coercivity
         'coercivity': {
             'value': 875e3,  # A/m
             'note': 'A/m',
         },
-        
+
         # Maximum operating temperature
         'max_operating_temp': {
             'value': 353,  # K (80C for N52)
             'note': 'K (80C for N52)',
         },
-        
+
         # Curie temperature
         'curie_temp': {
             'value': 583,  # K
             'note': 'K',
         },
-        
+
         # Density
         'density': {
             'value': 7500,  # kg/m³
         },
-        
+
         # Thermal coefficient of remanence (4x more sensitive than SmCo)
         'alpha_Br': {
             'value': -0.0012,  # /K (-0.12%/K)
@@ -312,41 +312,41 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
             'note': '4x more sensitive than SmCo (-0.03%/K)',
         },
     },
-    
+
     'SmCo': {
         # Note: SmCo is an alternative magnet material (not superconductor)
         # See TECHNICAL_SPEC.md lines 116-120 for qualitative trade study
-        
+
         # Remanence
         'remanence': {
             'value': 1.1,  # T
             'source': 'Magnet manufacturer catalog',
         },
-        
+
         # Coercivity
         'coercivity': {
             'value': 700e3,  # A/m
             'source': 'Magnet manufacturer catalog',
         },
-        
+
         # Maximum operating temperature
         'max_operating_temp': {
             'value': 573,  # K (300C)
             'source': 'SmCo thermal stability data',
         },
-        
+
         # Curie temperature
         'curie_temp': {
             'value': 1023,  # K (750C)
             'source': 'SmCo thermal stability data',
         },
-        
+
         # Density
         'density': {
             'value': 8400,  # kg/m³
             'source': 'Permanent magnet material data',
         },
-        
+
         # Thermal coefficient of remanence (very stable)
         'alpha_Br': {
             'value': -0.0003,  # /K (-0.03%/K)
@@ -360,7 +360,7 @@ MATERIAL_PROPERTIES: Dict[str, Any] = {
 # SIMULATION PARAMETERS (Default operational values)
 # =============================================================================
 
-SIMULATION_PARAMS: Dict[str, Any] = {
+SIMULATION_PARAMS: dict[str, Any] = {
     # Flux-pinning geometry (thin-film tape)
     'flux_pinning': {
         'thickness': {
@@ -376,7 +376,7 @@ SIMULATION_PARAMS: Dict[str, Any] = {
             'note': 'Active length of tape in simulation',
         },
     },
-    
+
     # Operating conditions
     'operating_conditions': {
         'temperature': {
@@ -389,7 +389,7 @@ SIMULATION_PARAMS: Dict[str, Any] = {
             'note': 'Thermal runaway threshold',
         },
     },
-    
+
     # Control system defaults
     'control': {
         'g_gain_default': {
@@ -401,7 +401,7 @@ SIMULATION_PARAMS: Dict[str, Any] = {
             'note': 'Baseline structural damping',
         },
     },
-    
+
     # Monte Carlo settings
     'monte_carlo': {
         'n_converged': {
@@ -419,7 +419,7 @@ SIMULATION_PARAMS: Dict[str, Any] = {
 # GEOMETRY PARAMETERS (System configuration)
 # =============================================================================
 
-GEOMETRY_PARAMS: Dict[str, Any] = {
+GEOMETRY_PARAMS: dict[str, Any] = {
     # Prolate spheroid packet geometry
     'packet': {
         'radius': {
@@ -431,7 +431,7 @@ GEOMETRY_PARAMS: Dict[str, Any] = {
             'note': 'Packet spacing along stream',
         },
     },
-    
+
     # Anchor station
     'station': {
         'mass_default': {
@@ -439,7 +439,7 @@ GEOMETRY_PARAMS: Dict[str, Any] = {
             'note': 'Suspended node baseline mass',
         },
     },
-    
+
     # Spin dynamics
     'spin': {
         'rate_operational': {
@@ -461,16 +461,16 @@ GEOMETRY_PARAMS: Dict[str, Any] = {
 def get_parameter(category: str, subcategory: str, key: str) -> float:
     """
     Retrieve a canonical parameter value.
-    
+
     Args:
-        category: One of 'PHYSICAL_CONSTANTS', 'MATERIAL_PROPERTIES', 
+        category: One of 'PHYSICAL_CONSTANTS', 'MATERIAL_PROPERTIES',
                   'SIMULATION_PARAMS', 'GEOMETRY_PARAMS'
         subcategory: Material name or subsystem (e.g., 'GdBCO', 'flux_pinning')
         key: Parameter name (e.g., 'Jc0', 'thickness')
-        
+
     Returns:
         The parameter value
-        
+
     Raises:
         KeyError: If parameter not found
     """
@@ -480,18 +480,18 @@ def get_parameter(category: str, subcategory: str, key: str) -> float:
         'SIMULATION_PARAMS': SIMULATION_PARAMS,
         'GEOMETRY_PARAMS': GEOMETRY_PARAMS,
     }
-    
+
     if category not in registry:
         raise KeyError(f"Unknown category: {category}")
-    
+
     cat_dict = registry[category]
     if subcategory not in cat_dict:
         raise KeyError(f"Unknown subcategory: {subcategory}")
-    
+
     param = cat_dict[subcategory].get(key)
     if param is None:
         raise KeyError(f"Unknown parameter: {category}.{subcategory}.{key}")
-    
+
     if isinstance(param, dict):
         return param.get('value', param)
     return param
@@ -500,30 +500,30 @@ def get_parameter(category: str, subcategory: str, key: str) -> float:
 def validate_parameters() -> list:
     """
     Validate that all canonical parameters are within reasonable ranges.
-    
+
     Returns:
         List of validation warnings (empty if all OK)
     """
     warnings = []
-    
+
     # Check Jc0 is positive and in expected range
     jc0 = MATERIAL_PROPERTIES['GdBCO']['Jc0']['value']
     if jc0 <= 0:
         warnings.append(f"Jc0 must be positive, got {jc0}")
     if jc0 < 1e8 or jc0 > 1e12:
         warnings.append(f"Jc0={jc0} A/m² outside typical HTS range [1e8, 1e12]")
-    
+
     # Check temperature is below Tc
     T_op = SIMULATION_PARAMS['operating_conditions']['temperature']['value']
     Tc = MATERIAL_PROPERTIES['GdBCO']['Tc']['value']
     if T_op >= Tc:
         warnings.append(f"Operating temp {T_op}K >= Tc {Tc}K - superconductor would quench")
-    
+
     # Check geometry scaling factor
     scale = MATERIAL_PROPERTIES['GdBCO']['geometry_scaling_factor']['value']
     if scale <= 0 or scale > 1:
         warnings.append(f"Geometry scaling factor {scale} should be in (0, 1]")
-    
+
     return warnings
 
 
@@ -531,7 +531,7 @@ if __name__ == '__main__':
     # Self-test
     print("Canonical Parameters Validation")
     print("=" * 50)
-    
+
     warnings = validate_parameters()
     if warnings:
         print("WARNINGS:")
@@ -539,7 +539,7 @@ if __name__ == '__main__':
             print(f"  ⚠ {w}")
     else:
         print("✓ All parameters validated successfully")
-    
+
     print("\nKey Values:")
     print(f"  Jc0 = {MATERIAL_PROPERTIES['GdBCO']['Jc0']['value']} A/m²")
     print(f"  Tc = {MATERIAL_PROPERTIES['GdBCO']['Tc']['value']} K")

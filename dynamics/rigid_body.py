@@ -19,11 +19,10 @@ Reference: Goldstein, Classical Mechanics (3rd ed.), Chapter 4
 
 from __future__ import annotations
 
+from collections.abc import Callable
+from typing import TYPE_CHECKING
+
 import numpy as np
-import warnings
-
-from typing import TYPE_CHECKING, Callable, Optional
-
 from scipy.integrate import solve_ivp
 from scipy.spatial.transform import Rotation as R
 
@@ -57,13 +56,13 @@ except ImportError:
 
 def geometry_profile_to_inertia(geometry_profile: dict | None) -> np.ndarray:
     """Convert geometry profile dict to inertia tensor.
-    
+
     Args:
         geometry_profile: Geometry profile dict from catalog, or None for defaults
-        
+
     Returns:
         3x3 inertia tensor (kg·m²)
-        
+
     Note:
         This function is defined but not yet integrated into the simulation pipeline.
         TODO: Integrate geometry_profile_to_inertia into sgms_anchor_pipeline.py and
@@ -75,11 +74,11 @@ def geometry_profile_to_inertia(geometry_profile: dict | None) -> np.ndarray:
         radius = 0.02
         I_sphere = (2.0/5.0) * mass * radius**2
         return np.diag([I_sphere, I_sphere, I_sphere])
-    
+
     shape = geometry_profile.get("shape", "sphere")
     mass = geometry_profile.get("mass", 0.05)
     radius = geometry_profile.get("radius", 0.02)
-    
+
     if shape == "sphere":
         I_sphere = (2.0/5.0) * mass * radius**2
         return np.diag([I_sphere, I_sphere, I_sphere])
@@ -164,28 +163,28 @@ def quaternion_derivative(q: np.ndarray, omega: np.ndarray) -> np.ndarray:
     # Quaternion multiplication: q̇ = 0.5 * q * omega_quat
     # where omega_quat = [0, ωx, ωy, ωz]
     omega_quat = np.array([0.0, omega[0], omega[1], omega[2]])
-    
+
     # Quaternion multiplication formula
     qw, qx, qy, qz = q
     ow, ox, oy, oz = omega_quat
-    
+
     dq = 0.5 * np.array([
         qw*ow - qx*ox - qy*oy - qz*oz,
         qw*ox + qx*ow + qy*oz - qz*oy,
         qw*oy - qx*oz + qy*ow + qz*ox,
         qw*oz + qx*oy - qy*ox + qz*ow,
     ])
-    
+
     return dq
 
 
 def normalize_quaternion(q: np.ndarray) -> np.ndarray:
     """
     Normalize quaternion to unit magnitude.
-    
+
     Args:
         q: Quaternion [w, x, y, z]
-    
+
     Returns:
         Normalized quaternion
     """
@@ -275,22 +274,22 @@ def _euler_equations_numba(
     # Extract quaternion (scalar-last) and omega
     q_scipy = state[:4]
     omega = state[4:]
-    
+
     # Convert to scalar-first
     q_scalar_first = np.array([q_scipy[3], q_scipy[0], q_scipy[1], q_scipy[2]])
-    
+
     # Compute quaternion derivative
     dq_scalar_first = _quaternion_derivative_numba(q_scalar_first, omega)
     # Convert back to scalar-last
     dq_scipy = np.array([dq_scalar_first[1], dq_scalar_first[2], dq_scalar_first[3], dq_scalar_first[0]])
-    
+
     # Compute gyroscopic coupling
     I_omega = I @ omega
     gyro_coupling = _skew_symmetric_numba(omega) @ I_omega
-    
+
     # Solve for angular acceleration
     alpha = I_inv @ (torque_vector - gyro_coupling)
-    
+
     # Manual concatenation for Numba compatibility
     result = np.empty(7)
     result[0] = dq_scipy[0]
@@ -308,50 +307,50 @@ def euler_equations(
     state: np.ndarray,
     I: np.ndarray,
     torques: Callable[[float, np.ndarray], np.ndarray],
-    I_inv: Optional[np.ndarray] = None,
+    I_inv: np.ndarray | None = None,
 ) -> np.ndarray:
     """
     Full Euler rotational dynamics with explicit gyroscopic coupling.
-    
+
     State vector: [qx, qy, qz, qw, ωx, ωy, ωz] (quaternion + angular velocity)
     Note: scipy Rotation uses scalar-last, but we use scalar-first internally
     for derivative computation.
-    
+
     Governing equation:
         I * ω̇ + ω × (I * ω) = τ
-    
+
     Rearranged:
         ω̇ = I⁻¹ * (τ - ω × (I * ω))
-    
+
     Args:
         t: Time
         state: State vector [qx, qy, qz, qw, ωx, ωy, ωz] (scalar-last for scipy)
         I: 3×3 inertia tensor in body frame (kg·m²)
         torques: Function torques(t, state) returning total torque vector [τx, τy, τz]
         I_inv: Optional precomputed inertia tensor inverse
-    
+
     Returns:
         State derivative [q̇x, q̇y, q̇z, q̇w, ω̇x, ω̇y, ω̇z]
     """
     # Validate state shape
     state = validate_state_vector(state)
-    
+
     # Extract quaternion (scalar-last for scipy compatibility)
     q_scipy = state[:4]  # [qx, qy, qz, qw]
     omega = state[4:]    # [ωx, ωy, ωz]
-    
+
     # Convert to scalar-first for derivative computation
     q_scalar_first = scalar_last_to_first(q_scipy)
-    
+
     # Compute quaternion derivative
     dq_scalar_first = quaternion_derivative(q_scalar_first, omega)
     # Convert back to scalar-last
     dq_scipy = scalar_first_to_last(dq_scalar_first)
-    
+
     # Compute gyroscopic coupling: ω × (I * ω)
     I_omega = I @ omega
     gyro_coupling = skew_symmetric(omega) @ I_omega
-    
+
     # Get total torque
     tau = np.asarray(torques(t, state), dtype=float)
     if tau.ndim == 0:
@@ -365,7 +364,7 @@ def euler_equations(
     if I_inv is None:
         I_inv = np.linalg.inv(I)
     alpha = I_inv @ (tau - gyro_coupling)
-    
+
     return np.concatenate([dq_scipy, alpha])
 
 
@@ -382,7 +381,7 @@ class RigidBody:
         I: Inertia tensor in body frame (kg·m²)
         state: Current state [qx, qy, qz, qw, ωx, ωy, ωz]
     """
-    
+
     def __init__(
         self,
         mass: float,
@@ -392,7 +391,7 @@ class RigidBody:
         quaternion: np.ndarray = None,
         angular_velocity: np.ndarray = None,
         I_inv: np.ndarray = None,
-        flux_model: Optional[BeanLondonModel] = None,
+        flux_model: BeanLondonModel | None = None,
     ):
         """
         Initialize rigid body.
@@ -446,7 +445,7 @@ class RigidBody:
             self.quaternion,
             self.angular_velocity,
         ])
-    
+
     @property
     def rotation_matrix(self) -> np.ndarray:
         """Get current rotation matrix from quaternion."""
@@ -475,12 +474,12 @@ class RigidBody:
     def I(self) -> np.ndarray:
         """Inertia tensor in body frame (kg·m²)."""
         return self._I
-    
+
     @property
     def angular_momentum(self) -> np.ndarray:
         """Compute angular momentum L = I * ω in body frame."""
         return self._I @ self.angular_velocity
-    
+
     @property
     def rotational_energy(self) -> float:
         """Compute rotational kinetic energy E = 0.5 * ωᵀ * I * ω."""
@@ -492,11 +491,11 @@ class RigidBody:
         if self._I_inv is None:
             self._I_inv = np.linalg.inv(self.I)
         return self._I_inv
-    
+
     def integrate_numba_rk4_zero_torque(
         self,
         t_span: tuple[float, float],
-        dt: float = 0.01,
+        dt: float = 0.0005,  # 0.5ms: supports up to 50k RPM (Nyquist: period=1.2ms → dt≤0.6ms)
     ) -> dict:
         """
         Integrate using Numba-compiled RK4 with zero torque (no function callback).
@@ -529,7 +528,6 @@ class RigidBody:
         for i in range(n_steps):
             # Inline RK4 step with zero-torque Euler equations
             y = current_state
-            t = current_t
 
             # k1
             q_scipy = y[:4]
@@ -606,7 +604,7 @@ class RigidBody:
         self,
         t_span: tuple[float, float],
         torques: Callable[[float, np.ndarray], np.ndarray],
-        dt: float = 0.01,
+        dt: float = 0.0005,  # 0.5ms: supports up to 50k RPM (Nyquist: period=1.2ms → dt≤0.6ms)
     ) -> dict:
         """
         Integrate using Numba-compiled RK4 (much faster than solve_ivp).
@@ -646,6 +644,11 @@ class RigidBody:
         for i in range(n_steps):
             current_state = _rk4_step(rhs, current_t, current_state, dt)
             current_t += dt
+
+            # Renormalize quaternion to prevent drift during integration
+            q_norm = np.linalg.norm(current_state[:4])
+            if q_norm > 1e-12:
+                current_state[:4] = current_state[:4] / q_norm
 
             t_values[i + 1] = current_t
             state_values[:, i + 1] = current_state
@@ -700,7 +703,7 @@ class RigidBody:
             return self.integrate_numba_rk4(t_span, torques, dt=max_step if max_step < 0.1 else 0.01)
         def rhs(t, y):
             return euler_equations(t, y, self.I, torques, I_inv=self.I_inv)
-        
+
         sol = solve_ivp(
             rhs,
             t_span,
@@ -711,22 +714,22 @@ class RigidBody:
             max_step=max_step,
             dense_output=dense_output,
         )
-        
+
         # Update final state
         self.state = sol.y[:, -1]
         self.quaternion = self.state[:4]
         self.angular_velocity = self.state[4:]
-        
+
         # Renormalize quaternion to prevent drift
         self.quaternion = normalize_quaternion(self.quaternion)
-        
+
         return {
             "t": sol.t,
             "state": sol.y,
             "sol": sol,
         }
-    
-    def set_inertia(self, I: np.ndarray, I_inv: Optional[np.ndarray] = None):
+
+    def set_inertia(self, I: np.ndarray, I_inv: np.ndarray | None = None):
         """
         Set new inertia tensor and invalidate cache.
 
@@ -751,7 +754,7 @@ class RigidBody:
             self._I_inv = None  # Invalidate cache
 
         self._I = I
-    
+
     def reset_state(
         self,
         quaternion: np.ndarray = None,
@@ -769,7 +772,7 @@ class RigidBody:
         self,
         B_field: np.ndarray,
         superconductor_temp: float,
-        displacement: Optional[np.ndarray] = None,
+        displacement: np.ndarray | None = None,
     ) -> np.ndarray:
         """
         Compute 6-DoF flux-pinning force via Bean-London model.

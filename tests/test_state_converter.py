@@ -3,7 +3,6 @@ Unit tests for state converter.
 """
 
 import numpy as np
-import pytest
 
 from control_layer.state_converter import StateConverter
 
@@ -27,7 +26,7 @@ class TestStateConverter:
         """Test ROM to VMD conversion reorders quaternion components."""
         rom_state = np.array([0.1, 0.2, 0.3, 0.9, 1.0, 2.0, 3.0])
         vmd_state = StateConverter.rom_to_vmd(rom_state)
-        
+
         # ROM: [qx, qy, qz, qw, ωx, ωy, ωz]
         # VMD: [qw, qx, qy, qz, ωx, ωy, ωz]
         assert vmd_state[0] == rom_state[3]  # qw
@@ -40,7 +39,7 @@ class TestStateConverter:
         """Test VMD to ROM conversion reorders quaternion components."""
         vmd_state = np.array([0.9, 0.1, 0.2, 0.3, 1.0, 2.0, 3.0])
         rom_state = StateConverter.vmd_to_rom(vmd_state)
-        
+
         # VMD: [qw, qx, qy, qz, ωx, ωy, ωz]
         # ROM: [qx, qy, qz, qw, ωx, ωy, ωz]
         assert rom_state[0] == vmd_state[1]  # qx
@@ -54,7 +53,7 @@ class TestStateConverter:
         rom_state = np.array([0.1, 0.2, 0.3, 0.9, 1.0, 2.0, 3.0])
         vmd_state = StateConverter.rom_to_vmd(rom_state)
         rom_reconstructed = StateConverter.vmd_to_rom(vmd_state)
-        
+
         error = np.max(np.abs(rom_state - rom_reconstructed))
         assert error < 1e-6, f"Round-trip conversion error {error:.2e} exceeds 1e-6"
 
@@ -81,7 +80,7 @@ class TestStateConverter:
         rom_states = np.random.randn(10, 7)
         vmd_states = StateConverter.batch_rom_to_vmd(rom_states)
         rom_reconstructed = StateConverter.batch_vmd_to_rom(vmd_states)
-        
+
         error = np.max(np.abs(rom_states - rom_reconstructed))
         assert error < 1e-6, f"Batch round-trip conversion error {error:.2e} exceeds 1e-6"
 
@@ -91,7 +90,7 @@ class TestStateConverter:
             rom_states = np.random.randn(batch_size, 7)
             vmd_states = StateConverter.batch_rom_to_vmd(rom_states)
             rom_reconstructed = StateConverter.batch_vmd_to_rom(vmd_states)
-            
+
             error = np.max(np.abs(rom_states - rom_reconstructed))
             assert error < 1e-6, f"Batch size {batch_size} error {error:.2e} exceeds 1e-6"
 
@@ -100,7 +99,7 @@ class TestStateConverter:
         rom_state = np.zeros(7)
         vmd_state = StateConverter.rom_to_vmd(rom_state)
         rom_reconstructed = StateConverter.vmd_to_rom(vmd_state)
-        
+
         np.testing.assert_array_almost_equal(rom_state, rom_reconstructed)
 
     def test_large_values(self):
@@ -108,7 +107,7 @@ class TestStateConverter:
         rom_state = np.array([1e3, 2e3, 3e3, 4e3, 5e3, 6e3, 7e3])
         vmd_state = StateConverter.rom_to_vmd(rom_state)
         rom_reconstructed = StateConverter.vmd_to_rom(vmd_state)
-        
+
         np.testing.assert_array_almost_equal(rom_state, rom_reconstructed)
 
     def test_negative_values(self):
@@ -116,7 +115,7 @@ class TestStateConverter:
         rom_state = np.array([-0.1, -0.2, -0.3, -0.9, -1.0, -2.0, -3.0])
         vmd_state = StateConverter.rom_to_vmd(rom_state)
         rom_reconstructed = StateConverter.vmd_to_rom(vmd_state)
-        
+
         np.testing.assert_array_almost_equal(rom_state, rom_reconstructed)
 
     def test_quaternion_normalization_preserved(self):
@@ -124,11 +123,11 @@ class TestStateConverter:
         # Create normalized quaternion
         q = np.array([0.1, 0.2, 0.3, 0.9])
         q = q / np.linalg.norm(q)
-        
+
         rom_state = np.concatenate([q[1:], [q[0]], [1.0, 2.0, 3.0]])
         vmd_state = StateConverter.rom_to_vmd(rom_state)
         rom_reconstructed = StateConverter.vmd_to_rom(vmd_state)
-        
+
         # Check quaternion is still normalized
         q_reconstructed = np.array([rom_reconstructed[3], rom_reconstructed[0], rom_reconstructed[1], rom_reconstructed[2]])
         norm = np.linalg.norm(q_reconstructed)

@@ -10,10 +10,9 @@ achieving 11-13 km/s velocities through 5-10 controlled cycles.
 
 from __future__ import annotations
 
+from dataclasses import dataclass
+
 import numpy as np
-from dataclasses import dataclass, field
-from typing import List, Tuple, Optional
-from enum import Enum
 
 
 @dataclass
@@ -30,7 +29,7 @@ class PumpingCycle:
 @dataclass
 class PumpingMission:
     """Complete pumping mission results."""
-    cycles: List[PumpingCycle]
+    cycles: list[PumpingCycle]
     final_velocity: float  # km/s at perigee
     velocity_gain: float  # km/s total increase
     total_lunar_assists: int
@@ -96,7 +95,7 @@ class EarthMoonPumpingConcept:
         # Energy required for tuning thrust
         # E = (1/2) * m * v^2 for the tuning burn
         tuning_energy = 0.5 * self.ball_mass * (tuning_dv * 1000)**2  # Joules
-        tuning_energy_mj = tuning_energy / 1e6  # MJ
+        tuning_energy / 1e6  # MJ
 
         # Final perigee velocity after lunar assist
         # Simplified model: lunar assist increases velocity, tuning adjusts orbit
@@ -128,7 +127,7 @@ class EarthMoonPumpingConcept:
         print("\n" + "="*70)
         print("EARTH-MOON ACTIVE PUMPING - CONCEPTUAL DEMONSTRATION")
         print("="*70)
-        print(f"\nMission Parameters:")
+        print("\nMission Parameters:")
         print(f"  Ball mass: {self.ball_mass} kg")
         print(f"  Flux force: {self.flux_force} N")
         print(f"  Lunar dV per encounter: {self.lunar_dv} km/s")
@@ -196,25 +195,25 @@ class EarthMoonPumpingConcept:
         print("MISSION SUMMARY")
         print("="*70)
 
-        print(f"\nVelocity Evolution:")
+        print("\nVelocity Evolution:")
         print(f"  Initial: {self.v_initial:.2f} km/s")
         print(f"  Final:   {mission.final_velocity:.2f} km/s")
         print(f"  Gain:    +{mission.velocity_gain:.2f} km/s")
         print(f"  Ratio:   {mission.final_velocity/self.v_initial:.2f}x")
 
-        print(f"\nCycle Details:")
+        print("\nCycle Details:")
         print(f"{'Cycle':<8} {'Start v':<10} {'Lunar dV':<10} {'Flux dV':<10} {'End v':<10}")
         print("-"*60)
         for c in mission.cycles:
             print(f"{c.cycle_number:<8} {c.perigee_velocity_start:<10.2f} {c.lunar_dv_gain:<10.3f} {c.flux_dv_applied:<10.3f} {c.perigee_velocity_end:<10.2f}")
 
-        print(f"\nEnergy & Work:")
+        print("\nEnergy & Work:")
         print(f"  Lunar assists: {mission.total_lunar_assists}")
         print(f"  Total flux dV: {mission.total_flux_dv:.3f} km/s")
         print(f"  Energy consumed: {mission.flux_energy_consumed:.2f} MJ")
         print(f"  Average efficiency: {np.mean([c.energy_efficiency for c in mission.cycles]):.1%}")
 
-        print(f"\nInfrastructure Impact:")
+        print("\nInfrastructure Impact:")
         print(f"  Baseline ball count: {n_baseline}")
         print(f"  Final ball count: {n_final}")
         print(f"  Ball reduction: {(1 - 1/mission.ball_reduction_factor)*100:.0f}%")
@@ -222,11 +221,11 @@ class EarthMoonPumpingConcept:
 
         # Success metrics
         if mission.final_velocity >= 11.0:
-            print(f"\n*** SUCCESS: 11+ km/s achieved for skyhook capture ***")
+            print("\n*** SUCCESS: 11+ km/s achieved for skyhook capture ***")
         if mission.final_velocity >= 13.0:
-            print(f"*** EXCELLENT: 13+ km/s for high-energy transfer ***")
+            print("*** EXCELLENT: 13+ km/s for high-energy transfer ***")
         if mission.ball_reduction_factor >= 5.0:
-            print(f"*** MAJOR INFRASTRUCTURE SAVINGS: 5x fewer balls needed ***")
+            print("*** MAJOR INFRASTRUCTURE SAVINGS: 5x fewer balls needed ***")
 
         print("\n" + "="*70)
 
@@ -252,15 +251,15 @@ def demonstrate_concept():
     )
 
     # Compare with passive approach
-    print(f"\nComparison with Passive Gravity Assists:")
+    print("\nComparison with Passive Gravity Assists:")
     print(f"Passive: Single lunar assist -> {10.9 + 1.0:.1f} km/s (1 encounter)")
     print(f"Active:  {len(mission.cycles)} lunar assists -> {mission.final_velocity:.1f} km/s")
     print(f"Improvement: {mission.final_velocity / (10.9 + 1.0):.1f}x velocity via active control")
 
-    print(f"\nKey Physics Insight:")
-    print(f"- Passive gravity assists are one-time events")
-    print(f"- Active flux-gyro control enables repeated encounters")
-    print(f"- Each cycle adds energy through lunar gravity + active thrust")
+    print("\nKey Physics Insight:")
+    print("- Passive gravity assists are one-time events")
+    print("- Active flux-gyro control enables repeated encounters")
+    print("- Each cycle adds energy through lunar gravity + active thrust")
     print(f"- Result: {mission.ball_reduction_factor:.1f}x infrastructure cost reduction")
 
     return mission

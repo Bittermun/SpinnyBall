@@ -15,13 +15,11 @@ Sweep Matrix:
 Profiles: paper-baseline, operational, engineering-screen, resilience
 """
 
-import subprocess
-import json
-import time
-from pathlib import Path
-from datetime import datetime
 import concurrent.futures
-import sys
+import subprocess
+import time
+from datetime import datetime
+from pathlib import Path
 
 # Configuration
 RESULTS_DIR = Path("sweep_results")
@@ -64,9 +62,9 @@ SWEEP_CONFIGS = {
         "output_prefix": "lob_scaling"
     },
     "sensitivity": {
-        "script": "sgms_anchor_sensitivity.py",
-        "args": [],
-        "description": "Sobol sensitivity analysis",
+        "script": "src/sgms_anchor_sensitivity.py",
+        "args": ["--mission"],
+        "description": "Sobol sensitivity analysis (Mission-level)",
         "output_prefix": "sensitivity"
     },
     "stream_balance": {
@@ -88,12 +86,12 @@ def run_command(cmd, name, log_file):
     """Run a command and log output."""
     print(f"[{name}] Starting: {' '.join(cmd)}")
     start_time = time.time()
-    
+
     with open(log_file, 'w') as f:
         f.write(f"=== {name} ===\n")
         f.write(f"Command: {' '.join(cmd)}\n")
         f.write(f"Start time: {datetime.now()}\n\n")
-        
+
         import os
         env = os.environ.copy()
         env["PYTHONPATH"] = ".;.\\src;.\\scripts"
@@ -105,16 +103,16 @@ def run_command(cmd, name, log_file):
             text=True,
             env=env
         )
-    
+
     duration = time.time() - start_time
     status = "SUCCESS" if result.returncode == 0 else "FAILED"
-    
+
     with open(log_file, 'a') as f:
         f.write(f"\nEnd time: {datetime.now()}\n")
         f.write(f"Duration: {duration:.2f}s\n")
         f.write(f"Status: {status}\n")
         f.write(f"Return code: {result.returncode}\n")
-    
+
     print(f"[{name}] {status} in {duration:.2f}s")
     return name, status, duration, result.returncode
 
@@ -144,7 +142,7 @@ analysis = analyze_stability_boundary(results)
 # Save results
 import json
 with open('sweep_t1_highres_results.json', 'w') as f:
-    json.dump({k: v.tolist() if hasattr(v, 'tolist') else v 
+    json.dump({k: v.tolist() if hasattr(v, 'tolist') else v
                for k, v in results.items()}, f, indent=2)
 
 print("\\n=== T1 HIGH-RES SWEEP COMPLETE ===")
@@ -182,7 +180,7 @@ analysis = analyze_containment_threshold(results)
 # Save results
 import json
 with open('sweep_t3_highres_results.json', 'w') as f:
-    json.dump({k: v.tolist() if hasattr(v, 'tolist') else v 
+    json.dump({k: v.tolist() if hasattr(v, 'tolist') else v
                for k, v in results.items()}, f, indent=2)
 
 print("\\n=== T3 HIGH-RES SWEEP COMPLETE ===")
@@ -196,7 +194,7 @@ print("\\n=== T3 HIGH-RES SWEEP COMPLETE ===")
 def run_smoke_tests():
     """Run quick smoke tests on all scripts."""
     print("\n=== Running Smoke Tests ===\n")
-    
+
     smoke_tests = [
         ("logistics", ["python", "-c", "import sgms_anchor_logistics; print('logistics OK')"]),
         ("sweep_t1", ["python", "-c", "import sweep_latency_eta_ind; print('sweep_t1 OK')"]),
@@ -204,56 +202,57 @@ def run_smoke_tests():
         ("lob", ["python", "-c", "import lob_scaling; print('lob OK')"]),
         ("sensitivity", ["python", "-c", "import sgms_anchor_sensitivity; print('sensitivity OK')"]),
     ]
-    
+
     results = []
     for name, cmd in smoke_tests:
         log_file = CAMPAIGN_DIR / f"smoke_{name}.log"
         name, status, duration, code = run_command(cmd, f"Smoke-{name}", log_file)
         results.append((name, status))
-    
+
     print("\n=== Smoke Test Results ===")
     for name, status in results:
         print(f"  {name}: {status}")
-    
+
     all_passed = all(status == "SUCCESS" for _, status in results)
     if not all_passed:
         print("\n[WARNING] Some smoke tests failed. Proceeding with caution.")
     else:
         print("\n[OK] All smoke tests passed.")
-    
+
     return all_passed
 
 
 def run_parallel_sweeps():
     """Run all sweeps in parallel where possible."""
-    print(f"\n=== Starting Comprehensive Sweep Campaign ===")
+    print("\n=== Starting Comprehensive Sweep Campaign ===")
     print(f"Results directory: {CAMPAIGN_DIR}")
     print(f"Timestamp: {TIMESTAMP}")
-    
+
     # Create custom high-res scripts
     t1_highres_script = create_high_res_t1_script()
     t3_highres_script = create_high_res_t3_script()
-    
+
     # Build command list
     commands = []
-    
+
     # Default sweeps (can run in parallel)
     commands.append(("T1-Default", ["python", "scripts/sweep_latency_eta_ind.py"]))
     commands.append(("T3-Default", ["python", "scripts/sweep_fault_cascade.py"]))
     commands.append(("LOB-Scaling", ["python", "scripts/lob_scaling.py"]))
-    commands.append(("Sensitivity", ["python", "scripts/sgms_anchor_sensitivity.py"]))
-    
+    commands.append(("Sensitivity", ["python", "src/sgms_anchor_sensitivity.py", "--mission"]))
+    commands.append(("Material-Sweep", ["python", "src/sgms_anchor_sensitivity.py", "--material-sweep", "--N", "256"]))
+
     # High-res sweeps (can run in parallel with defaults)
     commands.append(("T1-HighRes", ["python", t1_highres_script]))
     commands.append(("T3-HighRes", ["python", t3_highres_script]))
-    
+
     # Other sweeps
     if Path("scripts/validate_stream_balance.py").exists():
         commands.append(("Stream-Balance", ["python", "scripts/validate_stream_balance.py"]))
-    
+
     if Path("scripts/scenarios/mission_scenarios.py").exists():
         commands.append(("Mission-Scenarios", ["python", "scripts/scenarios/mission_scenarios.py"]))
-    
+
     # Run in parallel (limit to 4 concurrent to avoid overwhelming system)
     results = []
     with concurrent.futures.ThreadPoolExecutor(max_workers=4) as executor:
@@ -262,31 +261,31 @@ def run_parallel_sweeps():
             log_file = CAMPAIGN_DIR / f"{name.lower().replace('-', '_')}.log"
             future = executor.submit(run_command, cmd, name, log_file)
             futures[future] = name
-        
+
         for future in concurrent.futures.as_completed(futures):
             name, status, duration, code = future.result()
             results.append((name, status, duration, code))
-    
+
     return results
 
 
 def generate_summary_report(results):
     """Generate comprehensive summary report."""
     report_file = CAMPAIGN_DIR / "summary_report.md"
-    
+
     with open(report_file, 'w') as f:
-        f.write(f"# Comprehensive Sweep Campaign Report\n\n")
+        f.write("# Comprehensive Sweep Campaign Report\n\n")
         f.write(f"**Timestamp**: {TIMESTAMP}\n")
         f.write(f"**Results Directory**: {CAMPAIGN_DIR}\n\n")
-        
+
         f.write("## Campaign Configuration\n\n")
         f.write(f"- **Profiles**: {', '.join(PROFILES)}\n")
         f.write(f"- **Total Sweeps**: {len(results)}\n\n")
-        
+
         f.write("## Sweep Results\n\n")
         f.write("| Sweep | Status | Duration (s) | Return Code |\n")
         f.write("|-------|--------|-------------|-------------|\n")
-        
+
         total_duration = 0
         success_count = 0
         for name, status, duration, code in results:
@@ -294,22 +293,22 @@ def generate_summary_report(results):
             total_duration += duration
             if status == "SUCCESS":
                 success_count += 1
-        
+
         f.write(f"\n**Total Duration**: {total_duration:.2f}s ({total_duration/60:.2f} minutes)\n")
         f.write(f"**Success Rate**: {success_count}/{len(results)} ({100*success_count/len(results):.1f}%)\n\n")
-        
+
         f.write("## Output Files\n\n")
         f.write("The following files were generated:\n\n")
         for name, status, _, _ in results:
             if status == "SUCCESS":
                 f.write(f"- `{name.lower().replace('-', '_')}.log` - Execution log\n")
-        
+
         f.write("\n## Next Steps\n\n")
         f.write("1. Review individual sweep logs for detailed results\n")
         f.write("2. Examine generated plots (PNG files)\n")
         f.write("3. Compare default vs high-resolution results\n")
         f.write("4. Aggregate raw data for analysis\n")
-    
+
     print(f"\n[OK] Summary report generated: {report_file}")
     return report_file
 
@@ -319,18 +318,18 @@ def main():
     print("=" * 70)
     print("COMPREHENSIVE SWEEP CAMPAIGN")
     print("=" * 70)
-    
+
     # Step 1: Smoke tests
-    smoke_passed = run_smoke_tests()
-    
+    run_smoke_tests()
+
     # Step 2: Run all sweeps in parallel
     print("\n" + "=" * 70)
     results = run_parallel_sweeps()
-    
+
     # Step 3: Generate summary
     print("\n" + "=" * 70)
     generate_summary_report(results)
-    
+
     print("\n" + "=" * 70)
     print("CAMPAIGN COMPLETE")
     print("=" * 70)

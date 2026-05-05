@@ -19,10 +19,10 @@ class QuenchThresholds:
 
 class QuenchDetector:
     """Quench detection and emergency shutdown logic."""
-    
+
     def __init__(self, thresholds: QuenchThresholds, initial_temperature: float = 70.0):
         """Initialize quench detector.
-        
+
         Args:
             thresholds: QuenchThresholds with detection parameters
             initial_temperature: Initial temperature for heating rate calculation (K)
@@ -32,27 +32,27 @@ class QuenchDetector:
         self.warning_state = False
         self.prev_temperature = initial_temperature  # K
         self.quench_time = None
-        
+
     def check_temperature(self, temperature: float, dt: float) -> dict:
         """Check temperature for quench conditions.
-        
+
         Args:
             temperature: Current temperature (K)
             dt: Time step (s)
-        
+
         Returns:
             Dictionary with status and alerts
-        
+
         Raises:
             ValueError: If dt <= 0
         """
         if dt <= 0:
             raise ValueError(f"dt must be > 0, got {dt}")
-        
+
         # Compute heating rate
         heating_rate = (temperature - self.prev_temperature) / dt
         self.prev_temperature = temperature
-        
+
         # Check critical threshold (with hysteresis)
         if self.quenched:
             # Stay quenched until below warning - hysteresis
@@ -64,16 +64,16 @@ class QuenchDetector:
             if temperature > self.thresholds.temperature_critical:
                 self.quenched = True
                 self.quench_time = 0.0
-        
+
         # Check warning threshold
         if temperature > self.thresholds.temperature_warning:
             self.warning_state = True
         else:
             self.warning_state = False
-        
+
         # Check heating rate limit
         rate_violation = heating_rate > self.thresholds.temperature_rate_limit
-        
+
         return {
             "quenched": self.quenched,
             "warning": self.warning_state,
@@ -81,16 +81,16 @@ class QuenchDetector:
             "heating_rate": heating_rate,
             "emergency_shutdown": self.quenched or rate_violation,
         }
-    
+
     def increment_quench_time(self, dt: float):
         """Increment quench time tracking.
-        
+
         Args:
             dt: Time step (s) to add to quench time
         """
         if self.quenched and self.quench_time is not None:
             self.quench_time += dt
-    
+
     def reset(self):
         """Reset quench detector."""
         self.quenched = False
