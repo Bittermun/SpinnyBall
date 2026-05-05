@@ -17,7 +17,7 @@ def test_no_hardcoded_jc0_2e9():
     violations = []
     for d in SCAN_DIRS:
         for f in (root / d).rglob('*.py'):
-            text = f.read_text()
+            text = f.read_text(encoding='utf-8')
             if re.search(r'2e9(?!\d)', text) and 'Jc' in text:
                 violations.append(str(f.relative_to(root)))
     assert not violations, f"Files with hardcoded Jc=2e9: {violations}"
@@ -44,8 +44,14 @@ def test_ybco_differs_from_gdbco():
 def test_mission_level_metrics_differentiates_materials():
     """mission_level_metrics must produce different results for YBCO vs GdBCO."""
     from src.sgms_anchor_v1 import mission_level_metrics
-    gdbco_result = mission_level_metrics(magnet_material="GdBCO", jacket_material="BFRP")
-    ybco_result = mission_level_metrics(magnet_material="YBCO", jacket_material="BFRP")
+    gdbco_result = mission_level_metrics(
+        u=1600, mp=8, r=0.05, omega=5236, h_km=550, ms=1000, g_gain=0.001, k_fp=5000,
+        magnet_material="GdBCO", jacket_material="BFRP",
+    )
+    ybco_result = mission_level_metrics(
+        u=1600, mp=8, r=0.05, omega=5236, h_km=550, ms=1000, g_gain=0.001, k_fp=5000,
+        magnet_material="YBCO", jacket_material="BFRP",
+    )
     # At least one metric must differ
     assert gdbco_result != ybco_result, "YBCO and GdBCO must produce different results"
 

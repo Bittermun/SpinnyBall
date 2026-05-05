@@ -31,6 +31,9 @@ def test_root_endpoint():
 def test_health_endpoint():
     """Test health check endpoint."""
     print("Testing health endpoint...")
+    # Initialize simulation first so health check reports healthy
+    params = {"n_packets": 3, "n_nodes": 1, "velocity": 1000.0, "dt": 0.01}
+    client.post("/simulation/init", json=params)
     response = client.get("/health")
     assert response.status_code == 200
     data = response.json()

@@ -54,7 +54,10 @@ def test_velocity_verlet_energy_conservation():
     """Anchor simulation should conserve energy for undamped oscillator."""
     from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
     import numpy as np
-    params = {"ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0, "k_structural": 0.0}
+    params = {
+        "ms": 1.0, "c_damp": 0.0, "x0": 0.1, "v0": 0.0, "k_structural": 0.0,
+        "u": 10.0, "lam": 0.5, "g_gain": 0.05, "theta_bias": 0.087, "eps": 0.0,
+    }
     t_eval = np.linspace(0, 10, 1000)
     T_profile = np.full_like(t_eval, 77.0)
     B_profile = np.full_like(t_eval, 1.0)

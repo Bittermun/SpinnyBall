@@ -294,6 +294,10 @@ class CascadeRunner:
         Returns:
             RealizationResult object
         """
+        # Apply random seed for deterministic realizations if configured
+        if self.config.random_seed is not None:
+            np.random.seed(self.config.random_seed + realization_id)
+
         # Track metrics
         eta_ind_min = 1.0
         stress_max = 0.0
