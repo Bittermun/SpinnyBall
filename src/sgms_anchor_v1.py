@@ -766,7 +766,7 @@ def estimate_period(t: np.ndarray, x: np.ndarray) -> float | None:
 def sweep_velocity(params: dict | None = None, u_values: np.ndarray | None = None) -> dict:
     params = DEFAULT_PARAMS.copy() if params is None else params.copy()
     if u_values is None:
-        u_values = np.array([5.0, 10.0, 20.0, 40.0, 80.0, 160.0, 320.0, 520.0])
+        u_values = np.array([1000.0, 2500.0, 5000.0, 7500.0, 10000.0, 12500.0, 15000.0])  # Slingshot velocity range (m/s)
     u_values = np.asarray(u_values, dtype=float)
 
     force_per_stream = []
@@ -798,7 +798,7 @@ def sweep_anchor_grid(
     eps_values: list[float] | np.ndarray | None = None,
 ) -> list[dict]:
     params = DEFAULT_PARAMS.copy() if params is None else params.copy()
-    u_values = [10.0, 20.0, 40.0, 80.0, 160.0, 320.0, 520.0] if u_values is None else list(u_values)
+    u_values = [1000.0, 2500.0, 5000.0, 7500.0, 10000.0, 12500.0, 15000.0] if u_values is None else list(u_values)  # Slingshot velocity range (m/s)
     g_values = [0.02, 0.05, 0.1, 0.2] if g_values is None else list(g_values)
     eps_values = [0.0, 1e-4, 1e-3] if eps_values is None else list(eps_values)
 

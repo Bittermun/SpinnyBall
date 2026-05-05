@@ -15,16 +15,18 @@ LQR Stability Matrix A:
 import math
 import numpy as np
 
-# Paper Baseline Parameters (Moderate-U Canonical)
+# Paper Baseline Parameters (Slingshot-Optimal from Mission Analysis)
+# Updated from toy values (u=10, k_fp=0) to validated GdBCO slingshot optimal
+# Reference: archive/mission_analysis_results_legacy/material_sweep_results.csv
 PAPER_BASELINE_PARAMS = {
-    "u": 10.0,             # Stream velocity (m/s)
-    "lam": 0.5,            # Stream linear density (kg/m)
-    "mp": 0.05,            # Packet mass (kg)
-    "theta_bias": 0.087,   # Nominal deflection (rad)
-    "g_gain": 0.05,        # Control gain (rad/m)
-    "ms": 1000.0,          # Station mass (kg)
+    "u": 9957.0,           # Stream velocity (m/s) - GdBCO slingshot optimal (~10 km/s)
+    "lam": 4.48,           # Stream linear density (kg/m) - mp/spacing = 2.15/0.48
+    "mp": 2.15,            # Packet mass (kg) - GdBCO optimal from mission analysis
+    "theta_bias": 0.087,   # Nominal deflection (rad) - 5.0° small-angle regime
+    "g_gain": 0.00015,     # Control gain (rad/m) - tuned for ~10 km/s operation
+    "ms": 1000.0,          # Station mass (kg) - suspended node baseline
     "c_damp": 4.0,         # Damping coefficient (N-s/m)
-    "k_fp": 0.0,           # Pinning stiffness (N/m)
+    "k_fp": 6000.0,        # Pinning stiffness (N/m) - feasibility gate minimum
 }
 
 def analytical_metrics(params: dict) -> dict:

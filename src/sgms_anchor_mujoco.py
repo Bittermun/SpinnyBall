@@ -30,8 +30,8 @@ MODE = os.environ.get("SPINNYBALL_MODE", "debug").lower()
 @dataclass
 class ConfigValues:
     """Configuration values for debug and operational modes."""
-    debug_u_velocity: float = 10.0  # m/s - Debug value for faster iteration
-    operational_u_velocity: float = 1600.0  # m/s - Operational stream velocity
+    debug_u_velocity: float = 1000.0  # m/s - Debug value (1 km/s, realistic for slingshot)
+    operational_u_velocity: float = 9957.0  # m/s - Slingshot optimal from mission analysis (~10 km/s)
 
     @property
     def u_velocity(self) -> float:

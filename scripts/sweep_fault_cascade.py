@@ -73,7 +73,7 @@ def run_t3_sweep(
     containment_threshold: int = 2,
     n_nodes: int = 10,
     n_realizations_per_point: int = 100,
-    time_horizon: float = 10.0,
+    time_horizon: float = 3600.0,  # Extended to 1 hour for rare-event (1e-6/hr) fault statistics
     enable_cascade_propagation: bool = False,  # NEW: Enable cascade propagation
     fault_injection_mode: str = "rate",  # NEW: Fault injection mode
     n_guaranteed_faults: int = 0,  # NEW: Guaranteed faults
@@ -88,7 +88,7 @@ def run_t3_sweep(
         containment_threshold: Max nodes allowed for containment success
         n_nodes: Number of nodes in the lattice
         n_realizations_per_point: Monte-Carlo runs per fault rate
-        time_horizon: Simulation time horizon (s)
+        time_horizon: Simulation time horizon (s). Default 3600s (1 hour) for rare-event fault statistics at 1e-6/hr and below.
         enable_cascade_propagation: Enable neighbor load redistribution (Root Cause #2)
         fault_injection_mode: "rate", "guaranteed", or "poisson" (Root Cause #1)
         n_guaranteed_faults: Number of guaranteed faults per realization
@@ -116,8 +116,8 @@ def run_t3_sweep(
     expected_faults_min = fault_rates[0] * time_horizon * n_nodes / 3600.0
     if expected_faults_min < 0.01 and fault_injection_mode == "rate":
         logger.warning(
-            f"Pre-flight check: Expected faults at lowest rate = {expected_faults_min:.4f} per realization. "
-            f"This is very low - consider using fault_injection_mode='guaranteed' or increasing time_horizon."
+            f"Pre-flight check: Expected faults at lowest rate = {expected_faults_min:.4f} per realization with time_horizon={time_horizon}s. "
+            f"Consider using fault_injection_mode='guaranteed' or extending time_horizon beyond 3600s for rates below 1e-6/hr."
         )
 
     for fault_rate in fault_rates:
@@ -281,8 +281,8 @@ if __name__ == "__main__":
         cascade_threshold=1.05,
         containment_threshold=2,
         n_nodes=10,
-        n_realizations_per_point=100,  # High-resolution for convergence
-        time_horizon=10.0,
+        n_realizations_per_point=200,  # High-resolution for convergence (doubled for 1hr horizon)
+        time_horizon=3600.0,  # 1 hour - required for meaningful rare-event fault statistics at 1e-6/hr
     )
 
     # Plot results

@@ -7,13 +7,15 @@
       "geometry_profile": "test_sphere_medium",
       "environment_profile": "liquid_nitrogen",
       "params": {
-        "u": 10.0,
-        "lam": 0.5,
-        "g_gain": 0.05,
+        "u": 9957.0,
+        "lam": 4.48,
+        "mp": 2.15,
+        "g_gain": 0.00015,
         "ms": 1000.0,
         "eps": 0.0001,
         "c_damp": 4.0,
         "theta_bias": 0.087,
+        "k_fp": 6000.0,
         "t_max": 240.0,
         "x0": 0.1,
         "v0": 0.0,
@@ -23,9 +25,11 @@
         "B_field": 1.0
       },
       "provenance": {
-        "u": "master memo baseline",
-        "lam": "reduced-order anchor assumption",
-        "g_gain": "paper control assumption",
+        "u": "GdBCO slingshot optimal from mission analysis (~10 km/s)",
+        "lam": "Derived: mp/spacing = 2.15/0.48 = 4.48 kg/m",
+        "mp": "GdBCO optimal packet mass (2.15 kg) from material sweep",
+        "g_gain": "Tuned for k_eff >= 6000 N/m at u=9957 m/s operation",
+        "k_fp": "Flux-pinning stiffness feasibility gate (6000 N/m)",
         "ms": "suspended node baseline",
         "theta_bias": "small-angle approximation regime (0.087 rad = 5.0°, within <0.1 rad validity for sin(θ)≈θ)",
         "k_drag": "eddy-current drag coefficient",
@@ -34,9 +38,9 @@
         "B_field": "nominal magnetic field"
       },
       "notes": [
-        "Use for paper-facing reduced-order figures and tables.",
-        "Prioritizes traceable assumptions over aggressive performance.",
-        "Updated with thermal closure and eddy-current drag parameters."
+        "Updated to slingshot-optimal values from mission analysis.",
+        "Minimal cost multi-stream slingshot system configuration.",
+        "Prioritizes infrastructure cost reduction through high velocity."
       ]
     },
     {
