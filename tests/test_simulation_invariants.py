@@ -52,7 +52,7 @@ def test_provenance_stream_factory_call_count():
 def test_velocity_verlet_energy_conservation():
     """Anchor simulation should conserve energy for undamped oscillator."""
     import numpy as np
-from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
+    from src.sgms_anchor_v1 import simulate_anchor_with_flux_pinning
 
     class MockFluxModel:
         def get_stiffness(self, x, B, T): return 6000.0
