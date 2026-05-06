@@ -765,6 +765,17 @@ const TARGET_ANIM_SECONDS  = 2.5;
 const REFERENCE_DVX        = -0.00416; // hardcoded validated reference (m/s)
 
 // ============================================================
+// Helper function for safe DOM element access
+// ============================================================
+function safeGetElement(id) {
+  const el = document.getElementById(id);
+  if (!el) {
+    console.warn(`DOM element not found: ${id}`);
+  }
+  return el;
+}
+
+// ============================================================
 // STATE — declared first to avoid temporal dead zone errors
 // ============================================================
 let transitData    = null;
@@ -916,8 +927,19 @@ function initControlVisualization() {
     const timeHorizons = [1.0, 2.0, 5.0]; // seconds
     const colors = [0x7ee787, 0xf2cc60, 0xff7b72]; // green, yellow, red
     
+    // Calibrate reachable shell radii from control force limits
+    // Maximum control force: F_max = mu_max * gradient_max (when spin fully aligned, sz=1)
+    // Maximum acceleration: a_max = F_max / mass
+    // Reachable radius at time t: r = 0.5 * a_max * t^2 (from rest, constant acceleration)
+    const muMax = 200; // A·m² (from slider max)
+    const gradientMax = 200; // T/m (from slider max)
+    const mass = currentP.mass || 0.01; // kg
+    const Fmax = muMax * gradientMax; // Maximum control force in N
+    const amax = Fmax / mass; // Maximum acceleration in m/s²
+    
     timeHorizons.forEach((t, i) => {
-      const radius = t * 0.5; // Simplified: assume 0.5 m/s max velocity
+      // Radius based on kinematic equation: r = 0.5 * a * t^2
+      const radius = 0.5 * amax * t * t;
       const geo = new THREE.SphereGeometry(radius, 16, 16);
       const mat = new THREE.MeshBasicMaterial({
         color: colors[i],
@@ -963,48 +985,94 @@ function updateMomentumPanel(transitData, frameIndex) {
   const pCurrent = mass * vCurrent;
   const pDelta = pCurrent - pInitial;
   
-  // Simplified efficiency calculation
-  const efficiency = Math.min(100, (Math.abs(pDelta) / (pInitial + 0.001)) * 100);
-  const energy = 0.5 * mass * (vCurrent * vCurrent - vInitial * vInitial);
+  // Energy-based efficiency calculation
+  const eInitial = 0.5 * mass * vInitial * vInitial;
+  const eCurrent = 0.5 * mass * vCurrent * vCurrent;
+  const energyDelta = eCurrent - eInitial;
+  const efficiency = eInitial > 0 ? Math.min(100, Math.max(0, (Math.abs(energyDelta) / eInitial) * 100)) : 0;
   
-  document.getElementById('momInitial').textContent = pInitial.toFixed(3) + ' kg·m/s';
-  document.getElementById('momControl').textContent = (pDelta > 0 ? '+' : '') + pDelta.toFixed(3) + ' kg·m/s';
-  document.getElementById('momFinal').textContent = pCurrent.toFixed(3) + ' kg·m/s';
-  document.getElementById('momEfficiency').textContent = efficiency.toFixed(1) + '%';
-  document.getElementById('momEnergy').textContent = Math.abs(energy).toFixed(1) + ' J';
+  const momInitialEl = safeGetElement('momInitial');
+  const momControlEl = safeGetElement('momControl');
+  const momFinalEl = safeGetElement('momFinal');
+  const momEfficiencyEl = safeGetElement('momEfficiency');
+  const momEnergyEl = safeGetElement('momEnergy');
+  
+  if (momInitialEl) momInitialEl.textContent = eInitial.toFixed(3) + ' J';
+  if (momControlEl) momControlEl.textContent = (energyDelta > 0 ? '+' : '') + energyDelta.toFixed(3) + ' J';
+  if (momFinalEl) momFinalEl.textContent = eCurrent.toFixed(3) + ' J';
+  if (momEfficiencyEl) momEfficiencyEl.textContent = efficiency.toFixed(1) + '%';
+  if (momEnergyEl) momEnergyEl.textContent = Math.abs(energyDelta).toFixed(1) + ' J';
 }
 
+// ============================================================
+// SYSTEM STRESS METRICS
+// Assumptions and Constants Documentation:
+// 
+// 1. Rotor Mechanical Stress:
+//    - Maximum safe rotor speed: RPM_MAX = 100,000 RPM
+//    - Based on material strength (carbon fiber composite) and bearing specifications
+//    - Stress calculation: (current_rpm / RPM_MAX) × 100%
+//
+// 2. Power/Electromagnetic Stress:
+//    - Assumes power dissipation ~ mu × rpm (magnetic moment × rotation rate)
+//    - Normalization: POWER_NORMALIZATION = 12,000
+//    - Based on typical operating range: mu_max=200 A·m², rpm_max=60,000
+//    - Expected max power units: 200 × 60,000 / 1000 = 12,000 → 100% stress
+//
+// 3. Magnetic Field Gradient Stress:
+//    - Maximum sustainable gradient: GRADIENT_MAX = 10 T/m
+//    - Based on coil design limits before magnetic saturation/overheating
+//    - Stress calculation: (current_gradient / GRADIENT_MAX) × 100%
+//
+// 4. Status Thresholds:
+//    - WARNING threshold: 60% of maximum stress (yellow indicator)
+//    - CRITICAL threshold: 85% of maximum stress (red indicator)
+//    - OK status: < 60% stress (green indicator)
+// ============================================================
 function updateSystemStress() {
   if (!currentP) return;
   
-  // Rotor stress (RPM vs max)
-  const rpmMax = 100000; // Assume 100k RPM max
-  const rotorStress = (currentP.rpm / rpmMax) * 100;
+  // Rotor stress (RPM vs max mechanical limit)
+  const RPM_MAX = 100000;                    // Maximum safe rotor speed (RPM)
+  const rotorStress = (currentP.rpm / RPM_MAX) * 100;
   
-  // Power stress (simplified estimate)
-  const powerEstimate = Math.abs(currentP.mu) * currentP.rpm / 1000; // Arbitrary units
+  // Power stress (electromagnetic load: mu × rpm)
+  const POWER_NORMALIZATION = 12000;         // Scale factor for power stress
+  const powerEstimate = Math.abs(currentP.mu) * currentP.rpm / POWER_NORMALIZATION;
   const powerStress = Math.min(100, powerEstimate);
   
-  // Field stress (gradient vs coil capacity)
-  const fieldStress = Math.min(100, Math.abs(currentP.gradient) / 10 * 100);
+  // Field stress (gradient vs coil saturation limit)
+  const GRADIENT_MAX = 10;                   // Maximum field gradient (T/m)
+  const GRADIENT_STRESS_FACTOR = 100 / GRADIENT_MAX;
+  const fieldStress = Math.min(100, Math.abs(currentP.gradient) * GRADIENT_STRESS_FACTOR);
   
-  document.getElementById('stressRotor').textContent = rotorStress.toFixed(0) + '%';
-  document.getElementById('stressPower').textContent = powerStress.toFixed(0) + '%';
-  document.getElementById('stressField').textContent = fieldStress.toFixed(0) + '%';
+  // Status thresholds
+  const STATUS_WARNING_THRESHOLD = 60;       // Warning level (%)
+  const STATUS_CRITICAL_THRESHOLD = 85;      // Critical level (%)
   
-  // Update status indicator
+  const stressRotorEl = safeGetElement('stressRotor');
+  const stressPowerEl = safeGetElement('stressPower');
+  const stressFieldEl = safeGetElement('stressField');
+  
+  if (stressRotorEl) stressRotorEl.textContent = rotorStress.toFixed(0) + '%';
+  if (stressPowerEl) stressPowerEl.textContent = powerStress.toFixed(0) + '%';
+  if (stressFieldEl) stressFieldEl.textContent = fieldStress.toFixed(0) + '%';
+  
+  // Update status based on worst-case stress across all subsystems
   const maxStress = Math.max(rotorStress, powerStress, fieldStress);
-  const statusEl = document.getElementById('systemStatus');
+  const statusEl = safeGetElement('systemStatus');
   
-  if (maxStress < 60) {
-    statusEl.textContent = 'STATUS: OK';
-    statusEl.className = 'control-status-indicator';
-  } else if (maxStress < 85) {
-    statusEl.textContent = 'STATUS: WARNING';
-    statusEl.className = 'control-status-indicator warning';
-  } else {
-    statusEl.textContent = 'STATUS: CRITICAL';
-    statusEl.className = 'control-status-indicator critical';
+  if (statusEl) {
+    if (maxStress < STATUS_WARNING_THRESHOLD) {
+      statusEl.textContent = 'STATUS: OK';
+      statusEl.className = 'control-status-indicator';
+    } else if (maxStress < STATUS_CRITICAL_THRESHOLD) {
+      statusEl.textContent = 'STATUS: WARNING';
+      statusEl.className = 'control-status-indicator warning';
+    } else {
+      statusEl.textContent = 'STATUS: CRITICAL';
+      statusEl.className = 'control-status-indicator critical';
+    }
   }
 }
 
@@ -1459,19 +1527,33 @@ function buildP(src) {
 // ============================================================
 function readParams() {
   const P = Object.assign({}, P_DEFAULTS);
-  P.mu       = parseFloat(document.getElementById('muSlider').value);
-  P.rpm      = parseFloat(document.getElementById('rpmSlider').value);
-  P.kd       = parseFloat(document.getElementById('kdSlider').value);
-  P.gradient = parseFloat(document.getElementById('gradSlider').value);
-  P.vz0      = parseFloat(document.getElementById('vzSlider').value);
-  P.sigma_us = parseFloat(document.getElementById('sigSlider').value);
-  P.temperature = parseFloat(document.getElementById('tempSlider').value);
-  P.bfield   = parseFloat(document.getElementById('bfieldSlider').value);
-  P.altitude = parseFloat(document.getElementById('altitudeSlider').value);
-  P.inclination = parseFloat(document.getElementById('inclinationSlider').value);
+  
+  const muSlider = safeGetElement('muSlider');
+  const rpmSlider = safeGetElement('rpmSlider');
+  const kdSlider = safeGetElement('kdSlider');
+  const gradSlider = safeGetElement('gradSlider');
+  const vzSlider = safeGetElement('vzSlider');
+  const sigSlider = safeGetElement('sigSlider');
+  const tempSlider = safeGetElement('tempSlider');
+  const bfieldSlider = safeGetElement('bfieldSlider');
+  const altitudeSlider = safeGetElement('altitudeSlider');
+  const inclinationSlider = safeGetElement('inclinationSlider');
+  const ampText = safeGetElement('ampText');
+  const deltaText = safeGetElement('deltaText');
+  
+  if (muSlider) P.mu = parseFloat(muSlider.value);
+  if (rpmSlider) P.rpm = parseFloat(rpmSlider.value);
+  if (kdSlider) P.kd = parseFloat(kdSlider.value);
+  if (gradSlider) P.gradient = parseFloat(gradSlider.value);
+  if (vzSlider) P.vz0 = parseFloat(vzSlider.value);
+  if (sigSlider) P.sigma_us = parseFloat(sigSlider.value);
+  if (tempSlider) P.temperature = parseFloat(tempSlider.value);
+  if (bfieldSlider) P.bfield = parseFloat(bfieldSlider.value);
+  if (altitudeSlider) P.altitude = parseFloat(altitudeSlider.value);
+  if (inclinationSlider) P.inclination = parseFloat(inclinationSlider.value);
 
-  const aText = document.getElementById('ampText').value;
-  const dText = document.getElementById('deltaText').value;
+  const aText = ampText ? ampText.value : '';
+  const dText = deltaText ? deltaText.value : '';
   P.aText     = aText;
   P.deltaText = dText;
 
@@ -3172,6 +3254,36 @@ function initSheetDrag() {
       <hr style="border-color:#223; margin: 4px 0">
       <div class="stat-row"><span class="stat-label">Rim speed</span><span class="stat-val" id="s_rim2">&#8212;</span></div>
       <div id="warningBanner2"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+</html>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+
+</body>
+</html>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+      <div id="warningBanner2"></div>
+    </div>
+  </div>
+</div>
+
+</body>
+</html>
+</html>
     </div>
   </div>
 </div>
