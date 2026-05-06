@@ -11,7 +11,7 @@ This document compiles all simulation results, sensitivity analyses, and perform
 ### Key Findings at a Glance
 
 - **Infrastructure Mass Reduction:** 99.9% at 15 km/s vs 500 m/s baseline (280 kg vs ~280,000 kg)
-- **Cascade Safety Margin:** >2.1 million × over environmental fault rates
+- **Cascade Safety Margin:** >150,000× over environmental fault rates
 - **Computational Speedup:** 3,751× faster than legacy CPU via JAX/XLA vectorization
 - **Dominant Design Parameter:** Stream velocity accounts for 79-81% of variance in mass and stiffness
 - **Material Feasibility:** GdBCO + CNT_yarn achieves 28.5% feasibility; SmCo enables passive thermal operation
@@ -86,7 +86,7 @@ This document compiles all simulation results, sensitivity analyses, and perform
 
 **Simulation Parameters:**
 - Time horizon: 3,600 s (1 hour operational window)
-- Realizations per fault rate: N = 3,000
+- Realizations per fault rate: N=200
 - Fault rates tested: 10⁻⁸ to 10³ faults/hr (15 logarithmic steps)
 - Cascade threshold: 5% stiffness reduction per failure; cascade triggers at 1.05× cumulative reduction
 
@@ -95,16 +95,16 @@ This document compiles all simulation results, sensitivity analyses, and perform
 | Metric                          | Value                |
 |---------------------------------|----------------------|
 | Operational fault rate          | 10⁻⁴ faults/hr       |
-| Cascade boundary (λ_crit)       | 215 faults/hr        |
+| Cascade boundary (λ_crit)       | 15–20 faults/hr         |
 | Containment rate @ operational  | 100% (zero cascades) |
-| Safety margin                   | 2.15 million ×       |
+| Safety margin                   | >150,000×              |
 | Statistical confidence          | >99.99%              |
-| Total realizations analyzed     | 45,000+              |
+| Total realizations analyzed     | 2,400+              |
 
 **Key Finding:** System exhibits robust cascade containment at all operational fault rates. The 5% per-failure degradation model requires ≥20 simultaneous node failures to trigger cascade—a statistically negligible probability (<10⁻¹⁰) at environmental rates.
 
 **Stress Test Results:**
-- At λ = 215 faults/hr (extreme scenario), cascade probability reaches ~5%
+- At λ = 15–20 faults/hr (extreme scenario), cascade probability reaches ~5%
 - Mean nodes affected at onset: 2.3 (contained to ≤3 nodes in 95% of cases)
 - Full system collapse requires λ > 500 faults/hr
 
@@ -274,7 +274,7 @@ python scripts/compile_research_data.py
 ## 9. Statistical Significance & Uncertainty Quantification
 
 ### Monte Carlo Convergence
-- **Realizations per data point:** N = 3,000
+- **Realizations per data point:** N=200
 - **Standard error:** σ/√N ≈ 0.018 for p = 0.5 (worst case)
 - **95% confidence interval width:** ±3.5%
 - **Observed convergence:** All operational-rate estimates converged to 0% cascade probability

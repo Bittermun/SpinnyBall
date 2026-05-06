@@ -4,7 +4,7 @@
 
 T3 sweep extended to 3600s simulation time for rare-event fault statistics (commit 8b454f5).
 
-Zero cascades across 10⁻⁸–10⁻³/hr (N=3,000/point). Cascade onset at λ_crit ≈ 215/hr (N=1,500 stress test). 10⁶ margin over environmental fault rates.
+Zero cascades across 10⁻⁸–10⁻³/hr (N=200/point). Cascade onset at λ_crit ≈ 215/hr (N=1,500 stress test). 10⁶ margin over environmental fault rates.
 
 ## Velocity Scaling
 

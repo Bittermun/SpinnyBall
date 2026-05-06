@@ -1,20 +1,50 @@
 [
   {
-    "fault_rate": 100.0,
-    "cascade_prob": 0.06,
-    "containment_rate": 0.94,
-    "nodes_affected_max": 4
+    "fault_rate": 0.01,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 1
   },
   {
-    "fault_rate": 215.44346900318845,
-    "cascade_prob": 0.46,
-    "containment_rate": 0.54,
+    "fault_rate": 0.03162277660168379,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 0
+  },
+  {
+    "fault_rate": 0.1,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 0
+  },
+  {
+    "fault_rate": 0.31622776601683794,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 1
+  },
+  {
+    "fault_rate": 1.0,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 2
+  },
+  {
+    "fault_rate": 3.1622776601683795,
+    "cascade_prob": 0.0,
+    "containment_rate": 1.0,
+    "nodes_affected_max": 2
+  },
+  {
+    "fault_rate": 10.0,
+    "cascade_prob": 0.18,
+    "containment_rate": 0.82,
     "nodes_affected_max": 6
   },
   {
-    "fault_rate": 464.15888336127773,
-    "cascade_prob": 0.88,
-    "containment_rate": 0.12,
+    "fault_rate": 31.622776601683793,
+    "cascade_prob": 0.875,
+    "containment_rate": 0.125,
     "nodes_affected_max": 8
   }
 ]

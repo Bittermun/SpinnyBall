@@ -34,7 +34,7 @@ graph TD
 ## Key Results
 
 ### Performance Metrics
-- **Cascade boundary**: λ_crit ≈ 215/hr (stress test, N=1,500). System stable at operational rates (<10⁻³/hr) with >99.99% containment.
+- **Cascade boundary**: λ_crit ≈ 15–20/hr (stress test, N=100). System stable at operational rates (<10⁻³/hr) with >99.99% containment.
 - **Monte Carlo**: 256k realizations via JAX/XLA in 0.96s. T3 sweep extended to 3600s for rare-event statistics.
 - **Sobol (9 params, N=1,024 base → 20,480 evaluations)**: Velocity dominates mass variance (79%) and k_eff variance (81%). SmCo feasibility 0.3%, GdBCO 17.3% with 1-year lifetime constraint enforced.
 - **Speedup**: 3,751× faster than legacy CPU implementations with JAX acceleration

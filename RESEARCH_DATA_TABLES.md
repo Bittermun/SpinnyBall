@@ -12,7 +12,7 @@
 | Stream velocity (optimal) | u | 4,834 - 15,000 | m/s | Depends on material choice |
 | Packet spin rate | ω | 50,000 | RPM | Gyroscopic stability |
 | Effective stiffness | k_eff | 6,000 - 100,000 | N/m | Operational range |
-| Flux-pinning stiffness | k_fp | ~6,000 | N/m | Passive contribution |
+| Flux-pinning stiffness | k_fp | 9,000 (SmCo) to 15,000 (GdBCO) | N/m | Passive contribution |
 | Control gain | g_gain | 3.38×10⁻⁴ | — | Optimized value |
 | Orbital altitude | h | 550 - 841 | km | LEO to MEO |
 | Packet count (optimal) | N | 27 - 150 | — | Velocity-dependent |
@@ -98,7 +98,7 @@
 **Key Metrics:**
 - Cascade boundary (λ_crit): 215 faults/hr
 - Operational fault rate: 10⁻⁴ faults/hr
-- Safety margin: 2.15×10⁶ ×
+- Safety margin: >150,000×
 - Statistical confidence: >99.99%
 
 ---

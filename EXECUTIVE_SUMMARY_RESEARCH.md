@@ -24,7 +24,7 @@
 - **First comprehensive systems analysis** of gyroscopic mass-stream anchors for cislunar operations
 - **Propellantless station-keeping** paradigm shift from consumable to sustainable infrastructure
 - **Multi-physics coupling:** Rigid body dynamics + flux-pinning + thermal balance + orbital mechanics
-- **Cascade risk quantification** with safety margins exceeding 2 million × environmental rates
+- **Cascade risk quantification** with safety margins exceeding 150,000× environmental rates
 
 ### 4. Publication-Ready Outputs
 - **5 publication-quality figures** (300 DPI, vector graphics)
@@ -40,7 +40,7 @@
 ```
 Infrastructure Mass Reduction:     99.9% at 15 km/s vs 500 m/s baseline
 Optimal Infrastructure Mass:       280 kg (SmCo @ 15 km/s)
-Cascade Safety Margin:             >2,150,000× over environmental fault rates
+Cascade Safety Margin:             >150,000× over environmental fault rates
 Monte Carlo Throughput:            267,000 realizations/second
 Computational Speedup:             3,751× faster than legacy CPU
 Dominant Design Parameter:         Stream velocity (79-81% variance explained)
@@ -53,7 +53,7 @@ Station-Keeping Force:             4.2 N (baseline requirement met)
 ### Statistical Significance
 ```
 Sobol Analysis Samples:            N = 20,480 per configuration
-Monte Carlo Realizations:          N = 3,000 per fault rate
+Monte Carlo Realizations:          N=200 per fault rate
 Confidence Level:                  >99.99% (operational regime)
 Standard Error (p=0.5):            ±1.8%
 Bootstrap Uncertainty (S₁):        ±0.02
@@ -96,11 +96,11 @@ SGMS (GdBCO)        4.2 N     N/A      0 kg/yr       2,000 kW   ~560 kg     Unli
 ### 3. Monte Carlo Cascade Results
 **Files:** `profile_sweep_quick_*/`, `sweep_t3_highres_results.json`
 - Fault rates: 10⁻⁸ to 10³ faults/hr (15 logarithmic steps)
-- Realizations: N = 3,000 per point
+- Realizations: N=200 per point
 - Time horizon: 3,600 seconds
 - Zero cascades observed at operational rates
 
-**Key Finding:** Cascade boundary at λ_crit = 215 faults/hr; safety margin >2 million ×
+**Key Finding:** Cascade boundary at λ_crit = 15–20 faults/hr; safety margin >150,000×
 
 ### 4. Velocity Scaling Verification
 **Files:** `extended_velocity_sweep_*.json`, `paper_figures/fig1_velocity_scaling.png`
@@ -251,7 +251,7 @@ This repository showcases cutting-edge research practices:
 
 ## Impact Statement (For Paper Introduction)
 
-"This work presents the first comprehensive systems analysis of gyroscopic mass-stream anchors for cislunar station-keeping. By combining reduced-order modeling with JAX-accelerated Monte Carlo validation (N > 256,000), we demonstrate that propellantless infrastructure can achieve >99.9% mass reduction compared to low-velocity baselines while maintaining safety margins exceeding 2 million × over environmental fault rates. Global sensitivity analysis reveals stream velocity as the dominant design parameter (79-81% variance explained), enabling systematic optimization across 12 material configurations. The resulting architecture represents a paradigm shift from consumable propulsion to sustainable orbital infrastructure for long-duration cislunar operations."
+"This work presents the first comprehensive systems analysis of gyroscopic mass-stream anchors for cislunar station-keeping. By combining reduced-order modeling with JAX-accelerated Monte Carlo validation (N > 256,000), we demonstrate that propellantless infrastructure can achieve >99.9% mass reduction compared to low-velocity baselines while maintaining safety margins exceeding 150,000× over environmental fault rates. Global sensitivity analysis reveals stream velocity as the dominant design parameter (79-81% variance explained), enabling systematic optimization across 12 material configurations. The resulting architecture represents a paradigm shift from consumable propulsion to sustainable orbital infrastructure for long-duration cislunar operations."
 
 ---
 

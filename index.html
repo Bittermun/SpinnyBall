@@ -389,6 +389,145 @@ input[type=text] {
   #topbar    { padding: 4px 10px; gap: 6px; }
 }
 
+/* Orbital HUD - NASA Mission Control style */
+#orbitalHUD {
+  position: absolute;
+  top: 60px;
+  right: 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.hud-panel {
+  background: rgba(10, 10, 20, 0.85);
+  border: 1px solid #0088ff;
+  border-left: 3px solid #00ccff;
+  padding: 8px 12px;
+  border-radius: 4px;
+  min-width: 140px;
+  backdrop-filter: blur(4px);
+}
+
+.hud-label {
+  display: block;
+  font-size: 9px;
+  letter-spacing: 0.1em;
+  color: #8899aa;
+  text-transform: uppercase;
+  margin-bottom: 4px;
+}
+
+.hud-value {
+  display: block;
+  font-family: 'Courier New', monospace;
+  font-size: 16px;
+  font-weight: 600;
+  color: #00ccff;
+  text-shadow: 0 0 8px rgba(0, 204, 255, 0.4);
+}
+
+/* Control Authority Visualization Panels */
+#momentumPanel, #systemStressPanel {
+  position: absolute;
+  bottom: 70px;
+  background: rgba(10, 10, 20, 0.9);
+  border: 1px solid #0088ff;
+  border-radius: 6px;
+  padding: 12px;
+  min-width: 180px;
+  pointer-events: none;
+  z-index: 15;
+  backdrop-filter: blur(4px);
+}
+
+#momentumPanel {
+  left: 12px;
+}
+
+#systemStressPanel {
+  right: 12px;
+}
+
+.control-panel-title {
+  font-size: 10px;
+  letter-spacing: 0.1em;
+  color: #00ccff;
+  text-transform: uppercase;
+  margin-bottom: 8px;
+  font-weight: 600;
+}
+
+.control-stat-row {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+
+.control-stat-label {
+  color: #8899aa;
+}
+
+.control-stat-val {
+  color: #c0c8d8;
+  font-family: 'Courier New', monospace;
+  font-weight: 600;
+}
+
+.control-divider {
+  border: none;
+  border-top: 1px solid #223;
+  margin: 6px 0;
+}
+
+.control-status-indicator {
+  margin-top: 8px;
+  padding: 4px 8px;
+  background: #1a2e1a;
+  border: 1px solid #7ee787;
+  border-radius: 4px;
+  color: #7ee787;
+  font-size: 10px;
+  text-align: center;
+  font-weight: 600;
+}
+
+.control-status-indicator.warning {
+  background: #2e2a00;
+  border-color: #f2cc60;
+  color: #f2cc60;
+}
+
+.control-status-indicator.critical {
+  background: #2e0000;
+  border-color: #ff7b72;
+  color: #ff7b72;
+}
+
+#disturbanceIndicator {
+  position: absolute;
+  bottom: 12px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(10, 10, 20, 0.9);
+  border: 1px solid #f2cc60;
+  border-radius: 6px;
+  padding: 8px 16px;
+  text-align: center;
+  pointer-events: none;
+  z-index: 15;
+}
+
+.disturbance-line {
+  font-size: 11px;
+  color: #c0c8d8;
+  margin-bottom: 2px;
+  font-family: 'Courier New', monospace;
+}
+
 @media (min-width: 769px) {
   #mobileActionBar { display: none; }
   #mobileSheet     { display: none; }
@@ -421,6 +560,76 @@ input[type=text] {
     <div id="centerResultText"></div>
     <div id="challengeOverlay"></div>
     <div id="scoreDisplay"></div>
+    
+    <!-- Orbital HUD Overlay -->
+    <div id="orbitalHUD" style="display: none;">
+      <div class="hud-panel">
+        <span class="hud-label">ALTITUDE</span>
+        <span class="hud-value" id="hudAltitude">408 km</span>
+      </div>
+      <div class="hud-panel">
+        <span class="hud-label">VELOCITY</span>
+        <span class="hud-value" id="hudVelocity">7.66 km/s</span>
+      </div>
+      <div class="hud-panel">
+        <span class="hud-label">INCLINATION</span>
+        <span class="hud-value" id="hudInclination">51.6°</span>
+      </div>
+      <div class="hud-panel">
+        <span class="hud-label">PERIOD</span>
+        <span class="hud-value" id="hudPeriod">92.4 min</span>
+      </div>
+    </div>
+    
+    <!-- Control Authority Visualization Panels -->
+    <div id="momentumPanel" style="display: none;">
+      <div class="control-panel-title">MOMENTUM BUDGET</div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Initial:</span>
+        <span class="control-stat-val" id="momInitial">—</span>
+      </div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Control Δ:</span>
+        <span class="control-stat-val" id="momControl">—</span>
+      </div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Final:</span>
+        <span class="control-stat-val" id="momFinal">—</span>
+      </div>
+      <hr class="control-divider">
+      <div class="control-stat-row">
+        <span class="control-stat-label">Efficiency:</span>
+        <span class="control-stat-val" id="momEfficiency">—</span>
+      </div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Energy:</span>
+        <span class="control-stat-val" id="momEnergy">—</span>
+      </div>
+    </div>
+    
+    <div id="systemStressPanel" style="display: none;">
+      <div class="control-panel-title">SYSTEM STRESS</div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Rotor:</span>
+        <span class="control-stat-val" id="stressRotor">—</span>
+      </div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Power:</span>
+        <span class="control-stat-val" id="stressPower">—</span>
+      </div>
+      <div class="control-stat-row">
+        <span class="control-stat-label">Field:</span>
+        <span class="control-stat-val" id="stressField">—</span>
+      </div>
+      <div class="control-status-indicator" id="systemStatus">STATUS: OK</div>
+    </div>
+    
+    <div id="disturbanceIndicator" style="display: none;">
+      <div class="disturbance-line">⚡ Disturbance: <span id="distMag">0.0</span> N</div>
+      <div class="disturbance-line">🎯 Compensation: <span id="distComp">Active</span></div>
+      <div class="disturbance-line">⏱ Settling: <span id="distSettle">—</span>s</div>
+    </div>
+    
     <div id="energyPanel">
       <div class="epy-row">
         <span class="epy-label">Lateral</span>
@@ -570,6 +779,15 @@ let lastAsymmetricData = null;
 let prevPulseState = [];
 let dipoleGroup    = null;
 let userHasInteracted = false;
+let composer       = null; // Post-processing composer
+
+// Control visualization state
+let ghostBallMesh  = null; // Ghost ball for baseline comparison
+let reachableShells = []; // Array of wireframe spheres (t=1s, 2s, 5s)
+let controlTargetMarker = null; // Target position marker
+let controlTargetArc = null; // Trajectory arc to target
+let disturbanceActive = false; // Disturbance demo mode flag
+let disturbanceForce = new THREE.Vector3(0, 0, 0); // Current disturbance
 
 // Debounce timer for text inputs
 let textDebounceTimer = null;
@@ -584,12 +802,277 @@ let challengeState = {
 };
 
 // ============================================================
+// LOD MANAGER - Level of Detail system for zoom-based rendering
+// ============================================================
+const lodManager = {
+  currentLevel: 'close', // 'close' | 'medium' | 'orbital' | 'macro'
+  thresholds: { close: 8, medium: 25, orbital: 80 },
+  
+  update(radius) {
+    const prevLevel = this.currentLevel;
+    
+    if (radius < this.thresholds.close) this.currentLevel = 'close';
+    else if (radius < this.thresholds.medium) this.currentLevel = 'medium';
+    else if (radius < this.thresholds.orbital) this.currentLevel = 'orbital';
+    else this.currentLevel = 'macro';
+    
+    if (prevLevel !== this.currentLevel) {
+      this.applyLevel(this.currentLevel);
+    }
+  },
+  
+  applyLevel(level) {
+    // Toggle UI panel visibility
+    const rightPanel = document.getElementById('rightPanel');
+    if (level === 'close' || level === 'medium') {
+      if (rightPanel && window.gsap) {
+        window.gsap.to(rightPanel, { 
+          opacity: 1, 
+          x: 0, 
+          duration: 0.4,
+          onStart: () => rightPanel.style.display = 'flex'
+        });
+      } else if (rightPanel) {
+        rightPanel.style.display = 'flex';
+      }
+    } else {
+      if (rightPanel && window.gsap) {
+        window.gsap.to(rightPanel, { 
+          opacity: 0, 
+          x: 20, 
+          duration: 0.4,
+          onComplete: () => rightPanel.style.display = 'none'
+        });
+      } else if (rightPanel) {
+        rightPanel.style.display = 'none';
+      }
+    }
+    
+    // Toggle Earth and orbit line visibility
+    if (typeof earthMesh !== 'undefined' && earthMesh) {
+      earthMesh.visible = (level === 'orbital' || level === 'macro');
+    }
+    if (typeof orbitLine !== 'undefined' && orbitLine) {
+      orbitLine.visible = (level === 'orbital' || level === 'macro');
+    }
+    
+    // Toggle nebula visibility
+    if (typeof nebulaMesh !== 'undefined' && nebulaMesh) {
+      nebulaMesh.visible = (level === 'macro');
+    }
+    
+    // Toggle orbital HUD
+    const hud = document.getElementById('orbitalHUD');
+    if (hud) {
+      if (level === 'orbital' || level === 'macro') {
+        if (window.gsap) {
+          window.gsap.fromTo(hud, { 
+            opacity: 0,
+            duration: 0.6,
+            ease: "power2.out",
+            onStart: () => hud.style.display = 'flex'
+          });
+        } else {
+          hud.style.display = 'flex';
+        }
+        if (typeof currentP !== 'undefined' && currentP) {
+          updateOrbitalHUD(currentP);
+        }
+      } else {
+        if (window.gsap) {
+          window.gsap.to(hud, {
+            opacity: 0,
+            duration: 0.4,
+            onComplete: () => hud.style.display = 'none'
+          });
+        } else {
+          hud.style.display = 'none';
+        }
+      }
+    }
+  }
+};
+
+// ============================================================
+// CONTROL AUTHORITY VISUALIZATION
+// ============================================================
+
+function initControlVisualization() {
+  // Create ghost ball
+  if (!ghostBallMesh && ballMesh) {
+    const ghostGeo = new THREE.SphereGeometry(BALL_SCENE_RADIUS, 16, 16);
+    const ghostMat = new THREE.MeshBasicMaterial({
+      color: 0x888888,
+      transparent: true,
+      opacity: 0.3,
+      wireframe: true
+    });
+    ghostBallMesh = new THREE.Mesh(ghostGeo, ghostMat);
+    scene.add(ghostBallMesh);
+  }
+  
+  // Create reachable set shells
+  if (reachableShells.length === 0) {
+    const timeHorizons = [1.0, 2.0, 5.0]; // seconds
+    const colors = [0x7ee787, 0xf2cc60, 0xff7b72]; // green, yellow, red
+    
+    timeHorizons.forEach((t, i) => {
+      const radius = t * 0.5; // Simplified: assume 0.5 m/s max velocity
+      const geo = new THREE.SphereGeometry(radius, 16, 16);
+      const mat = new THREE.MeshBasicMaterial({
+        color: colors[i],
+        transparent: true,
+        opacity: 0.15,
+        wireframe: true
+      });
+      const shell = new THREE.Mesh(geo, mat);
+      shell.visible = false;
+      scene.add(shell);
+      reachableShells.push(shell);
+    });
+  }
+  
+  // Show control panels
+  document.getElementById('momentumPanel').style.display = 'block';
+  document.getElementById('systemStressPanel').style.display = 'block';
+  
+  // Show reachable shells
+  reachableShells.forEach(shell => shell.visible = true);
+}
+
+function updateGhostBall(ballisticPos) {
+  if (ghostBallMesh && ballisticPos) {
+    ghostBallMesh.position.copy(ballisticPos);
+  }
+}
+
+function updateMomentumPanel(transitData, frameIndex) {
+  if (!transitData || frameIndex >= transitData.T.length) return;
+  
+  const mass = currentP.mass || 0.01; // kg (default 10g)
+  const vInitial = Math.sqrt(
+    Math.pow(transitData.VX[0], 2) + 
+    Math.pow(transitData.VZ[0], 2)
+  );
+  const vCurrent = Math.sqrt(
+    Math.pow(transitData.VX[frameIndex], 2) + 
+    Math.pow(transitData.VZ[frameIndex], 2)
+  );
+  
+  const pInitial = mass * vInitial;
+  const pCurrent = mass * vCurrent;
+  const pDelta = pCurrent - pInitial;
+  
+  // Simplified efficiency calculation
+  const efficiency = Math.min(100, (Math.abs(pDelta) / (pInitial + 0.001)) * 100);
+  const energy = 0.5 * mass * (vCurrent * vCurrent - vInitial * vInitial);
+  
+  document.getElementById('momInitial').textContent = pInitial.toFixed(3) + ' kg·m/s';
+  document.getElementById('momControl').textContent = (pDelta > 0 ? '+' : '') + pDelta.toFixed(3) + ' kg·m/s';
+  document.getElementById('momFinal').textContent = pCurrent.toFixed(3) + ' kg·m/s';
+  document.getElementById('momEfficiency').textContent = efficiency.toFixed(1) + '%';
+  document.getElementById('momEnergy').textContent = Math.abs(energy).toFixed(1) + ' J';
+}
+
+function updateSystemStress() {
+  if (!currentP) return;
+  
+  // Rotor stress (RPM vs max)
+  const rpmMax = 100000; // Assume 100k RPM max
+  const rotorStress = (currentP.rpm / rpmMax) * 100;
+  
+  // Power stress (simplified estimate)
+  const powerEstimate = Math.abs(currentP.mu) * currentP.rpm / 1000; // Arbitrary units
+  const powerStress = Math.min(100, powerEstimate);
+  
+  // Field stress (gradient vs coil capacity)
+  const fieldStress = Math.min(100, Math.abs(currentP.gradient) / 10 * 100);
+  
+  document.getElementById('stressRotor').textContent = rotorStress.toFixed(0) + '%';
+  document.getElementById('stressPower').textContent = powerStress.toFixed(0) + '%';
+  document.getElementById('stressField').textContent = fieldStress.toFixed(0) + '%';
+  
+  // Update status indicator
+  const maxStress = Math.max(rotorStress, powerStress, fieldStress);
+  const statusEl = document.getElementById('systemStatus');
+  
+  if (maxStress < 60) {
+    statusEl.textContent = 'STATUS: OK';
+    statusEl.className = 'control-status-indicator';
+  } else if (maxStress < 85) {
+    statusEl.textContent = 'STATUS: WARNING';
+    statusEl.className = 'control-status-indicator warning';
+  } else {
+    statusEl.textContent = 'STATUS: CRITICAL';
+    statusEl.className = 'control-status-indicator critical';
+  }
+}
+
+function toggleDisturbanceDemo() {
+  disturbanceActive = !disturbanceActive;
+  const indicator = document.getElementById('disturbanceIndicator');
+  
+  if (disturbanceActive) {
+    indicator.style.display = 'block';
+    // Apply random disturbance
+    disturbanceForce.set(
+      (Math.random() - 0.5) * 0.5,
+      (Math.random() - 0.5) * 0.5,
+      (Math.random() - 0.5) * 0.5
+    );
+    document.getElementById('distMag').textContent = disturbanceForce.length().toFixed(2);
+  } else {
+    indicator.style.display = 'none';
+    disturbanceForce.set(0, 0, 0);
+  }
+}
+
+// ============================================================
+// ORBITAL HUD UPDATE FUNCTION
+// ============================================================
+function updateOrbitalHUD(P) {
+  const R_earth = 6371.0; // km
+  const mu = 398600.4418; // km^3/s^2
+  const altitude = P.altitude || 400;
+  const r_orbit = R_earth + altitude;
+  
+  // Orbital velocity: v = sqrt(mu / r)
+  const velocity = Math.sqrt(mu / r_orbit);
+  
+  // Orbital period: T = 2π * sqrt(r³ / mu)
+  const period = 2 * Math.PI * Math.sqrt(Math.pow(r_orbit, 3) / mu) / 60; // minutes
+  
+  const altEl = document.getElementById('hudAltitude');
+  const velEl = document.getElementById('hudVelocity');
+  const incEl = document.getElementById('hudInclination');
+  const perEl = document.getElementById('hudPeriod');
+  
+  if (altEl) altEl.textContent = `${altitude.toFixed(0)} km`;
+  if (velEl) velEl.textContent = `${velocity.toFixed(2)} km/s`;
+  if (incEl) incEl.textContent = `${(P.inclination || 51.6).toFixed(1)}°`;
+  if (perEl) perEl.textContent = `${period.toFixed(1)} min`;
+}
+
+// ============================================================
+// GSAP — load for smooth camera animations
+// ============================================================
+(function loadGSAP() {
+  const s = document.createElement('script');
+  s.src = 'https://cdn.jsdelivr.net/npm/gsap@3.12.2/dist/gsap.min.js';
+  s.async = false; // Ensure GSAP loads before Three.js
+  document.head.appendChild(s);
+})();
+
+// ============================================================
 // THREE.JS — load dynamically so init() fires only after ready
 // ============================================================
 (function loadThree() {
   const s = document.createElement('script');
   s.src = 'https://cdn.jsdelivr.net/npm/three@0.152.2/build/three.min.js';
-  s.onload  = function() { init(); };
+  s.onload  = function() { 
+    // Load post-processing scripts after Three.js is ready
+    loadPostProcessing();
+  };
   s.onerror = function() {
     document.body.innerHTML =
       '<div style="color:#ff7b72;padding:30px;font-family:monospace;background:#0a0a0f">' +
@@ -597,6 +1080,39 @@ let challengeState = {
   };
   document.head.appendChild(s);
 })();
+
+// Load post-processing addons as global scripts
+function loadPostProcessing() {
+  const scripts = [
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/EffectComposer.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/ShaderPass.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/RenderPass.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/shaders/CopyShader.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/shaders/LuminosityHighPassShader.js',
+    'https://cdn.jsdelivr.net/npm/three@0.152.2/examples/js/postprocessing/UnrealBloomPass.js'
+  ];
+  
+  let loaded = 0;
+  scripts.forEach(src => {
+    const s = document.createElement('script');
+    s.src = src;
+    s.onload = () => {
+      loaded++;
+      if (loaded === scripts.length) {
+        init(); // All scripts loaded, initialize
+      }
+    };
+    s.onerror = () => {
+      console.warn('Failed to load post-processing script:', src);
+      // Continue anyway - core functionality will still work
+      loaded++;
+      if (loaded === scripts.length) {
+        init();
+      }
+    };
+    document.head.appendChild(s);
+  });
+}
 
 // ============================================================
 // INLINE ORBIT CONTROLS
@@ -622,7 +1138,7 @@ function makeOrbitControls(camera, domElement) {
   });
   domElement.addEventListener('mouseup', () => isDragging = false);
   domElement.addEventListener('mouseleave', () => isDragging = false);
-  domElement.addEventListener('wheel', e => { radius = Math.max(5, Math.min(40, radius + e.deltaY * 0.02)); update(); }, { passive: true });
+  domElement.addEventListener('wheel', e => { radius = Math.max(2, Math.min(250, radius + e.deltaY * 0.05)); update(); }, { passive: true });
 
   // Touch orbit controls
   let lastPinchDist = 0;
@@ -660,7 +1176,7 @@ function makeOrbitControls(camera, domElement) {
       const dy = e.touches[0].clientY - e.touches[1].clientY;
       const dist = Math.sqrt(dx*dx + dy*dy);
       if (lastPinchDist > 0) {
-        radius = Math.max(5, Math.min(40, radius - (dist - lastPinchDist) * 0.05));
+        radius = Math.max(2, Math.min(250, radius - (dist - lastPinchDist) * 0.05));
         update();
       }
       lastPinchDist = dist;
@@ -683,8 +1199,49 @@ function makeOrbitControls(camera, domElement) {
     }
   }, { passive: true });
 
+  // GSAP-powered smooth camera transitions
+  let animating = false;
+  
+  function animateTo(targetTheta, targetPhi, targetRadius, duration) {
+    // Kill any existing animation
+    if (animating && window.gsap) {
+      window.gsap.killTweensOf({ theta, phi, radius });
+    }
+    
+    if (!window.gsap) {
+      // Fallback to instant set if GSAP not loaded
+      theta = targetTheta;
+      phi = targetPhi;
+      radius = targetRadius;
+      update();
+      return;
+    }
+    
+    animating = true;
+    
+    const controls = { theta, phi, radius };
+    
+    window.gsap.to(controls, {
+      theta: targetTheta,
+      phi: targetPhi,
+      radius: targetRadius,
+      duration: duration,
+      ease: "power2.inOut",
+      onUpdate: () => {
+        theta = controls.theta;
+        phi = controls.phi;
+        radius = controls.radius;
+        update();
+      },
+      onComplete: () => {
+        animating = false;
+      }
+    });
+  }
+
   return { update, getTheta: () => theta, getPhi: () => phi, getRadius: () => radius,
-           setView: (t,p,r) => { theta=t; phi=p; radius=r; update(); } };
+           setView: (t,p,r) => { theta=t; phi=p; radius=r; update(); },
+           animateTo };
 }
 
 // ============================================================
@@ -937,6 +1494,12 @@ function onParamChange(options = {}) {
   updateModeAssets();
   saveToURL();
   resetAnimation();
+  
+  // Update orbital trajectory visualization
+  if (typeof calculateOrbitPath === 'function') {
+    calculateOrbitPath(currentP);
+  }
+  
   if (!challengeState.active) autoFire();
 }
 
@@ -1049,7 +1612,7 @@ function buildCoils(P) {
     const mat = new THREE.MeshStandardMaterial({
       color: COIL_COLOR_DEFAULT.clone(),
       emissive: COIL_EMISSIVE_DEFAULT.clone(),
-      emissiveIntensity: 0.6,
+      emissiveIntensity: 1.0,
       metalness: 0.7, roughness: 0.3
     });
     const mesh = new THREE.Mesh(geo, mat);
@@ -1211,10 +1774,10 @@ function updateCoilFlash(idx) {
 // ============================================================
 // MODE MANAGEMENT
 // ============================================================
-const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD'];
+const MODE_NAMES = ['FORCES', 'TRAJECTORY', 'FIELD', 'CONTROL'];
 
 function cycleMode() {
-  currentMode = (currentMode + 1) % 3;
+  currentMode = (currentMode + 1) % 4;
   document.getElementById('modeBtn').textContent = 'MODE: ' + MODE_NAMES[currentMode];
   applyMode();
 }
@@ -1222,6 +1785,16 @@ function cycleMode() {
 function applyMode() {
   const inset = document.getElementById('insetCanvas');
   const ol = document.getElementById('overlayLabels');
+  
+  // Hide control visualization panels by default
+  if (currentMode !== 3) {
+    document.getElementById('momentumPanel').style.display = 'none';
+    document.getElementById('systemStressPanel').style.display = 'none';
+    document.getElementById('disturbanceIndicator').style.display = 'none';
+    if (reachableShells.length > 0) {
+      reachableShells.forEach(shell => shell.visible = false);
+    }
+  }
 
   if (currentMode === 0) {
     inset.style.display = 'none';
@@ -1246,6 +1819,17 @@ function applyMode() {
     if (dipoleGroup) dipoleGroup.visible = true;
     if (streamlineGroup) streamlineGroup.visible = false;
     orbitControls.setView(0.5, Math.PI / 3, 16); // side-angle: rings as ellipses + field lines around ball
+  } else if (currentMode === 3) {
+    // CONTROL mode - show control authority visualization
+    inset.style.display = 'none';
+    if (arrowRed)  arrowRed.visible  = false;
+    if (arrowBlue) arrowBlue.visible = false;
+    if (dipoleGroup) dipoleGroup.visible = false;
+    if (streamlineGroup) streamlineGroup.visible = false;
+    ol.innerHTML = '';
+    orbitControls.setView(0.4, Math.PI / 3, 14);
+    // Initialize control visualization
+    initControlVisualization();
   }
 }
 
@@ -1973,19 +2557,63 @@ function onSlider(key, val, labelId, decimals) {
   onParamChange();
 }
 
+// ============================================================
+// ORBITAL TRAJECTORY CALCULATION
+// ============================================================
+function calculateOrbitPath(P) {
+  if (!orbitLine) return;
+  
+  const R_earth = 6371.0; // km
+  const altitude = P.altitude || 400; // default 400km
+  const inclination = (P.inclination || 51.6) * Math.PI / 180;
+  const r_orbit = R_earth + altitude;
+  
+  // Scale: 1 scene unit ≈ 100 km
+  const scale = 1 / 100;
+  const sceneRadius = r_orbit * scale;
+  
+  const numPoints = 200;
+  const positions = new Float32Array(numPoints * 3);
+  
+  for (let i = 0; i < numPoints; i++) {
+    const angle = (i / numPoints) * Math.PI * 2;
+    
+    // Orbital plane coordinates
+    const x = sceneRadius * Math.cos(angle);
+    const z = sceneRadius * Math.sin(angle);
+    
+    // Apply inclination rotation around X axis
+    const y = z * Math.sin(inclination);
+    const z_rotated = z * Math.cos(inclination);
+    
+    positions[i * 3] = x;
+    positions[i * 3 + 1] = y;
+    positions[i * 3 + 2] = z_rotated - 50; // Offset to match Earth position
+  }
+  
+  orbitLine.geometry.setAttribute('position', 
+    new THREE.BufferAttribute(positions, 3));
+  orbitLine.geometry.setDrawRange(0, numPoints);
+  orbitLine.geometry.attributes.position.needsUpdate = true;
+}
+
 function toggleViewMode() {
   viewMode = viewMode === 'local' ? 'orbital' : 'local';
   const btn = document.getElementById('viewToggleBtn');
   btn.textContent = viewMode === 'local' ? 'Switch to Orbital View' : 'Switch to Local View';
   
-  // Toggle visibility
+  // Animate camera transition with GSAP
   if (viewMode === 'orbital') {
-    earthMesh.visible = true;
-    orbitLine.visible = true;
+    // Switch to orbital view - zoom out and adjust angle
+    if (orbitControls.animateTo) {
+      orbitControls.animateTo(0.3, Math.PI / 2.5, 120, 1.0);
+    }
     ballMesh.scale.set(2, 2, 2); // Make ball larger for orbital view
   } else {
-    earthMesh.visible = false;
-    orbitLine.visible = false;
+    // Return to local view - zoom in
+    if (orbitControls.animateTo) {
+      orbitControls.animateTo(0.4, Math.PI / 3, 14, 1.0);
+    }
     ballMesh.scale.set(1, 1, 1);
   }
 }
@@ -2192,6 +2820,33 @@ function renderLoop(now) {
     }
   }
 
+  // Update LOD manager based on camera distance
+  if (typeof orbitControls !== 'undefined' && orbitControls) {
+    lodManager.update(orbitControls.getRadius());
+  }
+  
+  // Update control visualization if in CONTROL mode
+  if (currentMode === 3) {
+    if (transitData && isAnimating) {
+      updateMomentumPanel(transitData, currentFrameIndex);
+      
+      // Update ghost ball position (simplified: use initial position as ballistic baseline)
+      if (ghostBallMesh && currentFrameIndex < transitData.T.length) {
+        const ballisticZ = transitData.Z[0] + transitData.VZ[0] * transitData.T[currentFrameIndex];
+        const pos = physicsToScene(0, ballisticZ, currentP);
+        updateGhostBall(pos);
+      }
+    }
+    updateSystemStress();
+    
+    // Update reachable shells position to follow ball
+    if (ballMesh && reachableShells.length > 0) {
+      reachableShells.forEach(shell => {
+        shell.position.copy(ballMesh.position);
+      });
+    }
+  }
+
   visualEffectsManager.update(dt);
   // Ball and dipole spin continuously — speed scales with RPM slider
   const _rpmScale = (currentP && currentP.rpm) ? currentP.rpm / 50000 : 1;
@@ -2200,7 +2855,13 @@ function renderLoop(now) {
   if (currentMode === 2 && dipoleGroup) {
     dipoleGroup.rotation.y += 0.008 * _rpmScale;
   }
-  renderer.render(scene, camera);
+  
+  // Use post-processing composer if available, otherwise fallback to renderer
+  if (composer) {
+    composer.render();
+  } else {
+    renderer.render(scene, camera);
+  }
 }
 
 // ============================================================
@@ -2217,6 +2878,20 @@ function init() {
   camera = new THREE.PerspectiveCamera(50, 1, 0.01, 500);
   orbitControls = makeOrbitControls(camera, canvas);
 
+  // Post-processing setup (if available)
+  if (typeof THREE.EffectComposer !== 'undefined') {
+    composer = new THREE.EffectComposer(renderer);
+    composer.addPass(new THREE.RenderPass(scene, camera));
+    
+    const bloomPass = new THREE.UnrealBloomPass(
+      new THREE.Vector2(window.innerWidth / 2, window.innerHeight / 2),
+      1.2,   // strength - subtle bloom
+      0.4,   // radius
+      0.25   // threshold
+    );
+    composer.addPass(bloomPass);
+  }
+
   // Lighting
   scene.add(new THREE.AmbientLight(0x223344, 0.5));
   pointLight1 = new THREE.PointLight(0x4488ff, 1.5, 30);
@@ -2225,20 +2900,57 @@ function init() {
   ballLight = new THREE.PointLight(0xff6600, 0.8, 20);
   scene.add(ballLight);
 
-  // Stars
+  // Enhanced multi-layer starfield with color variation
   (function makeStars() {
+    const starConfigs = [
+      { count: 1500, rMin: 80, rMax: 100 },
+      { count: 1000, rMin: 120, rMax: 150 },
+      { count: 500, rMin: 180, rMax: 220 }
+    ];
+    
+    let totalStars = 0;
+    starConfigs.forEach(c => totalStars += c.count);
+    
     const geo = new THREE.BufferGeometry();
-    const positions = new Float32Array(800 * 3);
-    for (let i = 0; i < 800; i++) {
-      const theta = Math.random() * Math.PI * 2;
-      const phi2 = Math.acos(2 * Math.random() - 1);
-      const r = 80 + Math.random() * 20;
-      positions[i * 3]     = r * Math.sin(phi2) * Math.cos(theta);
-      positions[i * 3 + 1] = r * Math.cos(phi2);
-      positions[i * 3 + 2] = r * Math.sin(phi2) * Math.sin(theta);
-    }
+    const positions = new Float32Array(totalStars * 3);
+    const colors = new Float32Array(totalStars * 3);
+    
+    let idx = 0;
+    starConfigs.forEach(config => {
+      for (let i = 0; i < config.count; i++) {
+        const theta = Math.random() * Math.PI * 2;
+        const phi2 = Math.acos(2 * Math.random() - 1);
+        const r = config.rMin + Math.random() * (config.rMax - config.rMin);
+        
+        positions[idx * 3] = r * Math.sin(phi2) * Math.cos(theta);
+        positions[idx * 3 + 1] = r * Math.cos(phi2);
+        positions[idx * 3 + 2] = r * Math.sin(phi2) * Math.sin(theta);
+        
+        // Color variation: 70% white, 20% blue, 10% yellow
+        const color = new THREE.Color();
+        const rand = Math.random();
+        if (rand < 0.7) color.setHex(0xffffff);
+        else if (rand < 0.9) color.setHex(0x8899ff);
+        else color.setHex(0xffdd88);
+        
+        colors[idx * 3] = color.r;
+        colors[idx * 3 + 1] = color.g;
+        colors[idx * 3 + 2] = color.b;
+        
+        idx++;
+      }
+    });
+    
     geo.setAttribute('position', new THREE.BufferAttribute(positions, 3));
-    scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color: 0xffffff, size: 0.12 })));
+    geo.setAttribute('color', new THREE.BufferAttribute(colors, 3));
+    
+    const mat = new THREE.PointsMaterial({ 
+      size: 0.15,
+      vertexColors: true,
+      sizeAttenuation: true
+    });
+    
+    scene.add(new THREE.Points(geo, mat));
   })();
 
   // Earth sphere (for orbital view)
@@ -2246,8 +2958,8 @@ function init() {
   const earthGeo = new THREE.SphereGeometry(earthRadius, 64, 64);
   const earthMat = new THREE.MeshStandardMaterial({
     color: 0x2244aa,
-    emissive: 0x001133,
-    emissiveIntensity: 0.2,
+    emissive: 0x003366,
+    emissiveIntensity: 0.4,
     metalness: 0.1,
     roughness: 0.8
   });
@@ -2277,8 +2989,8 @@ function init() {
   const ballGeo = new THREE.SphereGeometry(BALL_SCENE_RADIUS, 32, 32);
   const ballMat = new THREE.MeshStandardMaterial({
     color: 0xccaa44,
-    emissive: 0x442200,
-    emissiveIntensity: 0.3,
+    emissive: 0xffaa44,
+    emissiveIntensity: 0.8,
     metalness: 0.8, roughness: 0.2
   });
   ballMesh = new THREE.Mesh(ballGeo, ballMat);
@@ -2346,6 +3058,11 @@ function init() {
   updateStatsPanel();
   checkBoreField(transitData);
   buildDipoleFieldLines(currentP);
+
+  // Calculate initial orbital path
+  if (typeof calculateOrbitPath === 'function' && currentP) {
+    calculateOrbitPath(currentP);
+  }
 
   // Start render
   requestAnimationFrame(renderLoop);
