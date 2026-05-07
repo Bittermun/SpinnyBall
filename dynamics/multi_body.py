@@ -2,8 +2,18 @@
 Multi-body packet stream dynamics for closed-loop mass-stream simulation.
 
 Implements N-body packet dynamics with event-driven magnetic capture/release
-at sparse S-Nodes. This is the foundation for the closed-loop mass-stream
-architecture described in the ideal blueprint.
+at sparse S-Nodes using Halbach array self-confinement.
+
+This is the canonical Shepherded Gyroscopic Mass Stream (SGMS) implementation
+with:
+- Spherical Halbach arrays for magnetic dipole-dipole confinement
+- Hoop tension from momentum flux
+- Shepherd stations with quadrupole lenses
+
+References:
+- Leupold & Potenziani (1988) - Halbach cylinders
+- Jackson, Classical Electrodynamics - Dipole-dipole interactions
+- Hoyt & Forward (1999) - Momentum-exchange tethers
 """
 
 from __future__ import annotations
@@ -18,16 +28,24 @@ import numpy as np
 from .rigid_body import RigidBody
 from .thermal_model import ThermalLimits, check_thermal_limits, update_temperature_euler
 
-# Optional flux-pinning model
+# Halbach array model (new canonical implementation)
 try:
-    from .bean_london_model import BeanLondonModel
-    from .gdBCO_material import GdBCOMaterial, GdBCOProperties
-    FLUX_PINNING_AVAILABLE = True
+    from .halbach_array import HalbachArray, HalbachConfig, create_standard_halbach
+    from .interball_magnetic import InterBallMagneticInteraction, dipole_dipole_force
+    from .hoop_tension import HoopTensionModel, StreamGeometry
+    from .shepherd_station import ShepherdStation, StationType
+    HALBACH_AVAILABLE = True
 except ImportError:
-    FLUX_PINNING_AVAILABLE = False
-    BeanLondonModel = None
-    GdBCOMaterial = None
-    GdBCOProperties = None
+    HALBACH_AVAILABLE = False
+    HalbachArray = None
+    HalbachConfig = None
+    create_standard_halbach = None
+    InterBallMagneticInteraction = None
+    dipole_dipole_force = None
+    HoopTensionModel = None
+    StreamGeometry = None
+    ShepherdStation = None
+    StationType = None
 
 # Optional orbital dynamics
 try:
@@ -58,6 +76,10 @@ class SNode:
     """
     Sparse S-Node (Shepherding Node) for magnetic capture/release.
 
+    This is the legacy S-Node class. For new code, use ShepherdStation
+    from shepherd_station module which provides Halbach quadrupole lens
+    functionality.
+
     Attributes:
         id: Node identifier
         position: 3D position [x, y, z] (m)
@@ -66,7 +88,8 @@ class SNode:
         max_packets: Maximum number of packets that can be held
         eta_ind_min: Minimum induction efficiency constraint (η_ind ≥ 0.82)
         held_packets: List of packet IDs currently held
-        k_fp: Flux-pinning stiffness (N/m)
+        k_fp: Flux-pinning stiffness (N/m) - legacy, kept for compatibility
+        shepherd_station: Optional ShepherdStation for Halbach-based guidance
     """
     id: int
     position: np.ndarray
@@ -75,12 +98,22 @@ class SNode:
     max_packets: int = 10
     eta_ind_min: float = 0.82
     held_packets: list[int] = field(default_factory=list)
-    k_fp: float = 6000.0  # N/m, default flux-pinning stiffness (meets feasibility gate)
+    k_fp: float = 6000.0  # N/m, legacy flux-pinning stiffness
+    shepherd_station: 'ShepherdStation' = None  # New Halbach-based guidance
 
     def __post_init__(self):
         self.position = np.asarray(self.position, dtype=float)
         if self.position.shape != (3,):
             raise ValueError(f"S-Node position must be 3-element vector, got shape {self.position.shape}")
+        
+        # Create default shepherd station if not provided
+        if self.shepherd_station is None and HALBACH_AVAILABLE:
+            from .shepherd_station import create_passive_shepherd
+            self.shepherd_station = create_passive_shepherd(
+                position=self.position,
+                station_id=self.id,
+                capture_radius=self.capture_radius
+            )
 
     def can_capture(self, eta_ind: float) -> bool:
         """Check if node can capture a packet."""
@@ -89,6 +122,28 @@ class SNode:
     def distance_to(self, position: np.ndarray) -> float:
         """Compute distance from node to a position."""
         return np.linalg.norm(position - self.position)
+    
+    def compute_halbach_force(
+        self,
+        ball_position: np.ndarray,
+        ball_velocity: np.ndarray,
+        dipole_moment: float = 580.0
+    ) -> np.ndarray:
+        """Compute Halbach-based guidance force on a ball.
+        
+        Args:
+            ball_position: Ball position [x, y, z] (m)
+            ball_velocity: Ball velocity [vx, vy, vz] (m/s)
+            dipole_moment: Ball dipole moment (A·m²)
+        
+        Returns:
+            Force vector [Fx, Fy, Fz] (N)
+        """
+        if self.shepherd_station is not None:
+            return self.shepherd_station.compute_total_force(
+                ball_position, ball_velocity, dipole_moment
+            )
+        return np.zeros(3)
 
 
 @dataclass
@@ -108,21 +163,107 @@ class Packet:
         specific_heat: Specific heat capacity (J/kg·K)
         orbital_state: Orbital state vector (position/velocity in ECI frame)
         in_eclipse: Whether packet is in Earth's shadow
+        halbach_array: Spherical Halbach array for magnetic interactions
     """
     id: int
     body: RigidBody
     state: PacketState = PacketState.FREE
     current_node: int | None = None
     eta_ind: float = 1.0  # Default induction efficiency
-    radius: float = 0.02  # Default 2cm radius for stress calculations
-    temperature: float = 77.0  # Initial temperature (K) - LN2 operating point
+    radius: float = 0.05  # Default 5cm radius for Halbach sphere
+    temperature: float = 293.0  # Initial temperature (K) - room temp for Halbach
     emissivity: float = 0.8  # Al/BFRP emissivity
     specific_heat: float = 900.0  # J/kg·K for Al
     orbital_state: OrbitalState | None = None  # Orbital state in ECI frame
     in_eclipse: bool = False  # Eclipse state
+    halbach_array: 'HalbachArray' = None  # Spherical Halbach array
+
+    def __post_init__(self):
+        """Initialize Halbach array if not provided."""
+        if self.halbach_array is None and HALBACH_AVAILABLE:
+            from .halbach_array import create_standard_halbach
+            self.halbach_array = create_standard_halbach(
+                radius=self.radius,
+                material='NdFeB',
+                temperature=self.temperature
+            )
+
+    def compute_halbach_force_from_neighbors(
+        self,
+        neighbor_packets: list['Packet']
+    ) -> np.ndarray:
+        """Compute magnetic force from neighboring Halbach arrays.
+
+        Args:
+            neighbor_packets: List of neighboring packets
+
+        Returns:
+            Force vector [Fx, Fy, Fz] (N)
+        """
+        if self.halbach_array is None or not HALBACH_AVAILABLE:
+            return np.zeros(3)
+
+        total_force = np.zeros(3)
+        my_pos = self.position
+        my_dipole = self.halbach_array.dipole_moment
+
+        for neighbor in neighbor_packets:
+            if neighbor.halbach_array is None or neighbor.id == self.id:
+                continue
+
+            neighbor_pos = neighbor.position
+            neighbor_dipole = neighbor.halbach_array.dipole_moment
+
+            # Position vector from self to neighbor
+            r_vec = neighbor_pos - my_pos
+
+            # Force from neighbor
+            F = dipole_dipole_force(my_dipole, neighbor_dipole, r_vec)
+            total_force += F
+
+        return total_force
+
+    def compute_halbach_torque_from_neighbors(
+        self,
+        neighbor_packets: list['Packet']
+    ) -> np.ndarray:
+        """Compute magnetic torque from neighboring Halbach arrays.
+
+        Args:
+            neighbor_packets: List of neighboring packets
+
+        Returns:
+            Torque vector [τx, τy, τz] (N·m)
+        """
+        if self.halbach_array is None or not HALBACH_AVAILABLE:
+            return np.zeros(3)
+
+        total_torque = np.zeros(3)
+        my_pos = self.position
+        my_dipole = self.halbach_array.dipole_moment
+
+        for neighbor in neighbor_packets:
+            if neighbor.halbach_array is None or neighbor.id == self.id:
+                continue
+
+            neighbor_pos = neighbor.position
+            neighbor_dipole = neighbor.halbach_array.dipole_moment
+
+            # Position vector from self to neighbor
+            r_vec = neighbor_pos - my_pos
+
+            # Torque = m × B from neighbor
+            B = neighbor.halbach_array.magnetic_field(-r_vec)  # Field at my position
+            tau = np.cross(my_dipole, B)
+            total_torque += tau
+
+        return total_torque
 
     def compute_flux_pinning_torque(self, B_field: np.ndarray, node_position: np.ndarray) -> np.ndarray:
         """Compute flux-pinning torque from body's flux model.
+
+        DEPRECATED: This method is kept for backward compatibility.
+        Use compute_halbach_torque_from_neighbors for new code.
 
         Args:
             B_field: Magnetic field vector [Bx, By, Bz] (T)
@@ -131,6 +272,13 @@ class Packet:
         Returns:
             Torque vector [τx, τy, τz] in body frame (N·m)
         """
+        # For Halbach arrays, use magnetic torque instead
+        if self.halbach_array is not None:
+            # Simplified: torque from shepherd station field
+            m = self.halbach_array.dipole_moment
+            return np.cross(m, B_field)
+
+        # Legacy flux-pinning code
         if self.body.flux_model is None:
             return np.zeros(3)
 
@@ -161,6 +309,13 @@ class Packet:
     def angular_velocity(self) -> np.ndarray:
         """Get packet angular velocity."""
         return self.body.angular_velocity
+    
+    @property
+    def dipole_moment(self) -> np.ndarray:
+        """Get magnetic dipole moment from Halbach array."""
+        if self.halbach_array is not None:
+            return self.halbach_array.dipole_moment
+        return np.zeros(3)
 
 
 @dataclass(order=True)
@@ -306,16 +461,77 @@ class MultiBodyStream:
         else:
             self.orbital_propagator = None
 
-        # Initialize flux-pinning models if available
-        if FLUX_PINNING_AVAILABLE:
-            # Import once outside loop for efficiency
-            from .gdBCO_material import GdBCOProperties
+        # Initialize Halbach arrays for packets (new canonical implementation)
+        if HALBACH_AVAILABLE:
             for packet in self.packets:
-                # Use thin-film coated conductor geometry (consistent with sgms_anchor_v1.py)
-                props = GdBCOProperties(Tc=92.0, Jc0=3e10, B0=5.0, n_exponent=1.5, alpha=0.5, thickness=1e-6)
-                material = GdBCOMaterial(props)
-                geometry = {"thickness": 1e-6, "width": 0.012, "length": 0.01}
-                packet.body.flux_model = BeanLondonModel(material, geometry)
+                if packet.halbach_array is None:
+                    from .halbach_array import create_standard_halbach
+                    packet.halbach_array = create_standard_halbach(
+                        radius=packet.radius,
+                        material='NdFeB',
+                        temperature=packet.temperature
+                    )
+        
+        # Initialize hoop tension model for stream confinement
+        if HALBACH_AVAILABLE and len(self.packets) > 0:
+            self.hoop_model = self._create_hoop_model()
+            self.interball_interaction = self._create_interball_interaction()
+        else:
+            self.hoop_model = None
+            self.interball_interaction = None
+
+    def _create_hoop_model(self) -> 'HoopTensionModel':
+        """Create hoop tension model for stream confinement.
+        
+        Returns:
+            HoopTensionModel configured for this stream
+        """
+        if not HALBACH_AVAILABLE or len(self.packets) == 0:
+            return None
+        
+        from .hoop_tension import StreamGeometry
+        
+        # Estimate stream geometry from packets
+        avg_mass = np.mean([p.body.mass for p in self.packets])
+        
+        # For orbital ring, use stream_length
+        if hasattr(self, 'stream_length') and self.stream_length is not None:
+            radius = self.stream_length / (2.0 * np.pi)
+        else:
+            # Estimate from packet positions
+            positions = [p.position for p in self.packets]
+            if len(positions) > 1:
+                center = np.mean(positions, axis=0)
+                avg_radius = np.mean([np.linalg.norm(p - center) for p in positions])
+                radius = max(avg_radius, 1000.0)  # Minimum 1km
+            else:
+                radius = 1000.0
+        
+        geometry = StreamGeometry(
+            radius=radius,
+            n_balls=len(self.packets),
+            ball_mass=avg_mass,
+            stream_velocity=self.stream_velocity
+        )
+        
+        from .hoop_tension import HoopTensionModel
+        return HoopTensionModel(geometry)
+    
+    def _create_interball_interaction(self) -> 'InterBallMagneticInteraction':
+        """Create inter-ball magnetic interaction model.
+        
+        Returns:
+            InterBallMagneticInteraction for this stream
+        """
+        if not HALBACH_AVAILABLE or len(self.packets) == 0:
+            return None
+        
+        halbach_arrays = [p.halbach_array for p in self.packets if p.halbach_array is not None]
+        
+        if len(halbach_arrays) == 0:
+            return None
+        
+        return InterBallMagneticInteraction(halbach_arrays, neighbor_range=2)
 
     def _configure_topology(self, initial_altitude: float):
         """Configure topology-specific parameters.
@@ -575,29 +791,60 @@ class MultiBodyStream:
 
                 # Integrate if still free after capture check
                 if packet.state == PacketState.FREE:
-                    # Find nearest node for flux-pinning displacement calculation
+                    # Find nearest node for shepherd station guidance
                     nearest_node_pos = None
+                    nearest_node = None
                     if self.nodes:
                         distances = [node.distance_to(packet.position) for node in self.nodes]
                         nearest_idx = np.argmin(distances)
-                        nearest_node_pos = self.nodes[nearest_idx].position
+                        nearest_node = self.nodes[nearest_idx]
+                        nearest_node_pos = nearest_node.position
+
+                    # Compute inter-ball magnetic forces (new canonical Halbach physics)
+                    F_interball = np.zeros(3)
+                    if self.interball_interaction is not None:
+                        neighbor_indices = self._get_neighbor_indices(packet.id)
+                        neighbors = [self.packets[i] for i in neighbor_indices]
+                        F_interball = packet.compute_halbach_force_from_neighbors(neighbors)
+                    
+                    # Compute shepherd station guidance force (new canonical)
+                    F_shepherd = np.zeros(3)
+                    if nearest_node is not None:
+                        F_shepherd = nearest_node.compute_halbach_force(
+                            packet.position, packet.velocity,
+                            np.linalg.norm(packet.dipole_moment)
+                        )
+                    
+                    # Apply inter-ball and shepherd forces to body
+                    # F = ma, so acceleration = F/m
+                    total_force = F_interball + F_shepherd
+                    packet.body.velocity += (total_force / packet.body.mass) * dt
 
                     # Define control torque function outside lambda for Numba compatibility
                     def control_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
                         return torques(packet_id, t, state)
 
-                    # Define flux-pinning torque function
-                    def flux_pinning_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
+                    # Define Halbach magnetic torque function (new canonical)
+                    def halbach_torque_func(packet_id: int, t: float, state: np.ndarray) -> np.ndarray:
+                        torque = np.zeros(3)
+                        
+                        # Add torque from neighboring packets (inter-ball magnetic)
+                        if self.interball_interaction is not None:
+                            neighbor_indices = self._get_neighbor_indices(packet.id)
+                            neighbors = [self.packets[i] for i in neighbor_indices]
+                            torque += packet.compute_halbach_torque_from_neighbors(neighbors)
+                        
+                        # Add torque from shepherd station (if near node)
                         if nearest_node_pos is not None:
-                            return packet.compute_flux_pinning_torque(self.B_field, nearest_node_pos)
-                        else:
-                            return np.zeros(3)
+                            torque += packet.compute_flux_pinning_torque(self.B_field, nearest_node_pos)
+                        
+                        return torque
 
                     # Combined torque function for Numba
                     def packet_torques_func(t: float, state: np.ndarray) -> np.ndarray:
                         tau_control = control_torque_func(packet.id, t, state)
-                        tau_pin = flux_pinning_torque_func(packet.id, t, state)
-                        return tau_control + tau_pin
+                        tau_halbach = halbach_torque_func(packet.id, t, state)
+                        return tau_control + tau_halbach
 
                     packet.body.integrate(
                         t_span=(self.time, self.time + dt),
@@ -714,6 +961,46 @@ class MultiBodyStream:
                 })
 
         return results
+
+    def _get_neighbor_indices(self, packet_id: int, n_neighbors: int = 2) -> list[int]:
+        """Get indices of neighboring packets in the stream.
+        
+        Args:
+            packet_id: ID of the packet to find neighbors for
+            n_neighbors: Number of neighbors on each side
+        
+        Returns:
+            List of neighbor packet indices
+        """
+        if not hasattr(self, 'packets') or len(self.packets) <= 1:
+            return []
+        
+        # Find index of packet with given ID
+        try:
+            idx = next(i for i, p in enumerate(self.packets) if p.id == packet_id)
+        except StopIteration:
+            return []
+        
+        n = len(self.packets)
+        neighbors = []
+        
+        # Get neighbors on both sides
+        for offset in range(1, n_neighbors + 1):
+            # Previous neighbor (with wrap-around for closed loop)
+            if self.is_closed_loop:
+                prev_idx = (idx - offset) % n
+                neighbors.append(prev_idx)
+            elif idx - offset >= 0:
+                neighbors.append(idx - offset)
+            
+            # Next neighbor (with wrap-around for closed loop)
+            if self.is_closed_loop:
+                next_idx = (idx + offset) % n
+                neighbors.append(next_idx)
+            elif idx + offset < n:
+                neighbors.append(idx + offset)
+        
+        return neighbors
 
     def get_stream_metrics(self) -> dict:
         """

@@ -1,0 +1,500 @@
+{
+  "summary": {
+    "total_runs_analyzed": 8,
+    "valid_runs": 5,
+    "error_runs": 3,
+    "total_converged_points": 40,
+    "total_simulation_points": 184,
+    "overall_convergence_rate": 0.21739130434782608,
+    "date_generated": "2026-05-07"
+  },
+  "runs": [
+    {
+      "directory": "profile_sweep_quick_20260428-214333",
+      "timestamp": "20260428-214333",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "operational": {
+          "profile_name": "operational",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        }
+      },
+      "converged_count": 0,
+      "total_profiles": 4,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 0.0,
+      "error_count": 0,
+      "errors": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224203",
+      "timestamp": "20260428-224203",
+      "profiles_found": {},
+      "converged_count": 0,
+      "total_profiles": 0,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 1.0,
+      "error_count": 1,
+      "errors": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1654)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224245",
+      "timestamp": "20260428-224245",
+      "profiles_found": {},
+      "converged_count": 0,
+      "total_profiles": 0,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 1.0,
+      "error_count": 1,
+      "errors": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1654)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225241",
+      "timestamp": "20260428-225241",
+      "profiles_found": {},
+      "converged_count": 0,
+      "total_profiles": 0,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 1.0,
+      "error_count": 1,
+      "errors": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1534)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225500",
+      "timestamp": "20260428-225500",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "operational": {
+          "profile_name": "operational",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        }
+      },
+      "converged_count": 0,
+      "total_profiles": 4,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 0.0,
+      "error_count": 0,
+      "errors": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260429-074317",
+      "timestamp": "20260429-074317",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "operational": {
+          "profile_name": "operational",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        }
+      },
+      "converged_count": 0,
+      "total_profiles": 5,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 0.0,
+      "error_count": 0,
+      "errors": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260430-062033",
+      "timestamp": "20260430-062033",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "operational": {
+          "profile_name": "operational",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 0,
+          "total_points": 8,
+          "convergence_rate": 0.0
+        }
+      },
+      "converged_count": 0,
+      "total_profiles": 5,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 0.0,
+      "error_count": 0,
+      "errors": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260501-074244",
+      "timestamp": "20260501-074244",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 8,
+          "total_points": 8,
+          "convergence_rate": 1.0
+        },
+        "operational": {
+          "profile_name": "operational",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 8,
+          "total_points": 8,
+          "convergence_rate": 1.0
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 8,
+          "total_points": 8,
+          "convergence_rate": 1.0
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 8,
+          "total_points": 8,
+          "convergence_rate": 1.0
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "cascade_prob_avg": 0.0,
+          "cascade_prob_max": 0.0,
+          "cascade_prob_min": 0.0,
+          "converged_count": 8,
+          "total_points": 8,
+          "convergence_rate": 1.0
+        }
+      },
+      "converged_count": 40,
+      "total_profiles": 5,
+      "avg_cascade_prob": 0.0,
+      "max_cascade_prob": 0.0,
+      "min_cascade_prob": 0.0,
+      "error_count": 0,
+      "errors": []
+    }
+  ],
+  "profile_comparison": {
+    "engineering-screen": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 1.0,
+        "converged_count": 8
+      }
+    ],
+    "operational": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 1.0,
+        "converged_count": 8
+      }
+    ],
+    "paper-baseline": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 1.0,
+        "converged_count": 8
+      }
+    ],
+    "resilience": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 1.0,
+        "converged_count": 8
+      }
+    ],
+    "smco-heavy": [
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 0.0,
+        "converged_count": 0
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "cascade_prob_avg": 0.0,
+        "convergence_rate": 1.0,
+        "converged_count": 8
+      }
+    ]
+  }
+}

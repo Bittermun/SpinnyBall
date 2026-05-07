@@ -167,6 +167,86 @@ def test_stiffness_numerical_derivative():
     assert stiffness > 0
 
 
+def test_stiffness_literature_validation():
+    """Test that stiffness matches literature values.
+
+    Literature references:
+    - Li et al. 2020: ~9,580 N/m (lab-scale maglev)
+    - Day et al. 2002: ~144,000 N/m (YBCO flywheel)
+    - Typical range: 10^3 - 10^6 N/m
+
+    Our calibrated model should be in the 10^4 N/m range.
+    """
+    props = GdBCOProperties()
+    material = GdBCOMaterial(props)
+    geometry = {
+        "thickness": 1e-6,
+        "width": 0.012,
+        "length": 1.0,
+    }
+    model = BeanLondonModel(material, geometry)
+
+    B = 1.0  # T
+    T = 77.0  # K
+    h = 0.01  # m
+
+    stiffness = model.get_stiffness(h, B, T, velocity=0)
+
+    # Should be in literature range: 10^3 - 10^6 N/m
+    assert 1e3 <= stiffness <= 1e6, (
+        f"Stiffness {stiffness:.2e} N/m outside literature range [1e3, 1e6] N/m"
+    )
+
+    # Should be close to Li et al. 2020 (~10^4 N/m)
+    # Allow factor of 10 tolerance due to geometry differences
+    assert 1e3 <= stiffness <= 1e5, (
+        f"Stiffness {stiffness:.2e} N/m not in expected 10^4 N/m range"
+    )
+
+
+def test_stiffness_velocity_dependence():
+    """Test velocity-dependent stiffness reduction.
+
+    Literature shows minimal velocity effects:
+    - Zhang et al. 2024: ~2.5% reduction at 240 km/h (67 m/s)
+    - Day et al. 2002: stable to 15 krpm
+
+    Our model should show < 3% reduction at operational speeds.
+    """
+    props = GdBCOProperties()
+    material = GdBCOMaterial(props)
+    geometry = {
+        "thickness": 1e-6,
+        "width": 0.012,
+        "length": 1.0,
+    }
+    model = BeanLondonModel(material, geometry)
+
+    B = 1.0  # T
+    T = 77.0  # K
+    h = 0.01  # m
+
+    k_static = model.get_stiffness(h, B, T, velocity=0)
+    k_100 = model.get_stiffness(h, B, T, velocity=100)  # 100 m/s
+    k_15000 = model.get_stiffness(h, B, T, velocity=15000)  # 15 km/s
+
+    # Reduction should be small (< 3%)
+    reduction_100 = (k_static - k_100) / k_static
+    reduction_15000 = (k_static - k_15000) / k_static
+
+    assert reduction_100 < 0.03, (
+        f"100 m/s reduction {reduction_100:.2%} exceeds 3% literature limit"
+    )
+    assert reduction_15000 < 0.03, (
+        f"15 km/s reduction {reduction_15000:.2%} exceeds 3% literature limit"
+    )
+
+    # Reduction should saturate (not keep increasing)
+    assert abs(reduction_100 - reduction_15000) < 0.01, (
+        "Reduction should saturate at high velocity"
+    )
+
+
 def test_penetration_depth_update():
     """Test that penetration depth updates with displacement."""
     props = GdBCOProperties()

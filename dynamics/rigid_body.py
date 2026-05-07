@@ -3,10 +3,14 @@ Full 3D rigid-body dynamics with explicit gyroscopic coupling.
 
 Implements the corrected Euler rotational dynamics equation:
 
-    I * ω̇ + ω × (I * ω) = τ_mag + τ_grav + τ_solar + τ_tether + τ_flux_pin
+    I * ω̇ + ω × (I * ω) = τ_mag + τ_grav + τ_solar + τ_tether + τ_halbach
 
 where ω × (I * ω) is the skew-symmetric gyroscopic coupling term that
 produces precession and libration. Uses quaternion attitudes to avoid gimbal lock.
+
+This is the canonical Halbach-based SGMS implementation where magnetic
+torques come from dipole-dipole interactions between spherical Halbach
+arrays, not flux-pinning.
 
 Conventions:
 - Quaternion: scalar-last [x, y, z, w] for scipy Rotation compatibility
@@ -44,14 +48,23 @@ except ImportError:
 
 if TYPE_CHECKING:
     from .bean_london_model import BeanLondonModel
+    from .halbach_array import HalbachArray
 
-# Optional flux-pinning model
+# Optional flux-pinning model (legacy, kept for compatibility)
 try:
     from .bean_london_model import BeanLondonModel
     BEAN_LONDON_AVAILABLE = True
 except ImportError:
     BEAN_LONDON_AVAILABLE = False
     BeanLondonModel = None
+
+# Optional Halbach array model (new canonical)
+try:
+    from .halbach_array import HalbachArray
+    HALBACH_AVAILABLE = True
+except ImportError:
+    HALBACH_AVAILABLE = False
+    HalbachArray = None
 
 
 def geometry_profile_to_inertia(geometry_profile: dict | None) -> np.ndarray:
@@ -392,6 +405,7 @@ class RigidBody:
         angular_velocity: np.ndarray = None,
         I_inv: np.ndarray = None,
         flux_model: BeanLondonModel | None = None,
+        halbach_array: 'HalbachArray' | None = None,
     ):
         """
         Initialize rigid body.
@@ -404,7 +418,8 @@ class RigidBody:
             quaternion: Initial quaternion [qx, qy, qz, qw] (scalar-last), default [0, 0, 0, 1]
             angular_velocity: Initial angular velocity [ωx, ωy, ωz] (rad/s), default [0, 0, 0]
             I_inv: Precomputed inertia tensor inverse (optional, for performance)
-            flux_model: Optional BeanLondonModel for flux-pinning force calculation
+            flux_model: Optional BeanLondonModel for flux-pinning force calculation (legacy)
+            halbach_array: Optional HalbachArray for magnetic interactions (canonical)
         """
         self.mass = mass
         self._I = np.asarray(I, dtype=float)
@@ -424,8 +439,11 @@ class RigidBody:
         else:
             self._I_inv = None
 
-        # Flux-pinning model (optional)
+        # Flux-pinning model (optional, legacy)
         self.flux_model = flux_model
+        
+        # Halbach array (optional, canonical)
+        self.halbach_array = halbach_array
 
         # Translational state
         self.position = np.zeros(3) if position is None else np.asarray(position, dtype=float)

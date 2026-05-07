@@ -13,9 +13,17 @@ from dataclasses import dataclass
 
 import numpy as np
 
-from dynamics.bean_london_model import BeanLondonModel
-from dynamics.gdBCO_material import GdBCOMaterial
 from dynamics.heritage_scaling import HeritageScalingConfig
+
+# Optional flux-pinning imports (legacy, archived)
+try:
+    from dynamics.bean_london_model import BeanLondonModel
+    from dynamics.gdBCO_material import GdBCOMaterial
+    FLUX_PINNING_AVAILABLE = True
+except ImportError:
+    FLUX_PINNING_AVAILABLE = False
+    BeanLondonModel = None
+    GdBCOMaterial = None
 
 
 @dataclass
@@ -178,10 +186,13 @@ def calculate_flux_pinning_stiffness(
     displacement: float,
     B_field: float,
     temperature: float,
-    material: GdBCOMaterial,
+    material: 'GdBCOMaterial',
     geometry: dict,
 ) -> float:
     """Calculate flux-pinning stiffness using Bean-London model.
+
+    DEPRECATED: This function is kept for backward compatibility.
+    Use Halbach-based stiffness calculations for new code.
 
     Args:
         displacement: Relative displacement (m)
@@ -193,5 +204,7 @@ def calculate_flux_pinning_stiffness(
     Returns:
         Effective stiffness (N/m)
     """
+    if not FLUX_PINNING_AVAILABLE or BeanLondonModel is None:
+        raise RuntimeError("Flux-pinning models are archived. Use Halbach-based calculations.")
     model = BeanLondonModel(material, geometry)
     return model.get_stiffness(displacement, B_field, temperature)
