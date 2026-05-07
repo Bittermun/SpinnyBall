@@ -73,6 +73,7 @@ python check_damping.py
 ## Documentation
 
 - [Technical Specification](docs/TECHNICAL_SPEC.md) — full physics derivations
+- [Research-Grade Overhaul Plan](docs/RESEARCH_GRADE_OVERHAUL_PLAN.md) — architecture, validation matrix, and prioritized redesign roadmap
 - [Research Dataset](docs/RESEARCH_DATASET.md) — sweep results and data files
 - [Benchmarks](BENCHMARKS.md) — performance metrics
 - [Mission Analysis](MISSION_LEVEL_ANALYSIS.md) — operational scenarios
