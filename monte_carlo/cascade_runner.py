@@ -61,6 +61,10 @@ except ImportError:
 from control_layer.mpc_controller import create_mpc_controller
 from dynamics.multi_body import MultiBodyStream, Packet
 from dynamics.stress_monitoring import verify_packet_stress
+from params.canonical_values import SIMULATION_PARAMS
+
+# CRITICAL: Use canonical timestep for 50k RPM stability
+CANONICAL_DT = SIMULATION_PARAMS['integration']['dt_default']['value']
 
 
 class PerturbationType(Enum):
@@ -115,7 +119,7 @@ class MonteCarloConfig:
     """Configuration for Monte-Carlo analysis."""
     n_realizations: int = 1000
     time_horizon: float = 10.0  # s
-    dt: float = 0.01  # s
+    dt: float = CANONICAL_DT  # s - CRITICAL: Use canonical timestep for 50k RPM stability
     use_jax: bool = False  # Enable ultra-fast GPU/CPU JAX backend
     use_numba_rk4: bool = False
     random_seed: int | None = None
@@ -161,7 +165,7 @@ class MonteCarloConfig:
     # NEW: Control integration - addresses Root Cause #5
     enable_mpc: bool = False  # Enable MPC stabilization
     mpc_horizon: int = 10
-    mpc_dt: float = 0.01
+    mpc_dt: float = CANONICAL_DT  # Use canonical dt for consistency
     mpc_delay_steps: int = 0  # Latency compensation steps
 
 

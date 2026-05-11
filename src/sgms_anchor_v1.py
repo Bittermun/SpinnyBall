@@ -39,6 +39,12 @@ from dynamics.gdBCO_material import GdBCOMaterial, GdBCOProperties
 from dynamics.packet_budget import PacketBudget as _PacketBudget
 from dynamics.packet_budget import compute_packet_budget
 from dynamics.stream_energy_model import analytical_lunar_slingshot_dv, compute_stream_energy_budget
+from params.canonical_values import SIMULATION_PARAMS, GEOMETRY_PARAMS
+
+# Import canonical timestep (CRITICAL: 50k RPM stability)
+def get_canonical_dt() -> float:
+    """Get canonical timestep from centralized parameters."""
+    return SIMULATION_PARAMS['integration']['dt_default']['value']
 
 try:
     from control_layer.stream_balance import StreamBalanceConfig, StreamBalanceController
@@ -240,6 +246,61 @@ def analytical_metrics(params: dict, flux_model: BeanLondonModel | None = None) 
         "static_offset_m": static_offset,
         "packet_rate_hz": packet_rate,
         "packet_period_s": packet_period,
+    }
+
+
+def _check_energy_conservation(t: np.ndarray, x: np.ndarray, vx: np.ndarray, params: dict) -> dict:
+    """
+    Check energy conservation during simulation (CRITICAL for 50k RPM stability).
+
+    Computes total energy (kinetic + potential) and checks for drift that would
+    indicate numerical instability.
+
+    NOTE: This is a simplified energy check using translational DOF only.
+    Full system energy includes rotational kinetic energy and gyroscopic terms.
+    This simplification is sufficient for detecting numerical instability
+    (which manifests as >1% energy drift) but underestimates total energy.
+
+    Args:
+        t: Time array
+        x: Position array
+        vx: Velocity array
+        params: System parameters with k_total, ms
+
+    Returns:
+        Dictionary with energy drift statistics
+    """
+    metrics = analytical_metrics(params)
+    # Defaults are domain constants from canonical values:
+    # - 6000 N/m = minimum k_eff pass/fail gate (TECHNICAL_SPEC.md)
+    # - 1000 kg = default station mass (GEOMETRY_PARAMS['station']['mass_default'])
+    k_total = metrics.get("k_total", 6000.0)
+    ms = params.get("ms", 1000.0)
+
+    # Total energy: E = 0.5 * ms * v^2 + 0.5 * k * x^2
+    kinetic = 0.5 * ms * vx**2
+    potential = 0.5 * k_total * x**2
+    total_energy = kinetic + potential
+
+    E0 = total_energy[0]
+    E_final = total_energy[-1]
+
+    # Relative drift
+    if abs(E0) > 1e-12:
+        relative_drift = (E_final - E0) / abs(E0)
+    else:
+        relative_drift = 0.0
+
+    # Check against threshold from canonical values
+    threshold = SIMULATION_PARAMS['integration']['energy_drift_threshold']['value']
+
+    return {
+        "relative": float(relative_drift),
+        "absolute": float(E_final - E0),
+        "E0": float(E0),
+        "E_final": float(E_final),
+        "conserved": abs(relative_drift) < threshold,
+        "threshold": threshold,
     }
 
 
@@ -637,6 +698,9 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
         else:
             temperature[i] = params["temperature"]
 
+    # Energy conservation check (CRITICAL for 50k RPM stability)
+    energy_drift = _check_energy_conservation(sol.t, sol.y[0], sol.y[1], params)
+
     metrics = analytical_metrics(params)
     metrics.update(
         {
@@ -646,6 +710,8 @@ def simulate_anchor(params: dict | None = None, t_eval: np.ndarray | None = None
             "force_peak_n": float(np.max(np.abs(force))),
             "epsilon_mean": float(np.mean(epsilon_history)),
             "epsilon_max": float(np.max(epsilon_history)),
+            "energy_drift_relative": energy_drift["relative"],
+            "energy_conserved": energy_drift["conserved"],
         }
     )
 

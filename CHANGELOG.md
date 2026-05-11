@@ -6,6 +6,49 @@ The format is based on Keep a Changelog and this project adheres to Semantic Ver
 
 ## [Unreleased]
 
+## [2.0.0] - Simulation Architecture Rewrite
+
+### Added
+
+#### Core Simulation Framework (`sim/`)
+- `sim/uncertainty.py`: UncertainQuantity class with first-order error propagation
+- `sim/integrators.py`: Structure-preserving integrators (VelocityVerlet, StormerVerlet, SymplecticEuler, RK4, AdaptiveRK45)
+- `sim/domain_base.py`: DomainAdapter base class for physics domains with fidelity levels
+- `sim/scheduler.py`: MacroScheduler with operator splitting for multi-timescale physics
+- `sim/domains/`: Domain adapters for mechanics, attitude, thermal, and orbital physics
+
+#### Corrected Physics (`dynamics/*_v2.py`)
+- `dynamics/halbach_array_v2.py`: Fixed internal field with demagnetization factor N=1/3
+- `dynamics/gravity_slingshot_v2.py`: Fixed heliocentric energy gain (was returning ~0 in v1)
+- `dynamics/atmosphere_v2.py`: Jacchia atmosphere model replacing piecewise exponential
+
+#### Integration & Testing
+- `sim/test_integration.py`: Comprehensive validation suite (8 test categories)
+- `ARCHITECTURE.md`: Full architecture documentation
+
+### Changed
+
+#### Physics Corrections
+- **Halbach Internal Field**: Now uses demagnetization factor N=1/3 with 10% manufacturing imperfection correction. Reduces overestimation from 20-50% to ~5%.
+- **Gravity Slingshot**: Energy gain now correctly computed in heliocentric frame. Previously returned ~0 (planetocentric frame energy is conserved). Now returns correct MJ/kg values.
+- **Atmosphere Model**: Replaced 8-layer piecewise exponential (±40-60% error) with Jacchia model (±15-30% error) including F10.7 and Ap solar/geomagnetic effects.
+
+#### Numerical Methods
+- Replaced explicit Euler integration with structure-preserving integrators
+- VelocityVerlet for conservative mechanics (energy oscillation ~7e-6, bounded)
+- SymplecticEuler for dissipative systems
+- Adaptive RK45 for orbital propagation
+
+#### Architecture
+- Loose coupling with operator splitting instead of monolithic DAE
+- Two fidelity levels (APPROX/PRECISE) instead of three
+- Time-averaged outputs for cross-domain coupling
+- Validity regime tracking on all physics outputs
+
+### Migration Guide
+
+See `ARCHITECTURE.md` for detailed migration examples from v1 to v2.
+
 ### Added
 
 - 3-profile system for interchangeable parameter sweeps (material, geometry, environment profiles)

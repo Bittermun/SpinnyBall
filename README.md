@@ -72,10 +72,38 @@ python check_damping.py
 
 ## Documentation
 
+- **[Architecture Guide](ARCHITECTURE.md)** — v2.0 simulation framework with uncertainty quantification
 - [Technical Specification](docs/TECHNICAL_SPEC.md) — full physics derivations
 - [Research Dataset](docs/RESEARCH_DATASET.md) — sweep results and data files
 - [Benchmarks](BENCHMARKS.md) — performance metrics
 - [Mission Analysis](MISSION_LEVEL_ANALYSIS.md) — operational scenarios
+
+## New in v2.0: Simulation Architecture
+
+The v2.0 release introduces a comprehensive physics simulation framework:
+
+### Key Features
+- **Uncertainty Quantification**: All physics outputs include error bounds via `UncertainQuantity`
+- **Structure-Preserving Integration**: Symplectic integrators (VelocityVerlet, StormerVerlet) for long-term stability
+- **Corrected Physics**: Fixed equations for Halbach field, slingshot energy, atmosphere model
+- **Multi-Timescale Coupling**: Operator splitting with macro-step scheduling
+
+### Quick Example
+```python
+from sim.scheduler import MacroScheduler, SchedulerConfig
+from sim.domains import MechanicsStreamDomain, OrbitalEnvironmentDomain
+
+# Create multi-physics simulation
+scheduler = MacroScheduler(SchedulerConfig(macro_dt=1.0))
+scheduler.register_domain("mechanics", MechanicsStreamDomain(n_balls=10))
+scheduler.register_domain("orbital", OrbitalEnvironmentDomain())
+
+# Run with uncertainty tracking
+scheduler.initialize()
+scheduler.run(100.0)
+```
+
+See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
 
 ## Contributing
 

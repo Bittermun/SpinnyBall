@@ -12,6 +12,7 @@ DISCREPANCY RESOLUTION:
 - k_fp: Context-dependent - see MATERIAL_PROPERTIES for scaling relationships
 """
 
+import numpy as np
 from typing import Any
 
 # =============================================================================
@@ -413,6 +414,28 @@ SIMULATION_PARAMS: dict[str, Any] = {
             'note': 'Preliminary runs only - CI width ~15%',
         },
     },
+
+    # Integration settings (CRITICAL: 50k RPM stability)
+    'integration': {
+        'dt_default': {
+            'value': 0.0001,  # s (0.1 ms = 100 μs)
+            'note': 'CRITICAL FIX: Reduced from 0.01s for 50k RPM stability. '
+                    'Spin period = 1.2ms, dt = 0.1ms = T_spin/12 for accuracy',
+            'rationale': 'At 5236 rad/s (50k RPM), dt=0.01s spans 8.3 rotations. '
+                        'Conservative dt=0.0001s spans 0.083 rotations (12 steps/period) '
+                        'for <0.1% energy drift per period',
+            'temporary': False,  # Permanent fix - adaptive timestep in Phase 2
+        },
+        'dt_max_spin_ratio': {
+            'value': 0.1,  # dimensionless
+            'note': 'Max timestep as fraction of spin period for stability',
+            'rationale': 'Empirical: dt <= 0.1 * T_spin for <1% energy drift per period',
+        },
+        'energy_drift_threshold': {
+            'value': 0.01,  # 1%
+            'note': 'Maximum acceptable relative energy drift per 100 spin periods',
+        },
+    },
 }
 
 # =============================================================================
@@ -523,6 +546,19 @@ def validate_parameters() -> list:
     scale = MATERIAL_PROPERTIES['GdBCO']['geometry_scaling_factor']['value']
     if scale <= 0 or scale > 1:
         warnings.append(f"Geometry scaling factor {scale} should be in (0, 1]")
+
+    # CRITICAL: Validate timestep for 50k RPM stability
+    dt = SIMULATION_PARAMS['integration']['dt_default']['value']
+    omega = GEOMETRY_PARAMS['spin']['rate_operational']['value']  # rad/s
+    T_spin = 2 * np.pi / omega  # spin period in seconds
+    dt_max_stable = SIMULATION_PARAMS['integration']['dt_max_spin_ratio']['value'] * T_spin
+
+    if dt > T_spin:
+        warnings.append(f"CRITICAL: dt={dt}s > spin period={T_spin:.4f}s. "
+                       f"Numerical instability guaranteed at 50k RPM!")
+    elif dt > dt_max_stable:
+        warnings.append(f"WARNING: dt={dt}s exceeds recommended max={dt_max_stable:.4f}s "
+                       f"(0.1 * T_spin). Energy drift likely.")
 
     return warnings
 
