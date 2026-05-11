@@ -393,9 +393,35 @@ class MechanicsStreamDomain(DomainAdapter):
         
         mean_spacing = np.mean(spacings)
         
+        # Compute hoop tension and anchoring stiffness
+        # T = lambda * u^2, where lambda = (n_balls * m_ball) / (2*pi*R)
+        circumference = 2.0 * np.pi * self.nominal_radius
+        linear_density = (len(state.balls) * self.ball_mass) / circumference if circumference > 0 else 0.0
+        
+        # Estimate stream velocity from mean spacing and ball positions
+        # For circular motion: v = omega * R, where omega ≈ 2*pi / T_period
+        # Approximate from kinetic energy: KE = 0.5 * m_total * v^2
+        total_mass = len(state.balls) * self.ball_mass
+        if total_mass > 0:
+            stream_velocity = np.sqrt(2.0 * ke_total / total_mass)
+        else:
+            stream_velocity = 0.0
+        
+        # Hoop tension: T = lambda * u^2
+        hoop_tension = linear_density * stream_velocity**2
+        
+        # Transverse stiffness: k_hoop = T / R
+        transverse_stiffness = hoop_tension / self.nominal_radius if self.nominal_radius > 0 else 0.0
+        
+        # Force per stream (anchoring force for small deflection)
+        # F_anchor = k_hoop * delta_r (for unit displacement)
+        force_per_stream = transverse_stiffness  # N/m (stiffness)
+        
         # Uncertainty
         ke_unc = from_relative(ke_total, 0.05, source="kinetic_energy")
         spacing_unc = from_relative(mean_spacing, 0.10, source="mean_spacing")
+        stiffness_unc = from_relative(transverse_stiffness, 0.15, source="hoop_stiffness")
+        tension_unc = from_relative(hoop_tension, 0.15, source="hoop_tension")
         
         # Time-averaged outputs (for this domain, same as instantaneous)
         return DomainOutput(
@@ -404,11 +430,21 @@ class MechanicsStreamDomain(DomainAdapter):
             scalars={
                 'kinetic_energy': ke_unc,
                 'mean_spacing': spacing_unc,
-                'n_balls': UncertainQuantity(float(len(state.balls)), 0.0, 0.0)
+                'n_balls': UncertainQuantity(float(len(state.balls)), 0.0, 0.0),
+                'transverse_stiffness': stiffness_unc,
+                'hoop_tension': tension_unc,
+                'force_per_stream': stiffness_unc,  # Same as stiffness for unit displacement
+                'linear_density': from_relative(linear_density, 0.10, source="linear_density"),
+                'stream_velocity': from_relative(stream_velocity, 0.05, source="stream_velocity")
             },
             time_averaged_scalars={
                 'kinetic_energy': ke_total,
-                'mean_spacing': mean_spacing
+                'mean_spacing': mean_spacing,
+                'transverse_stiffness': transverse_stiffness,
+                'hoop_tension': hoop_tension,
+                'force_per_stream': transverse_stiffness,
+                'linear_density': linear_density,
+                'stream_velocity': stream_velocity
             },
             regime_violations=[]
         )
