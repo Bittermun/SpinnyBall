@@ -1,0 +1,7 @@
+- [ ] Step 1: Add configurable CLI parameters + smoke-test defaults to scripts/sweep_fault_cascade.py
+- [ ] Step 2: Ensure sweep output JSON includes: failure_mode distribution + diagnostic counters (thermal/quench/cascade_generations) when available
+- [ ] Step 3: Add optional run saved artifacts: timestamped JSON + plot
+- [ ] Step 4: Implement “plausible research” configuration toggles: enable_cascade_propagation and optional enable_thermal_quench/quench_detection
+- [ ] Step 5: Run a smoke test (small sweep) to validate the simulation executes end-to-end and outputs files
+- [ ] Step 6: Run a slightly larger sweep (still bounded) to confirm plausibility trends
+- [ ] Step 7: Summarize generated artifacts and key metrics
