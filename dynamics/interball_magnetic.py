@@ -62,7 +62,7 @@ def dipole_dipole_force(
 ) -> np.ndarray:
     """Compute force on dipole 2 due to dipole 1 (dipole-dipole interaction).
     
-    F_1 = -∇_1 U = (mu0/4*pi*r^4) * [
+    F_2 = -∇_2 U = (mu0/4*pi*r^4) * [
         3*(m1·m2)*r̂ - 15*(m1·r̂)*(m2·r̂)*r̂ + 3*(m2·r̂)*m1 + 3*(m1·r̂)*m2
     ]
     
