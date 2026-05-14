@@ -60,19 +60,19 @@ def dipole_dipole_force(
     m2: np.ndarray,
     r_vec: np.ndarray
 ) -> np.ndarray:
-    """Compute force on ball 1 due to ball 2 (dipole-dipole interaction).
+    """Compute force on dipole 2 due to dipole 1 (dipole-dipole interaction).
     
     F_1 = -∇_1 U = (mu0/4*pi*r^4) * [
         3*(m1·m2)*r̂ - 15*(m1·r̂)*(m2·r̂)*r̂ + 3*(m2·r̂)*m1 + 3*(m1·r̂)*m2
     ]
     
     Args:
-        m1: Dipole moment of first ball [mx, my, mz] (A·m²)
-        m2: Dipole moment of second ball [mx, my, mz] (A·m²)
-        r_vec: Position vector from ball 1 to ball 2 [x, y, z] (m)
+        m1: Dipole moment of dipole 1 [mx, my, mz] (A·m²)
+        m2: Dipole moment of dipole 2 [mx, my, mz] (A·m²)
+        r_vec: Position vector from dipole 1 to dipole 2 [x, y, z] (m)
     
     Returns:
-        Force vector on ball 1 [Fx, Fy, Fz] (N)
+        Force vector on dipole 2 [Fx, Fy, Fz] (N)
     """
     r = np.linalg.norm(r_vec)
     if r < 1e-12:
@@ -238,7 +238,8 @@ class InterBallMagneticInteraction:
                 r_vec = positions[j] - positions[i]
                 
                 # Force on i due to j
-                F_ij = dipole_dipole_force(m_i, m_j, r_vec)
+                # dipole_dipole_force returns force on second dipole due to first.
+                F_ij = dipole_dipole_force(m_j, m_i, -r_vec)
                 forces[i] += F_ij
         
         return forces
