@@ -237,7 +237,7 @@ class InterBallMagneticInteraction:
                 # Position vector from i to j
                 r_vec = positions[j] - positions[i]
                 
-                # Force on i due to j
+                # Force on dipole i due to dipole j.
                 # dipole_dipole_force returns force on second dipole due to first.
                 F_ij = dipole_dipole_force(m_j, m_i, -r_vec)
                 forces[i] += F_ij

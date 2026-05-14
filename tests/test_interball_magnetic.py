@@ -88,7 +88,7 @@ class TestDipoleDipoleForce:
         
         F = dipole_dipole_force(m1, m2, r_vec)
         
-        # dipole_dipole_force returns force on dipole 2 due to dipole 1.
+        # dipole_dipole_force returns force on m2 (arg 2) due to m1 (arg 1).
         # For side-by-side parallel dipoles, force on m2 should be +x (repulsive).
         assert F[0] > 0
         assert np.isclose(F[1], 0.0, atol=1e-10)
