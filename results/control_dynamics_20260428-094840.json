@@ -1,0 +1,61 @@
+{
+  "configuration_modes": {
+    "TEST": {
+      "packet_mass": 0.05,
+      "packet_radius": 0.02,
+      "spin_rate": 100.0,
+      "max_stress": 1200000000.0
+    },
+    "VALIDATION": {
+      "packet_mass": 2.0,
+      "packet_radius": 0.1,
+      "spin_rate": 5236.0,
+      "max_stress": 1200000000.0
+    },
+    "OPERATIONAL": {
+      "packet_mass": 8.0,
+      "packet_radius": 0.1,
+      "spin_rate": 5236.0,
+      "max_stress": 1200000000.0
+    }
+  },
+  "performance_targets": {
+    "solve_time_target": 30.0,
+    "horizon": 10,
+    "delay_compensation": true,
+    "stability_margin_target": 45.0
+  },
+  "control_characteristics": {
+    "controller_type": "Model-Predictive Control (MPC)",
+    "prediction_horizon": 10,
+    "optimization_engine": "CasADi",
+    "acceleration": "numba/jit",
+    "delay_compensation": true
+  },
+  "response_analysis": {
+    "theoretical_solve_time": "< 30 ms (target)",
+    "stability_analysis": "Phase margin + delay margin",
+    "robustness_features": [
+      "Delay compensation",
+      "Constraint handling",
+      "Multi-variable coordination"
+    ]
+  },
+  "scaling_analysis": {
+    "mass_scaling": {
+      "test_to_validation": 40.0,
+      "validation_to_operational": 4.0
+    },
+    "spin_rate_scaling": {
+      "test_to_validation": 52.36,
+      "operational_stress": 274156.9600000001
+    }
+  },
+  "kpi_summary": {
+    "solve_time_achievement": "Target: <30ms, Implementation: CasADi-optimized",
+    "stability_margin": "Computed via frequency response analysis",
+    "control_precision": "Multi-variable coordination with constraints",
+    "scalability": "Mass range: 0.05-8.0 kg",
+    "operational_envelope": "Spin rate: 5236.0 rad/s"
+  }
+}

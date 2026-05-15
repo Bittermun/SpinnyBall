@@ -1,0 +1,134 @@
+name: CI/CD Pipeline with Physics Gates
+
+on:
+  push:
+    branches: [ main, feature/* ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        os: [ubuntu-latest]
+        python-version: ['3.11', '3.12']
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python ${{ matrix.python-version }}
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ matrix.python-version }}
+    
+    - name: Install Poetry
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+
+    - name: Install dependencies
+      run: |
+        poetry install --all-extras --no-interaction
+
+    - name: Run all tests
+      run: |
+        poetry run pytest tests/ -v --tb=short -x
+
+    - name: Run coverage
+      run: |
+        poetry run pytest tests/ --cov=dynamics --cov=src --cov=monte_carlo --cov-report=xml
+    
+    - name: Upload coverage
+      uses: codecov/codecov-action@v4
+      with:
+        file: ./coverage.xml
+        fail_ci_if_error: false
+
+  lint:
+    runs-on: ubuntu-latest
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Poetry
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+
+    - name: Install dependencies
+      run: |
+        poetry install --all-extras --no-interaction
+
+    - name: Run ruff
+      run: |
+        poetry run ruff check dynamics/ src/ monte_carlo/ params/ scripts/ tests/
+
+    - name: Run mypy
+      run: |
+        poetry run mypy dynamics/ src/ monte_carlo/ params/ --ignore-missing-imports
+
+  physics-gate:
+    runs-on: ubuntu-latest
+    name: Physics Gate - Angular Momentum Conservation
+    
+    steps:
+    - uses: actions/checkout@v4
+    
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: '3.11'
+    
+    - name: Install Poetry
+      run: |
+        python -m pip install --upgrade pip
+        pip install poetry
+
+    - name: Install dependencies
+      run: |
+        poetry install --all-extras --no-interaction
+
+    - name: Run torque-free precession test
+      run: |
+        poetry run pytest tests/test_rigid_body.py::TestTorqueFreePrecession::test_angular_momentum_conservation -v
+
+    - name: Run parameter consistency gate
+      run: |
+        poetry run pytest tests/test_parameter_consistency.py -v
+    
+    - name: Check angular momentum conservation tolerance
+      run: |
+        poetry run python -c "
+        import numpy as np
+        from dynamics.rigid_body import RigidBody
+        
+        # Create asymmetric body
+        mass = 0.05
+        I = np.diag([0.0001, 0.00011, 0.00009])
+        omega0 = np.array([0.0, 100.0, 10.0])
+        body = RigidBody(mass, I, angular_velocity=omega0)
+        
+        L_initial = body.angular_momentum
+        L_norm_initial = np.linalg.norm(L_initial)
+        
+        def zero_torque(t, state):
+            return np.array([0.0, 0.0, 0.0])
+        
+        body.integrate((0.0, 10.0), zero_torque, rtol=1e-10, atol=1e-12)
+        
+        L_final = body.angular_momentum
+        L_norm_final = np.linalg.norm(L_final)
+        
+        relative_error = np.abs(L_norm_final - L_norm_initial) / L_norm_initial
+        print(f'Angular momentum conservation error: {relative_error:.2e}')
+        
+        if relative_error >= 1e-6:
+            raise AssertionError(f'Angular momentum not conserved to 1e-6: error={relative_error:.2e}')
+        print('Physics gate PASSED: angular momentum conserved to <1e-6')
+        "

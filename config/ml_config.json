@@ -1,0 +1,9 @@
+{
+  "vmd_implementation": "stub",
+  "ircnn_implementation": "stub",
+  "enable_training": false,
+  "model_paths": {
+    "wobble_detector": "data/models/wobble_detector/v1.0.0/checkpoint_best.pth",
+    "thermal_predictor": "data/models/thermal_predictor/v1.0.0/checkpoint_best.pth"
+  }
+}

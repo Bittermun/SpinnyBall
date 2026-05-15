@@ -1,0 +1,1630 @@
+{
+  "summary": {
+    "total_runs_analyzed": 8,
+    "runs_with_short_time_horizon": 23,
+    "date_generated": "2026-05-07",
+    "scientific_note": "Probabilities adjusted for 1-hour time horizon assuming linear scaling for rare events"
+  },
+  "runs": [
+    {
+      "directory": "profile_sweep_quick_20260428-214333",
+      "timestamp": "20260428-214333",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "operational": {
+          "profile_name": "operational",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        }
+      },
+      "has_errors": false,
+      "error_details": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224203",
+      "timestamp": "20260428-224203",
+      "profiles_found": {},
+      "has_errors": true,
+      "error_details": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1654)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224245",
+      "timestamp": "20260428-224245",
+      "profiles_found": {},
+      "has_errors": true,
+      "error_details": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1654)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225241",
+      "timestamp": "20260428-225241",
+      "profiles_found": {},
+      "has_errors": true,
+      "error_details": [
+        "JSON decode error in t3_sweep_paper-baseline.json: Expecting value: line 104 column 5 (char 1534)"
+      ]
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225500",
+      "timestamp": "20260428-225500",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "operational": {
+          "profile_name": "operational",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        }
+      },
+      "has_errors": false,
+      "error_details": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260429-074317",
+      "timestamp": "20260429-074317",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "operational": {
+          "profile_name": "operational",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        }
+      },
+      "has_errors": false,
+      "error_details": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260430-062033",
+      "timestamp": "20260430-062033",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "operational": {
+          "profile_name": "operational",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        }
+      },
+      "has_errors": false,
+      "error_details": []
+    },
+    {
+      "directory": "profile_sweep_quick_20260501-074244",
+      "timestamp": "20260501-074244",
+      "profiles_found": {
+        "engineering-screen": {
+          "profile_name": "engineering-screen",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "operational": {
+          "profile_name": "operational",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "paper-baseline": {
+          "profile_name": "paper-baseline",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "resilience": {
+          "profile_name": "resilience",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        },
+        "smco-heavy": {
+          "profile_name": "smco-heavy",
+          "original_cascade_probabilities": [
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0,
+            0.0
+          ],
+          "adjusted_cascade_probabilities": [
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334,
+            0.0008333333333333334
+          ],
+          "fault_rates": [
+            1e-06,
+            2.6826957952797274e-06,
+            7.196856730011514e-06,
+            1.9306977288832496e-05,
+            5.1794746792312125e-05,
+            0.00013894954943731373,
+            0.0003727593720314938,
+            0.001
+          ],
+          "time_horizon_used": 10.0,
+          "warnings": [
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+            "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+          ],
+          "cascade_prob_avg_original": 0.0,
+          "cascade_prob_avg_adjusted": 0.0008333333333333334,
+          "max_cascade_prob_original": 0.0,
+          "max_cascade_prob_adjusted": 0.0008333333333333334
+        }
+      },
+      "has_errors": false,
+      "error_details": []
+    }
+  ],
+  "profile_comparison": {
+    "engineering-screen": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      }
+    ],
+    "operational": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      }
+    ],
+    "paper-baseline": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      }
+    ],
+    "resilience": [
+      {
+        "directory": "profile_sweep_quick_20260428-214333",
+        "timestamp": "20260428-214333",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260428-225500",
+        "timestamp": "20260428-225500",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      }
+    ],
+    "smco-heavy": [
+      {
+        "directory": "profile_sweep_quick_20260429-074317",
+        "timestamp": "20260429-074317",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260430-062033",
+        "timestamp": "20260430-062033",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      },
+      {
+        "directory": "profile_sweep_quick_20260501-074244",
+        "timestamp": "20260501-074244",
+        "time_horizon": 10.0,
+        "cascade_prob_avg_original": 0.0,
+        "cascade_prob_avg_adjusted": 0.0008333333333333334,
+        "max_cascade_prob_original": 0.0,
+        "max_cascade_prob_adjusted": 0.0008333333333333334,
+        "warnings": [
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04",
+          "Zero cascades observed in 10.0s simulation. Upper bound estimate for 3600.0s: 8.33e-04"
+        ]
+      }
+    ]
+  }
+}

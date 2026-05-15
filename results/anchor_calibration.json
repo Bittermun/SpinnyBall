@@ -1,0 +1,60 @@
+{
+  "defaults": {
+    "c_damp": {
+      "value": 4.0,
+      "status": "placeholder",
+      "source": "reduced-order damping assumption"
+    },
+    "theta_bias": {
+      "value": 0.087,
+      "status": "memo-baseline",
+      "source": "master memo baseline bend angle"
+    },
+    "ms": {
+      "value": 1000.0,
+      "status": "memo-baseline",
+      "source": "suspended node baseline"
+    }
+  },
+  "profiles": {
+    "paper-baseline": {
+      "u": {
+        "value": 10.0,
+        "status": "memo-baseline",
+        "source": "paper baseline stream speed"
+      },
+      "lam": {
+        "value": 0.5,
+        "status": "reduced-order assumption",
+        "source": "paper density assumption"
+      },
+      "g_gain": {
+        "value": 0.05,
+        "status": "paper control assumption",
+        "source": "paper baseline feedback"
+      }
+    },
+    "engineering-screen": {
+      "u": {
+        "value": 20.0,
+        "status": "engineering-screen",
+        "source": "higher-throughput engineering sweep"
+      },
+      "lam": {
+        "value": 0.75,
+        "status": "engineering-screen",
+        "source": "higher-density engineering sweep"
+      },
+      "g_gain": {
+        "value": 0.08,
+        "status": "engineering-screen",
+        "source": "stiffer engineering controller"
+      },
+      "c_damp": {
+        "value": 8.0,
+        "status": "engineering-screen",
+        "source": "higher damping screen"
+      }
+    }
+  }
+}

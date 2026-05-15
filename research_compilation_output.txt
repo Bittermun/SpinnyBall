@@ -1,0 +1,92 @@
+SpinnyBall Research Data Compilation
+Generated: 2026-05-05 13:50:42
+================================================================================
+
+================================================================================
+SOBOL SENSITIVITY ANALYSIS RESULTS
+================================================================================
+
+### Material Configuration Comparison (N=20,480 samples each)
+| material   | structure   |   feasibility_% | mass_dominant_param   |   mass_S1 |   mass_ST | keff_dominant_param   |   keff_S1 |   keff_ST |
+|:-----------|:------------|----------------:|:----------------------|----------:|----------:|:----------------------|----------:|----------:|
+| SmCo       | BFRP        |        0.283203 | u                     |    0.7907 |  0.809434 | u                     |  0.81119  |  0.851797 |
+| SmCo       | CFRP        |        1.08398  | u                     |    0.7907 |  0.809434 | u                     |  0.81119  |  0.851797 |
+| SmCo       | CNT_yarn    |        1.32812  | u                     |    0.7907 |  0.809434 | u                     |  0.81119  |  0.851797 |
+| GdBCO      | BFRP        |       17.6367   | u                     |    0.7907 |  0.809434 | u                     |  0.438245 |  0.449744 |
+| GdBCO      | CFRP        |       27.0215   | u                     |    0.7907 |  0.809434 | u                     |  0.438245 |  0.449744 |
+| GdBCO      | CNT_yarn    |       28.4961   | u                     |    0.7907 |  0.809434 | u                     |  0.438245 |  0.449744 |
+
+================================================================================
+VELOCITY SCALING ANALYSIS
+================================================================================
+
+Latest sweep: extended_velocity_sweep_20260505-133735.json
+Velocity range: [500.0, 15000.0]
+Cascade trend: N/A
+Optimal velocity: N/A m/s
+
+### Theoretical Velocity Scaling (N proportional to 1/v^2)
+| Velocity (m/s) | Relative Packet Count (%) | Mass Reduction (%) |
+|----------------|---------------------------|--------------------|
+|          500 |                     100.0 |                0.0 |
+|         1000 |                      25.0 |               75.0 |
+|         1600 |                       9.8 |               90.2 |
+|         2500 |                       4.0 |               96.0 |
+|         3500 |                       2.0 |               98.0 |
+|         5000 |                       1.0 |               99.0 |
+|         7500 |                       0.4 |               99.6 |
+|        10000 |                       0.3 |               99.8 |
+|        12500 |                       0.2 |               99.8 |
+|        15000 |                       0.1 |               99.9 |
+
+================================================================================
+MONTE CARLO CASCADE ANALYSIS
+================================================================================
+
+Simulation time horizon: N/As
+Number of realizations per fault rate: N/A
+
+### Safety Analysis
+Operational fault rate: 0.0001/hr
+Cascade boundary (lambda_crit): 215/hr
+Safety margin: 2150000x (2.1 million)
+Confidence level: >99.99% (based on N=3000+ realizations)
+
+================================================================================
+COMPUTATIONAL PERFORMANCE BENCHMARKS
+================================================================================
+
+| Metric                           | Value                         |
+|:---------------------------------|:------------------------------|
+| Monte Carlo speedup (JAX vs CPU) | 3,751x                        |
+| Realizations processed           | 256,000                       |
+| Processing time                  | 0.96 seconds                  |
+| Sobol samples (9 params)         | 1,024 base                    |
+| Total function evaluations       | 20,480                        |
+| Material configurations tested   | 12 (4 magnets × 3 structures) |
+| Test suite coverage              | 682 tests                     |
+
+================================================================================
+MATERIAL COMPARISON MATRIX
+================================================================================
+
+| Magnet   | T_operational   | Cooling          | Power_req   | B_field   | Mass_advantage          | TRL   |
+|:---------|:----------------|:-----------------|:------------|:----------|:------------------------|:------|
+| SmCo     | ~379 K          | Passive          | ~0 W        | ~1.0 T    | High (no cryocooler)    | 7-8   |
+| GdBCO    | ~77 K           | Active cryogenic | ~2 MW       | ~5.0 T    | Lower (cryocooler mass) | 4-5   |
+
+### Structural Materials
+Traceback (most recent call last):
+  File "c:\Users\msunw\OneDrive\Desktop\projects\SpinnyBall\scripts\compile_research_data.py", line 344, in <module>
+    main()
+    ~~~~^^
+  File "c:\Users\msunw\OneDrive\Desktop\projects\SpinnyBall\scripts\compile_research_data.py", line 333, in main
+    compile_material_comparison()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "c:\Users\msunw\OneDrive\Desktop\projects\SpinnyBall\scripts\compile_research_data.py", line 239, in compile_material_comparison
+    print(df_structural.to_markdown(index=False))
+    ~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Python313\Lib\encodings\cp1252.py", line 19, in encode
+    return codecs.charmap_encode(input,self.errors,encoding_table)[0]
+           ~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+UnicodeEncodeError: 'charmap' codec can't encode character '\u03c3' in position 15: character maps to <undefined>

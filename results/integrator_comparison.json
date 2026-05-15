@@ -1,0 +1,390 @@
+{
+  "single_comparison": {
+    "params": {
+      "u": 1600.0,
+      "lam": 0.1,
+      "mp": 8.0,
+      "theta_bias": 0.1,
+      "g_gain": 0.00014,
+      "ms": 1000.0,
+      "c_damp": 0.05,
+      "eps": 0.01,
+      "disturbance_theta_std": 0.0,
+      "disturbance_hold_s": 1.0,
+      "packet_sigma_s": 0.01,
+      "packet_phase_s": 0.0,
+      "k_fp": 6000.0,
+      "k_structural": 0.0,
+      "k_drag": 0.01,
+      "x0": 0.01,
+      "v0": 0.0,
+      "t_max": 10.0,
+      "rtol": 1e-06,
+      "atol": 1e-09,
+      "max_step": 0.1,
+      "use_dynamic_epsilon": false,
+      "epsilon_target": 0.0001,
+      "cryocooler_power": 5.0,
+      "temperature": 77.0,
+      "B_field": 1.0,
+      "altitude_km": 400.0,
+      "inclination_deg": 51.6,
+      "include_j2": false,
+      "include_srp": false,
+      "include_drag": false,
+      "enable_thermal_dynamics": false,
+      "enable_eclipse": false,
+      "control_mode": "pid"
+    },
+    "rk45": {
+      "time": 0.11299729347229004,
+      "x_final": 0.021637085552376076,
+      "v_final": -0.09837028853032181,
+      "x_peak": 0.159649377007568,
+      "energy_drift": 19.809490821239688
+    },
+    "velocity_verlet": {
+      "time": 0.036041975021362305,
+      "x_final": -0.0012896183235689045,
+      "v_final": 0.7586963531934254,
+      "x_peak": 0.009998983502048132,
+      "energy_drift": 0.624981307111655
+    },
+    "differences": {
+      "x_diff": 0.02292670387594498,
+      "v_diff": 0.8570666417237472,
+      "peak_diff": 0.14965039350551987,
+      "time_ratio": 0.31896317083205855
+    }
+  },
+  "sweep_results": {
+    "test_cases": [
+      {
+        "u": 100.0,
+        "mp": 8.0,
+        "k_fp": 6000.0
+      },
+      {
+        "u": 1600.0,
+        "mp": 8.0,
+        "k_fp": 6000.0
+      },
+      {
+        "u": 5000.0,
+        "mp": 8.0,
+        "k_fp": 6000.0
+      },
+      {
+        "u": 1600.0,
+        "mp": 4.0,
+        "k_fp": 6000.0
+      },
+      {
+        "u": 1600.0,
+        "mp": 16.0,
+        "k_fp": 6000.0
+      }
+    ],
+    "results": [
+      {
+        "params": {
+          "u": 100.0,
+          "lam": 0.1,
+          "mp": 8.0,
+          "theta_bias": 0.1,
+          "g_gain": 0.00014,
+          "ms": 1000.0,
+          "c_damp": 0.05,
+          "eps": 0.01,
+          "disturbance_theta_std": 0.0,
+          "disturbance_hold_s": 1.0,
+          "packet_sigma_s": 0.01,
+          "packet_phase_s": 0.0,
+          "k_fp": 6000.0,
+          "k_structural": 0.0,
+          "k_drag": 0.01,
+          "x0": 0.01,
+          "v0": 0.0,
+          "t_max": 10.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "max_step": 0.1,
+          "use_dynamic_epsilon": false,
+          "epsilon_target": 0.0001,
+          "cryocooler_power": 5.0,
+          "temperature": 77.0,
+          "B_field": 1.0,
+          "altitude_km": 400.0,
+          "inclination_deg": 51.6,
+          "include_j2": false,
+          "include_srp": false,
+          "include_drag": false,
+          "enable_thermal_dynamics": false,
+          "enable_eclipse": false,
+          "control_mode": "pid"
+        },
+        "rk45": {
+          "time": 0.12880969047546387,
+          "x_final": 0.008098978791212835,
+          "v_final": 0.014090787446342595,
+          "x_peak": 0.01,
+          "energy_drift": 0.013148273964836792
+        },
+        "velocity_verlet": {
+          "time": 0.028079748153686523,
+          "x_final": -0.0013303117721310534,
+          "v_final": 0.7596453956378972,
+          "x_peak": 0.00999897030036897,
+          "energy_drift": 0.6246767162378976
+        },
+        "differences": {
+          "x_diff": 0.009429290563343889,
+          "v_diff": 0.7455546081915546,
+          "peak_diff": 1.0296996310298068e-06,
+          "time_ratio": 0.2179940658970472
+        }
+      },
+      {
+        "params": {
+          "u": 1600.0,
+          "lam": 0.1,
+          "mp": 8.0,
+          "theta_bias": 0.1,
+          "g_gain": 0.00014,
+          "ms": 1000.0,
+          "c_damp": 0.05,
+          "eps": 0.01,
+          "disturbance_theta_std": 0.0,
+          "disturbance_hold_s": 1.0,
+          "packet_sigma_s": 0.01,
+          "packet_phase_s": 0.0,
+          "k_fp": 6000.0,
+          "k_structural": 0.0,
+          "k_drag": 0.01,
+          "x0": 0.01,
+          "v0": 0.0,
+          "t_max": 10.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "max_step": 0.1,
+          "use_dynamic_epsilon": false,
+          "epsilon_target": 0.0001,
+          "cryocooler_power": 5.0,
+          "temperature": 77.0,
+          "B_field": 1.0,
+          "altitude_km": 400.0,
+          "inclination_deg": 51.6,
+          "include_j2": false,
+          "include_srp": false,
+          "include_drag": false,
+          "enable_thermal_dynamics": false,
+          "enable_eclipse": false,
+          "control_mode": "pid"
+        },
+        "rk45": {
+          "time": 0.09803128242492676,
+          "x_final": 0.021637085552376076,
+          "v_final": -0.09837028853032181,
+          "x_peak": 0.159649377007568,
+          "energy_drift": 19.809490821239688
+        },
+        "velocity_verlet": {
+          "time": 0.027844905853271484,
+          "x_final": -0.0012896183235689045,
+          "v_final": 0.7586963531934254,
+          "x_peak": 0.009998983502048132,
+          "energy_drift": 0.624981307111655
+        },
+        "differences": {
+          "x_diff": 0.02292670387594498,
+          "v_diff": 0.8570666417237472,
+          "peak_diff": 0.14965039350551987,
+          "time_ratio": 0.2840410240944809
+        }
+      },
+      {
+        "params": {
+          "u": 5000.0,
+          "lam": 0.1,
+          "mp": 8.0,
+          "theta_bias": 0.1,
+          "g_gain": 0.00014,
+          "ms": 1000.0,
+          "c_damp": 0.05,
+          "eps": 0.01,
+          "disturbance_theta_std": 0.0,
+          "disturbance_hold_s": 1.0,
+          "packet_sigma_s": 0.01,
+          "packet_phase_s": 0.0,
+          "k_fp": 6000.0,
+          "k_structural": 0.0,
+          "k_drag": 0.01,
+          "x0": 0.01,
+          "v0": 0.0,
+          "t_max": 10.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "max_step": 0.1,
+          "use_dynamic_epsilon": false,
+          "epsilon_target": 0.0001,
+          "cryocooler_power": 5.0,
+          "temperature": 77.0,
+          "B_field": 1.0,
+          "altitude_km": 400.0,
+          "inclination_deg": 51.6,
+          "include_j2": false,
+          "include_srp": false,
+          "include_drag": false,
+          "enable_thermal_dynamics": false,
+          "enable_eclipse": false,
+          "control_mode": "pid"
+        },
+        "rk45": {
+          "time": 0.11132144927978516,
+          "x_final": 0.011913265565230799,
+          "v_final": 0.13007914135362214,
+          "x_peak": 1.56472744834201,
+          "energy_drift": 28.62023065643649
+        },
+        "velocity_verlet": {
+          "time": 0.026213884353637695,
+          "x_final": -0.000934328366236619,
+          "v_final": 0.7501381027574904,
+          "x_peak": 0.009998987554352544,
+          "energy_drift": 0.625384392091928
+        },
+        "differences": {
+          "x_diff": 0.012847593931467418,
+          "v_diff": 0.6200589614038683,
+          "peak_diff": 1.5547284607876575,
+          "time_ratio": 0.23547918683446273
+        }
+      },
+      {
+        "params": {
+          "u": 1600.0,
+          "lam": 0.1,
+          "mp": 4.0,
+          "theta_bias": 0.1,
+          "g_gain": 0.00014,
+          "ms": 1000.0,
+          "c_damp": 0.05,
+          "eps": 0.01,
+          "disturbance_theta_std": 0.0,
+          "disturbance_hold_s": 1.0,
+          "packet_sigma_s": 0.01,
+          "packet_phase_s": 0.0,
+          "k_fp": 6000.0,
+          "k_structural": 0.0,
+          "k_drag": 0.01,
+          "x0": 0.01,
+          "v0": 0.0,
+          "t_max": 10.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "max_step": 0.1,
+          "use_dynamic_epsilon": false,
+          "epsilon_target": 0.0001,
+          "cryocooler_power": 5.0,
+          "temperature": 77.0,
+          "B_field": 1.0,
+          "altitude_km": 400.0,
+          "inclination_deg": 51.6,
+          "include_j2": false,
+          "include_srp": false,
+          "include_drag": false,
+          "enable_thermal_dynamics": false,
+          "enable_eclipse": false,
+          "control_mode": "pid"
+        },
+        "rk45": {
+          "time": 0.10435819625854492,
+          "x_final": 0.021637085552376076,
+          "v_final": -0.09837028853032181,
+          "x_peak": 0.159649377007568,
+          "energy_drift": 19.809490821239688
+        },
+        "velocity_verlet": {
+          "time": 0.025054216384887695,
+          "x_final": -0.0012896183235689045,
+          "v_final": 0.7586963531934254,
+          "x_peak": 0.009998983502048132,
+          "energy_drift": 0.624981307111655
+        },
+        "differences": {
+          "x_diff": 0.02292670387594498,
+          "v_diff": 0.8570666417237472,
+          "peak_diff": 0.14965039350551987,
+          "time_ratio": 0.24007904777135547
+        }
+      },
+      {
+        "params": {
+          "u": 1600.0,
+          "lam": 0.1,
+          "mp": 16.0,
+          "theta_bias": 0.1,
+          "g_gain": 0.00014,
+          "ms": 1000.0,
+          "c_damp": 0.05,
+          "eps": 0.01,
+          "disturbance_theta_std": 0.0,
+          "disturbance_hold_s": 1.0,
+          "packet_sigma_s": 0.01,
+          "packet_phase_s": 0.0,
+          "k_fp": 6000.0,
+          "k_structural": 0.0,
+          "k_drag": 0.01,
+          "x0": 0.01,
+          "v0": 0.0,
+          "t_max": 10.0,
+          "rtol": 1e-06,
+          "atol": 1e-09,
+          "max_step": 0.1,
+          "use_dynamic_epsilon": false,
+          "epsilon_target": 0.0001,
+          "cryocooler_power": 5.0,
+          "temperature": 77.0,
+          "B_field": 1.0,
+          "altitude_km": 400.0,
+          "inclination_deg": 51.6,
+          "include_j2": false,
+          "include_srp": false,
+          "include_drag": false,
+          "enable_thermal_dynamics": false,
+          "enable_eclipse": false,
+          "control_mode": "pid"
+        },
+        "rk45": {
+          "time": 0.11516928672790527,
+          "x_final": 0.021637085552376076,
+          "v_final": -0.09837028853032181,
+          "x_peak": 0.159649377007568,
+          "energy_drift": 19.809490821239688
+        },
+        "velocity_verlet": {
+          "time": 0.026520490646362305,
+          "x_final": -0.0012896183235689045,
+          "v_final": 0.7586963531934254,
+          "x_peak": 0.009998983502048132,
+          "energy_drift": 0.624981307111655
+        },
+        "differences": {
+          "x_diff": 0.02292670387594498,
+          "v_diff": 0.8570666417237472,
+          "peak_diff": 0.14965039350551987,
+          "time_ratio": 0.23027398536398547
+        }
+      }
+    ],
+    "summary": {
+      "mean_x_diff": 0.01821139922452925,
+      "max_x_diff": 0.02292670387594498,
+      "mean_v_diff": 0.7873626989533329,
+      "max_v_diff": 0.8570666417237472,
+      "mean_time_ratio": 0.24157346199226634,
+      "min_time_ratio": 0.2179940658970472,
+      "max_time_ratio": 0.2840410240944809
+    }
+  }
+}

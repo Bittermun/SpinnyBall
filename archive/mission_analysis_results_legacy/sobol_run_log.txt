@@ -1,0 +1,188 @@
+OpenBLAS WARNING - could not determine the L2 cache size on this system, assuming 256k
+OpenBLAS WARNING - could not determine the L2 cache size on this system, assuming 256k
+/usr/local/lib/python3.12/site-packages/numpy/_core/_methods.py:190: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+/usr/local/lib/python3.12/site-packages/SALib/analyze/sobol.py:141: RuntimeWarning: invalid value encountered in subtract
+  Y = (Y - Y.mean()) / Y.std()
+/usr/local/lib/python3.12/site-packages/numpy/_core/_methods.py:190: RuntimeWarning: invalid value encountered in subtract
+  x = asanyarray(arr - arrmean)
+/usr/local/lib/python3.12/site-packages/SALib/analyze/sobol.py:141: RuntimeWarning: invalid value encountered in subtract
+  Y = (Y - Y.mean()) / Y.std()
+
+============================================================
+Analyzing SmCo material profile
+============================================================
+Running mission-level Sobol analysis for SmCo_BFRP...
+  N=1024, calc_second_order=True, seed=42
+  Generated 20480 samples
+  Evaluation complete. Feasible: 147/20480
+Saved mission_smco_indices.png
+Saved mission_smco_feasibility.png
+
+============================================================
+MISSION-LEVEL SOBOL SENSITIVITY ANALYSIS
+============================================================
+Magnet Material: SmCo
+Jacket Material: BFRP
+Config: SmCo_BFRP
+Samples: 1024 (second-order: True)
+Seed: 42
+------------------------------------------------------------
+
+Feasibility: 0.7% (147/20480 designs)
+
+Dominant Parameters (by total-order index ST):
+------------------------------------------------------------
+
+N_packets:
+  mp          : ST = 2.2128
+  u           : ST = 0.8601
+  ms          : ST = 0.1100
+
+N_total_inventory:
+  mp          : ST = 2.2134
+  u           : ST = 0.8597
+  ms          : ST = 0.1101
+
+M_total_kg:
+  u           : ST = 0.9761
+  ms          : ST = 0.2386
+  h_km        : ST = 0.0564
+
+mass_multiplier:
+  ms          : ST = 0.7279
+  u           : ST = 0.5320
+  mp          : ST = 0.2224
+
+P_total_kW:
+  mp          : ST = 2.2113
+  u           : ST = 0.8596
+  ms          : ST = 0.1104
+
+stress_margin:
+  mp          : ST = 0.8870
+  omega       : ST = 0.4553
+  r           : ST = 0.3054
+
+thermal_margin:
+  u           : ST = 0.8515
+  r           : ST = 0.1819
+  spacing     : ST = 0.0000
+
+k_eff:
+  u           : ST = 0.8540
+  r           : ST = 0.1763
+  spacing     : ST = 0.0000
+
+debris_risk_score:
+  h_km        : ST = 0.7158
+  r           : ST = 0.2295
+  u           : ST = 0.1630
+
+kessler_ratio:
+  h_km        : ST = 0.6719
+  r           : ST = 0.5719
+  ms          : ST = 0.0000
+
+stream_self_sustaining:
+  r           : ST = 0.9162
+  ms          : ST = 0.6071
+  mp          : ST = 0.5188
+
+service_lifetime_hr:
+  spacing     : ST = nan
+  k_fp        : ST = nan
+  g_gain      : ST = nan
+
+slingshot_dv_m_s:
+  u           : ST = 1.0066
+  spacing     : ST = 0.0000
+  k_fp        : ST = 0.0000
+
+============================================================
+Analyzing GdBCO material profile
+============================================================
+Running mission-level Sobol analysis for GdBCO_BFRP...
+  N=1024, calc_second_order=True, seed=42
+  Generated 20480 samples
+  Evaluation complete. Feasible: 4663/20480
+  Warning: thermal_margin has near-zero variance, skipping Sobol analysis
+Saved mission_gdbco_indices.png
+Saved mission_gdbco_feasibility.png
+
+============================================================
+MISSION-LEVEL SOBOL SENSITIVITY ANALYSIS
+============================================================
+Magnet Material: GdBCO
+Jacket Material: BFRP
+Config: GdBCO_BFRP
+Samples: 1024 (second-order: True)
+Seed: 42
+------------------------------------------------------------
+
+Feasibility: 22.8% (4663/20480 designs)
+
+Dominant Parameters (by total-order index ST):
+------------------------------------------------------------
+
+N_packets:
+  mp          : ST = 2.2128
+  u           : ST = 0.8601
+  ms          : ST = 0.1100
+
+N_total_inventory:
+  mp          : ST = 2.2134
+  u           : ST = 0.8597
+  ms          : ST = 0.1101
+
+M_total_kg:
+  u           : ST = 0.9761
+  ms          : ST = 0.2386
+  h_km        : ST = 0.0564
+
+mass_multiplier:
+  ms          : ST = 0.7279
+  u           : ST = 0.5320
+  mp          : ST = 0.2224
+
+P_total_kW:
+  h_km        : ST = 0.9998
+  mp          : ST = 0.0002
+  u           : ST = 0.0001
+
+stress_margin:
+  mp          : ST = 0.8870
+  omega       : ST = 0.4553
+  r           : ST = 0.3054
+
+k_eff:
+  spacing     : ST = 2.7721
+  g_gain      : ST = 0.1139
+  u           : ST = 0.0528
+
+debris_risk_score:
+  h_km        : ST = 0.7158
+  r           : ST = 0.2295
+  u           : ST = 0.1630
+
+kessler_ratio:
+  h_km        : ST = 0.6719
+  r           : ST = 0.5719
+  ms          : ST = 0.0000
+
+stream_self_sustaining:
+  u           : ST = 0.5978
+  ms          : ST = 0.4441
+  mp          : ST = 0.4078
+
+service_lifetime_hr:
+  spacing     : ST = nan
+  k_fp        : ST = nan
+  g_gain      : ST = nan
+
+slingshot_dv_m_s:
+  u           : ST = 1.0066
+  spacing     : ST = 0.0000
+  k_fp        : ST = 0.0000
+
+All results saved to mission_analysis_results/

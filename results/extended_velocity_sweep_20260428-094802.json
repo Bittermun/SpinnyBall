@@ -1,0 +1,62 @@
+{
+  "velocity_range": [
+    500.0,
+    5000.0
+  ],
+  "velocities": [
+    500,
+    1000,
+    1600,
+    2500,
+    3500,
+    5000
+  ],
+  "cascade_probability": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "containment_rate": [
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0,
+    1.0
+  ],
+  "static_offset": [
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0,
+    0.0
+  ],
+  "k_eff": [
+    4500.0,
+    4500.0,
+    4500.0,
+    4500.0,
+    4500.0,
+    4500.0
+  ],
+  "period": [
+    0.1,
+    0.1,
+    0.1,
+    0.1,
+    0.1,
+    0.1
+  ],
+  "analysis": {
+    "cascade_trend": "stable",
+    "max_safe_velocity": 5000.0,
+    "velocity_sensitivity": {
+      "cascade_rate_change": 0.0,
+      "k_eff_change": 0.0
+    }
+  }
+}

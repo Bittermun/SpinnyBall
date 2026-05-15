@@ -1,0 +1,706 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SGMS Anchor Report</title>
+<style>
+* { box-sizing: border-box; }
+body {
+  margin: 0;
+  font-family: Georgia, "Times New Roman", serif;
+  background: linear-gradient(180deg, #f4f1e8 0%, #ece7dc 100%);
+  color: #1b1c1d;
+}
+main {
+  max-width: 1120px;
+  margin: 0 auto;
+  padding: 32px 20px 48px;
+}
+h1, h2, h3 { margin: 0 0 12px; }
+h1 { font-size: 40px; letter-spacing: 0.02em; }
+h2 { font-size: 24px; margin-top: 28px; }
+h3 { font-size: 18px; }
+p { margin: 0 0 12px; line-height: 1.5; }
+.hero {
+  background: rgba(255,255,255,0.7);
+  border: 1px solid rgba(27,28,29,0.12);
+  border-radius: 18px;
+  padding: 24px;
+  box-shadow: 0 18px 50px rgba(60, 53, 42, 0.08);
+}
+.grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 12px;
+  margin-top: 18px;
+}
+.card {
+  background: rgba(255,255,255,0.78);
+  border: 1px solid rgba(27,28,29,0.1);
+  border-radius: 14px;
+  padding: 14px 16px;
+}
+.label {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #5c645d;
+}
+.value {
+  font-size: 24px;
+  margin-top: 6px;
+}
+.experiment {
+  margin-top: 26px;
+  background: rgba(255,255,255,0.76);
+  border: 1px solid rgba(27,28,29,0.1);
+  border-radius: 18px;
+  padding: 22px;
+}
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 10px;
+}
+th, td {
+  text-align: left;
+  padding: 8px 10px;
+  border-bottom: 1px solid rgba(27,28,29,0.12);
+  font-size: 14px;
+}
+th {
+  font-size: 12px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #5c645d;
+}
+.files {
+  margin-top: 12px;
+  font-family: "Courier New", monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+  word-break: break-all;
+  color: #3f433f;
+}
+@media (max-width: 720px) {
+  h1 { font-size: 30px; }
+  main { padding: 18px 14px 30px; }
+}
+</style>
+</head>
+<body>
+<main>
+  <section class="hero">
+    <h1>SGMS Anchor Report</h1>
+    <p id="runMeta"></p>
+    <div id="heroGrid" class="grid"></div>
+  </section>
+  <section id="experiments"></section>
+</main>
+<script id="report-data" type="application/json">{
+  "experiments": [
+    {
+      "anchor": {
+        "continuum_metrics": {
+          "bias_force_n": 0.00087,
+          "force_peak_n": 0.24913000000000007,
+          "force_per_stream_n": 4.35,
+          "k_control": 2.5,
+          "k_eff": 2.5,
+          "k_fp": 0.0,
+          "k_total": 2.5,
+          "omega_n_rad_s": 0.05,
+          "packet_period_s": 0.01,
+          "packet_rate_hz": 100.0,
+          "period_s": 125.66370614359172,
+          "static_offset_m": 0.000348,
+          "vx_final_m_s": 0.0016805897862289894,
+          "x_final_m": 0.05071794277089246,
+          "x_peak_m": 0.1,
+          "zeta": 0.04
+        },
+        "continuum_period_s": null,
+        "discrete_period_s": null
+      },
+      "calibration": {
+        "params": {
+          "atol": 1e-10,
+          "c_damp": 4.0,
+          "disturbance_hold_s": 1.0,
+          "disturbance_theta_std": 0.0,
+          "eps": 0.0001,
+          "g_gain": 0.05,
+          "k_fp": 0.0,
+          "lam": 0.5,
+          "max_step": 0.25,
+          "mp": 0.05,
+          "ms": 1000.0,
+          "packet_phase_s": 0.0,
+          "packet_sigma_s": 0.01,
+          "rtol": 1e-08,
+          "t_max": 240.0,
+          "theta_bias": 0.087,
+          "u": 10.0,
+          "v0": 0.0,
+          "x0": 0.1
+        },
+        "provenance": {
+          "c_damp": {
+            "calibrated_value": 4.0,
+            "source": "reduced-order damping assumption",
+            "status": "placeholder"
+          },
+          "g_gain": {
+            "calibrated_value": 0.05,
+            "source": "paper baseline feedback",
+            "status": "paper control assumption"
+          },
+          "lam": {
+            "calibrated_value": 0.5,
+            "source": "paper density assumption",
+            "status": "reduced-order assumption"
+          },
+          "ms": {
+            "calibrated_value": 1000.0,
+            "source": "suspended node baseline",
+            "status": "memo-baseline"
+          },
+          "theta_bias": {
+            "calibrated_value": 0.087,
+            "source": "master memo baseline bend angle",
+            "status": "memo-baseline"
+          },
+          "u": {
+            "calibrated_value": 10.0,
+            "source": "paper baseline stream speed",
+            "status": "memo-baseline"
+          }
+        }
+      },
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L1-reduced-order",
+          "intended_use": "paper"
+        }
+      },
+      "files": [
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_displacement.png",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_packet_compare.png",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_velocity_sweep.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\anchor_grid.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\anchor_heatmaps.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\controller_trade_study.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\controller_trade_study.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\robustness_summary.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\robustness.png",
+        "artifacts\\20260418-205826\\paper-baseline\\metrics\\sobol_indices.csv",
+        "artifacts\\20260418-205826\\paper-baseline\\figures\\sobol_indices.png"
+      ],
+      "name": "paper-baseline",
+      "profile": {
+        "category": "paper",
+        "name": "paper-baseline",
+        "notes": [
+          "Use for paper-facing reduced-order figures and tables.",
+          "Prioritizes traceable assumptions over aggressive performance."
+        ],
+        "provenance": {
+          "g_gain": "paper control assumption",
+          "lam": "reduced-order anchor assumption",
+          "ms": "suspended node baseline",
+          "u": "master memo baseline"
+        }
+      },
+      "robustness": {
+        "rows": [
+          {
+            "area_abs_x": 0.5171292860696247,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.753124511871285,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.01188272437627381,
+            "scenario": "nominal"
+          },
+          {
+            "area_abs_x": 0.5171292860696247,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.753124511871285,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.01188272437627381,
+            "scenario": "higher-imbalance"
+          },
+          {
+            "area_abs_x": 0.5171271174873163,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.753124511871256,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.011882651884777221,
+            "scenario": "low-damping"
+          },
+          {
+            "area_abs_x": 0.5165996975871013,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.60799680255745,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.011866874700408815,
+            "scenario": "stiffer-feedback"
+          }
+        ]
+      },
+      "sensitivity": {
+        "k_eff": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.1270911765891071,
+            "lam": 0.17300235684980492,
+            "u": 0.4713608564532625
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.2961587476151614,
+            "lam": 0.38079269797808635,
+            "u": 0.7019947576258737
+          }
+        },
+        "packet_rate_hz": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.0,
+            "lam": 0.3959994187842259,
+            "u": 0.46239453608244674
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.0,
+            "lam": 0.5291382856995671,
+            "u": 0.5980338033267837
+          }
+        },
+        "period_s": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.01897111492440068,
+            "lam": 0.033641681050866956,
+            "u": 0.8315988130415539
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.17260846750283113,
+            "lam": 0.21112244124405782,
+            "u": 1.0012430282670788
+          }
+        },
+        "static_offset_m": {
+          "S1": {
+            "eps": 0.3041604278683724,
+            "g_gain": 0.5119677627922826,
+            "lam": -1.3039060890701515e-18,
+            "u": 5.4127086354446666e-18
+          },
+          "ST": {
+            "eps": 0.5101102705470595,
+            "g_gain": 0.7387940783878838,
+            "lam": 3.1870250962377376e-32,
+            "u": 2.018585018242321e-32
+          }
+        }
+      },
+      "slug": "paper-baseline",
+      "summary_path": "artifacts\\20260418-205826\\paper-baseline\\summary.json",
+      "trade_study": {
+        "rows": [
+          {
+            "area_abs_x": 12.756030956784382,
+            "controller": "open",
+            "peak_abs_u_n": 0.0,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.059680186951519665
+          },
+          {
+            "area_abs_x": 12.828021352725496,
+            "controller": "p",
+            "peak_abs_u_n": 0.125,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.060144877839705416
+          },
+          {
+            "area_abs_x": 0.5171292860696247,
+            "controller": "lqr",
+            "peak_abs_u_n": 9.753124511871285,
+            "peak_abs_x_m": 0.1,
+            "rms_x_m": 0.01188272437627381
+          }
+        ]
+      }
+    },
+    {
+      "anchor": {
+        "continuum_metrics": {
+          "bias_force_n": 0.026099999999999998,
+          "force_peak_n": 1.8939000000000021,
+          "force_per_stream_n": 26.099999999999998,
+          "k_control": 24.0,
+          "k_eff": 24.0,
+          "k_fp": 0.0,
+          "k_total": 24.0,
+          "omega_n_rad_s": 0.15491933384829668,
+          "packet_period_s": 0.0033333333333333335,
+          "packet_rate_hz": 300.0,
+          "period_s": 40.55778675973612,
+          "static_offset_m": 0.0010875,
+          "vx_final_m_s": 0.0023706398702457495,
+          "x_final_m": 0.02674888099340348,
+          "x_peak_m": 0.08,
+          "zeta": 0.025819888974716113
+        },
+        "continuum_period_s": 40.58029014507254,
+        "discrete_period_s": 40.58029014507254
+      },
+      "calibration": {
+        "params": {
+          "atol": 1e-10,
+          "c_damp": 8.0,
+          "disturbance_hold_s": 1.0,
+          "disturbance_theta_std": 0.0,
+          "eps": 0.0005,
+          "g_gain": 0.08,
+          "k_fp": 0.0,
+          "lam": 0.75,
+          "max_step": 0.25,
+          "mp": 0.05,
+          "ms": 1000.0,
+          "packet_phase_s": 0.0,
+          "packet_sigma_s": 0.01,
+          "rtol": 1e-08,
+          "t_max": 240.0,
+          "theta_bias": 0.087,
+          "u": 20.0,
+          "v0": 0.0,
+          "x0": 0.08
+        },
+        "provenance": {
+          "c_damp": {
+            "calibrated_value": 8.0,
+            "source": "higher damping screen",
+            "status": "engineering-screen"
+          },
+          "g_gain": {
+            "calibrated_value": 0.08,
+            "source": "stiffer engineering controller",
+            "status": "engineering-screen"
+          },
+          "lam": {
+            "calibrated_value": 0.75,
+            "source": "higher-density engineering sweep",
+            "status": "engineering-screen"
+          },
+          "ms": {
+            "calibrated_value": 1000.0,
+            "source": "suspended node baseline",
+            "status": "memo-baseline"
+          },
+          "theta_bias": {
+            "calibrated_value": 0.087,
+            "source": "master memo baseline bend angle",
+            "status": "memo-baseline"
+          },
+          "u": {
+            "calibrated_value": 20.0,
+            "source": "higher-throughput engineering sweep",
+            "status": "engineering-screen"
+          }
+        }
+      },
+      "claim_context": {
+        "phase_decision": {
+          "claim_level": "L1-reduced-order",
+          "decision": "defer",
+          "high_fidelity_required": false,
+          "rationale": [
+            "Reduced-order, control, sensitivity, and robustness outputs are sufficient for the current paper/demo phase.",
+            "Newton or FEMM should only be added if reviewer feedback or hardware design milestones require them."
+          ]
+        },
+        "profile_claim": {
+          "claim_level": "L0-engineering-screen",
+          "intended_use": "engineering"
+        }
+      },
+      "files": [
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_displacement.png",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_packet_compare.png",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_velocity_sweep.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\anchor_grid.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\anchor_heatmaps.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\controller_trade_study.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\controller_trade_study.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\robustness_summary.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\robustness.png",
+        "artifacts\\20260418-205826\\engineering-screen\\metrics\\sobol_indices.csv",
+        "artifacts\\20260418-205826\\engineering-screen\\figures\\sobol_indices.png"
+      ],
+      "name": "engineering-screen",
+      "profile": {
+        "category": "engineering",
+        "name": "engineering-screen",
+        "notes": [
+          "Use for engineering trade studies and stronger-control screening.",
+          "Not the default paper claim profile."
+        ],
+        "provenance": {
+          "c_damp": "higher damping engineering case",
+          "g_gain": "stiffer control screen",
+          "lam": "higher traffic density screen",
+          "u": "engineering sweep point"
+        }
+      },
+      "robustness": {
+        "rows": [
+          {
+            "area_abs_x": 0.41014017046465273,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596766,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293772848878331,
+            "scenario": "nominal"
+          },
+          {
+            "area_abs_x": 0.41014017046465273,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596766,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293772848878331,
+            "scenario": "higher-imbalance"
+          },
+          {
+            "area_abs_x": 0.41015092229910616,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596762,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293580274149161,
+            "scenario": "low-damping"
+          },
+          {
+            "area_abs_x": 0.41014017046465273,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596766,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293772848878331,
+            "scenario": "stiffer-feedback"
+          }
+        ]
+      },
+      "sensitivity": {
+        "k_eff": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.1270911765891071,
+            "lam": 0.17300235684980492,
+            "u": 0.4713608564532625
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.2961587476151614,
+            "lam": 0.38079269797808635,
+            "u": 0.7019947576258737
+          }
+        },
+        "packet_rate_hz": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.0,
+            "lam": 0.3959994187842259,
+            "u": 0.46239453608244674
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.0,
+            "lam": 0.5291382856995671,
+            "u": 0.5980338033267837
+          }
+        },
+        "period_s": {
+          "S1": {
+            "eps": 0.0,
+            "g_gain": 0.01897111492440068,
+            "lam": 0.033641681050866956,
+            "u": 0.8315988130415539
+          },
+          "ST": {
+            "eps": 0.0,
+            "g_gain": 0.17260846750283113,
+            "lam": 0.21112244124405782,
+            "u": 1.0012430282670788
+          }
+        },
+        "static_offset_m": {
+          "S1": {
+            "eps": 0.3041604278683724,
+            "g_gain": 0.5119677627922826,
+            "lam": -1.3039060890701515e-18,
+            "u": 5.4127086354446666e-18
+          },
+          "ST": {
+            "eps": 0.5101102705470595,
+            "g_gain": 0.7387940783878838,
+            "lam": 3.1870250962377376e-32,
+            "u": 2.018585018242321e-32
+          }
+        }
+      },
+      "slug": "engineering-screen",
+      "summary_path": "artifacts\\20260418-205826\\engineering-screen\\summary.json",
+      "trade_study": {
+        "rows": [
+          {
+            "area_abs_x": 7.843975320376249,
+            "controller": "open",
+            "peak_abs_u_n": 0.0,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.03778079639291927
+          },
+          {
+            "area_abs_x": 7.893052893798844,
+            "controller": "p",
+            "peak_abs_u_n": 0.96,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.037856658714547256
+          },
+          {
+            "area_abs_x": 0.41014017046465273,
+            "controller": "lqr",
+            "peak_abs_u_n": 6.307174484596766,
+            "peak_abs_x_m": 0.08,
+            "rms_x_m": 0.009293772848878331
+          }
+        ]
+      }
+    }
+  ],
+  "generated_at_utc": "2026-04-18T20:58:26+00:00",
+  "run_label": "20260418-205826"
+}</script>
+<script>
+const payload = JSON.parse(document.getElementById('report-data').textContent);
+
+function fmt(value, digits = 4) {
+  if (value === null || value === undefined || Number.isNaN(value)) return 'n/a';
+  if (!Number.isFinite(value)) return String(value);
+  return Number(value).toFixed(digits);
+}
+
+document.getElementById('runMeta').textContent =
+  `Run ${payload.run_label} generated ${payload.generated_at_utc || 'n/a'} with ${payload.experiments.length} experiment(s).`;
+
+const heroGrid = document.getElementById('heroGrid');
+payload.experiments.forEach((exp) => {
+  const metrics = exp.anchor?.continuum_metrics || {};
+  const card = document.createElement('div');
+  card.className = 'card';
+  card.innerHTML = `
+    <div class="label">${exp.name}</div>
+    <div class="value">${fmt(metrics.k_eff, 3)} N/m</div>
+    <p>k_eff with period ${fmt(exp.anchor?.continuum_period_s, 2)} s</p>
+  `;
+  heroGrid.appendChild(card);
+});
+
+const experimentsEl = document.getElementById('experiments');
+payload.experiments.forEach((exp) => {
+  const section = document.createElement('section');
+  section.className = 'experiment';
+  const metrics = exp.anchor?.continuum_metrics || {};
+  const profile = exp.profile || {};
+  const claim = exp.claim_context || {};
+  const tradeRows = exp.trade_study?.rows || [];
+  const robustnessRows = exp.robustness?.rows || [];
+  const sensitivity = exp.sensitivity || {};
+  const files = (exp.files || []).join('\n');
+  const provenanceLines = Object.entries(profile.provenance || {}).map(([key, value]) =>
+    `<p><strong>${key}</strong>: ${value}</p>`
+  ).join('');
+  const calibrationLines = Object.entries(exp.calibration?.provenance || {}).map(([key, value]) =>
+    `<p><strong>${key}</strong>: ${value.status} via ${value.source}</p>`
+  ).join('');
+
+  let tradeHtml = '<p>No trade study rows.</p>';
+  if (tradeRows.length) {
+    tradeHtml = `
+      <table>
+        <thead><tr><th>Controller</th><th>Peak |x| (m)</th><th>Area |x|</th><th>Peak |u| (N)</th></tr></thead>
+        <tbody>
+          ${tradeRows.map((row) => `
+            <tr>
+              <td>${row.controller}</td>
+              <td>${fmt(row.peak_abs_x_m, 4)}</td>
+              <td>${fmt(row.area_abs_x, 4)}</td>
+              <td>${fmt(row.peak_abs_u_n, 4)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  let robustHtml = '<p>No robustness rows.</p>';
+  if (robustnessRows.length) {
+    robustHtml = `
+      <table>
+        <thead><tr><th>Scenario</th><th>Peak |x| (m)</th><th>Area |x|</th></tr></thead>
+        <tbody>
+          ${robustnessRows.map((row) => `
+            <tr>
+              <td>${row.scenario}</td>
+              <td>${fmt(row.peak_abs_x_m, 4)}</td>
+              <td>${fmt(row.area_abs_x, 4)}</td>
+            </tr>`).join('')}
+        </tbody>
+      </table>`;
+  }
+
+  const sensitivityLines = Object.entries(sensitivity).map(([output, data]) => {
+    const st = data.ST || {};
+    const top = Object.entries(st).sort((a, b) => b[1] - a[1])[0];
+    return `<p><strong>${output}</strong>: dominant ST = ${top ? `${top[0]} (${fmt(top[1], 4)})` : 'n/a'}</p>`;
+  }).join('');
+
+  section.innerHTML = `
+    <h2>${exp.name}</h2>
+    <p><strong>Profile:</strong> ${profile.name || 'direct-defaults'} (${profile.category || 'unspecified'})</p>
+    <div class="grid">
+      <div class="card"><div class="label">k_eff</div><div class="value">${fmt(metrics.k_eff, 3)}</div></div>
+      <div class="card"><div class="label">Period (s)</div><div class="value">${fmt(exp.anchor?.continuum_period_s, 2)}</div></div>
+      <div class="card"><div class="label">Static Offset (mm)</div><div class="value">${fmt((metrics.static_offset_m || 0) * 1000, 3)}</div></div>
+      <div class="card"><div class="label">Packet Rate (Hz)</div><div class="value">${fmt(metrics.packet_rate_hz, 2)}</div></div>
+    </div>
+    <h3>Profile Notes</h3>
+    <p>${(profile.notes || []).join(' ') || 'No profile notes.'}</p>
+    <h3>Parameter Provenance</h3>
+    ${provenanceLines || '<p>No provenance entries.</p>'}
+    <h3>Calibration Context</h3>
+    ${calibrationLines || '<p>No calibration entries.</p>'}
+    <h3>Claim Context</h3>
+    <p><strong>Phase decision:</strong> ${claim.phase_decision?.decision || 'n/a'}</p>
+    <p><strong>Claim level:</strong> ${claim.profile_claim?.claim_level || 'n/a'}</p>
+    <h3>Controller Trade Study</h3>
+    ${tradeHtml}
+    <h3>Robustness</h3>
+    ${robustHtml}
+    <h3>Sensitivity Summary</h3>
+    ${sensitivityLines || '<p>No sensitivity summary.</p>'}
+    <h3>Files</h3>
+    <div class="files">${files}</div>
+  `;
+  experimentsEl.appendChild(section);
+});
+</script>
+</body>
+</html>

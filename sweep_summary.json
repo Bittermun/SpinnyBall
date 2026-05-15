@@ -1,0 +1,119 @@
+{
+  "total_runs": 8,
+  "valid_runs": 5,
+  "error_runs": 3,
+  "overall_convergence_rate": 0.2174,
+  "runs_breakdown": [
+    {
+      "directory": "profile_sweep_quick_20260428-214333",
+      "timestamp": "20260428-214333",
+      "profiles": [
+        "engineering-screen",
+        "operational",
+        "paper-baseline",
+        "resilience"
+      ],
+      "error_count": 0,
+      "convergence_rate": 0.0
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224203",
+      "timestamp": "20260428-224203",
+      "profiles": [],
+      "error_count": 1,
+      "convergence_rate": 0
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-224245",
+      "timestamp": "20260428-224245",
+      "profiles": [],
+      "error_count": 1,
+      "convergence_rate": 0
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225241",
+      "timestamp": "20260428-225241",
+      "profiles": [],
+      "error_count": 1,
+      "convergence_rate": 0
+    },
+    {
+      "directory": "profile_sweep_quick_20260428-225500",
+      "timestamp": "20260428-225500",
+      "profiles": [
+        "engineering-screen",
+        "operational",
+        "paper-baseline",
+        "resilience"
+      ],
+      "error_count": 0,
+      "convergence_rate": 0.0
+    },
+    {
+      "directory": "profile_sweep_quick_20260429-074317",
+      "timestamp": "20260429-074317",
+      "profiles": [
+        "engineering-screen",
+        "operational",
+        "paper-baseline",
+        "resilience",
+        "smco-heavy"
+      ],
+      "error_count": 0,
+      "convergence_rate": 0.0
+    },
+    {
+      "directory": "profile_sweep_quick_20260430-062033",
+      "timestamp": "20260430-062033",
+      "profiles": [
+        "engineering-screen",
+        "operational",
+        "paper-baseline",
+        "resilience",
+        "smco-heavy"
+      ],
+      "error_count": 0,
+      "convergence_rate": 0.0
+    },
+    {
+      "directory": "profile_sweep_quick_20260501-074244",
+      "timestamp": "20260501-074244",
+      "profiles": [
+        "engineering-screen",
+        "operational",
+        "paper-baseline",
+        "resilience",
+        "smco-heavy"
+      ],
+      "error_count": 0,
+      "convergence_rate": 1.0
+    }
+  ],
+  "profile_performance": {
+    "engineering-screen": {
+      "runs_count": 5,
+      "avg_cascade_prob": 0.0,
+      "avg_convergence_rate": 0.2
+    },
+    "operational": {
+      "runs_count": 5,
+      "avg_cascade_prob": 0.0,
+      "avg_convergence_rate": 0.2
+    },
+    "paper-baseline": {
+      "runs_count": 5,
+      "avg_cascade_prob": 0.0,
+      "avg_convergence_rate": 0.2
+    },
+    "resilience": {
+      "runs_count": 5,
+      "avg_cascade_prob": 0.0,
+      "avg_convergence_rate": 0.2
+    },
+    "smco-heavy": {
+      "runs_count": 3,
+      "avg_cascade_prob": 0.0,
+      "avg_convergence_rate": 0.3333
+    }
+  }
+}

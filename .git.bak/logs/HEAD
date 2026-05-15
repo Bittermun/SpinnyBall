@@ -1,0 +1,68 @@
+0000000000000000000000000000000000000000 8bda7b1826268e71be834724b684004a8492a453 Michael S <msunwc@gmail.com> 1776182044 -0700	clone: from https://github.com/Bittermun/SpinnyBall.git
+8bda7b1826268e71be834724b684004a8492a453 8bda7b1826268e71be834724b684004a8492a453 Michael S <msunwc@gmail.com> 1776191587 -0700	checkout: moving from main to sufersim
+8bda7b1826268e71be834724b684004a8492a453 f362b62d8258b231d553e3b2325f057a4cf2ac38 Michael S <msunwc@gmail.com> 1777053306 -0700	pull origin main: Fast-forward
+f362b62d8258b231d553e3b2325f057a4cf2ac38 4adce61bc3621062f86b4dfddbad0870b9011575 Michael S <msunwc@gmail.com> 1777060859 -0700	commit: Remove ISRU references and complete MuJoCo validation
+4adce61bc3621062f86b4dfddbad0870b9011575 6fe7d4ad43c17fad711dd52c71135f80a09e9041 Michael S <msunwc@gmail.com> 1777308574 -0700	pull origin main: Fast-forward
+6fe7d4ad43c17fad711dd52c71135f80a09e9041 c92c61c185b70e59e741f8df9bac506098070827 Michael S <msunwc@gmail.com> 1777321201 -0700	commit: feat: Add dynamic stream balance control for counter-stream regulation
+c92c61c185b70e59e741f8df9bac506098070827 c92c61c185b70e59e741f8df9bac506098070827 Michael S <msunwc@gmail.com> 1777339237 -0700	checkout: moving from sufersim to feature/profile-system-validation
+c92c61c185b70e59e741f8df9bac506098070827 0ccd0b443211bc220f443fa26d2768bfe5c35b03 Michael S <msunwc@gmail.com> 1777339247 -0700	commit: feat: Implement 3-profile system with comprehensive validation
+0ccd0b443211bc220f443fa26d2768bfe5c35b03 1ac0dae8c45612b9da3d71f99e556a5d11e92e32 Michael S <msunwc@gmail.com> 1777384187 -0700	commit: feat: Integrate geometry profiles and orbital perturbations
+1ac0dae8c45612b9da3d71f99e556a5d11e92e32 165b7926dd942a9e94c01438010f7a71a2faa329 Michael S <msunwc@gmail.com> 1777384204 -0700	pull --rebase origin feature/profile-system-validation (start): checkout 165b7926dd942a9e94c01438010f7a71a2faa329
+165b7926dd942a9e94c01438010f7a71a2faa329 165b7926dd942a9e94c01438010f7a71a2faa329 Michael S <msunwc@gmail.com> 1777384504 -0700	rebase (finish): returning to refs/heads/feature/profile-system-validation
+165b7926dd942a9e94c01438010f7a71a2faa329 ee391127aaace8004b19068471fc5300e79fe988 Michael S <msunwc@gmail.com> 1777384597 -0700	reset: moving to HEAD~1
+ee391127aaace8004b19068471fc5300e79fe988 bc0fc59e255065fe21add9823024bb86f806c98b Michael S <msunwc@gmail.com> 1777384597 -0700	commit: feat: Integrate geometry profiles and orbital perturbations
+bc0fc59e255065fe21add9823024bb86f806c98b 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777384677 -0700	commit: feat: Integrate physics models and control strategies
+707d52704a4c19cc27767deb1940f80512906758 0fdd41aea779f5c926e8ce72be51daf7112eeb2a Michael S <msunwc@gmail.com> 1777384737 -0700	commit: fix: Restore orbital perturbations and eclipse effects
+0fdd41aea779f5c926e8ce72be51daf7112eeb2a 0fdd41aea779f5c926e8ce72be51daf7112eeb2a Michael S <msunwc@gmail.com> 1777384757 -0700	reset: moving to HEAD
+0fdd41aea779f5c926e8ce72be51daf7112eeb2a 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777384761 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777384805 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777384833 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777384856 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 5f61e1396301b22fe486bebb6dffb5ec2ace81e4 Michael S <msunwc@gmail.com> 1777384887 -0700	commit: feat: Complete orbital perturbations and eclipse effects
+5f61e1396301b22fe486bebb6dffb5ec2ace81e4 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777385255 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 1b3b956903e976ff8457372255385140f676817a Michael S <msunwc@gmail.com> 1777385263 -0700	commit: fix: Restore thermal_model.py to clean state, add separate eclipse module
+1b3b956903e976ff8457372255385140f676817a 707d52704a4c19cc27767deb1940f80512906758 Michael S <msunwc@gmail.com> 1777385745 -0700	reset: moving to 707d527
+707d52704a4c19cc27767deb1940f80512906758 bc0fc59e255065fe21add9823024bb86f806c98b Michael S <msunwc@gmail.com> 1777385762 -0700	reset: moving to HEAD~1
+bc0fc59e255065fe21add9823024bb86f806c98b ee391127aaace8004b19068471fc5300e79fe988 Michael S <msunwc@gmail.com> 1777385768 -0700	reset: moving to ee39112
+ee391127aaace8004b19068471fc5300e79fe988 4792689a584c479cd2f86859961730d5c9ba2c7f Michael S <msunwc@gmail.com> 1777385800 -0700	commit: feat: Complete orbital and thermal integration for mass simulation
+4792689a584c479cd2f86859961730d5c9ba2c7f 5eb275ad2e7d724984500b3364946f67cebff16e Michael S <msunwc@gmail.com> 1777385818 -0700	commit: fix: Complete orbital and thermal integration
+5eb275ad2e7d724984500b3364946f67cebff16e 3aaeff03be51660bc426f0d18fa54aae514e3782 Michael S <msunwc@gmail.com> 1777385837 -0700	commit: fix: Complete all orbital and thermal integration fixes
+3aaeff03be51660bc426f0d18fa54aae514e3782 655e26d67c290d6faa0cec0a0774e11a4cb47ed1 Michael S <msunwc@gmail.com> 1777387011 -0700	commit: fix: Restore corrupted sgms_anchor_v1.py with orbital/thermal/MPC integration
+655e26d67c290d6faa0cec0a0774e11a4cb47ed1 655e26d67c290d6faa0cec0a0774e11a4cb47ed1 Michael S <msunwc@gmail.com> 1777388147 -0700	reset: moving to HEAD
+655e26d67c290d6faa0cec0a0774e11a4cb47ed1 2f4cef9ad4b3dfa81e1c16550f365411a3bea535 Michael S <msunwc@gmail.com> 1777396205 -0700	merge origin/main: Fast-forward
+2f4cef9ad4b3dfa81e1c16550f365411a3bea535 feded87d08b16816b4aab0929d870509bcf4d76b Michael S <msunwc@gmail.com> 1777484118 -0700	pull origin main: Fast-forward
+feded87d08b16816b4aab0929d870509bcf4d76b 43b0dabecbfaa358471a31080cc86af732ea64bf Michael S <msunwc@gmail.com> 1777507713 -0700	commit: Fix scientific accuracy: replace small angle approximation with full quaternion rotation
+43b0dabecbfaa358471a31080cc86af732ea64bf 19b0f1615cb69cba0a2fb9ef4b2000dd09842705 Michael S <msunwc@gmail.com> 1777575472 -0700	commit: Complete thermal model validation and documentation salvage
+19b0f1615cb69cba0a2fb9ef4b2000dd09842705 8bda7b1826268e71be834724b684004a8492a453 Michael S <msunwc@gmail.com> 1777575482 -0700	checkout: moving from feature/profile-system-validation to main
+8bda7b1826268e71be834724b684004a8492a453 19b0f1615cb69cba0a2fb9ef4b2000dd09842705 Michael S <msunwc@gmail.com> 1777575490 -0700	merge feature/profile-system-validation: Fast-forward
+19b0f1615cb69cba0a2fb9ef4b2000dd09842705 b81f560b475d8a4c36517ceb6c600559b0590945 Michael S <msunwc@gmail.com> 1777575509 -0700	pull origin main: Merge made by the 'ort' strategy.
+b81f560b475d8a4c36517ceb6c600559b0590945 6bdff06d0b261216dd4550c7ae5f89ae8a40d515 Michael S <msunwc@gmail.com> 1777582680 -0700	commit: Fix 5 critical bugs: orbital propagator state mutation, SimulationState shadowing, health check crash, VMD tau=0, k_eff dead code
+6bdff06d0b261216dd4550c7ae5f89ae8a40d515 7b4b74063d7a7ee1513708707ba6d40391f0eac1 Michael S <msunwc@gmail.com> 1777591586 -0700	commit: Fix 18 additional bugs: dependencies, concurrency, memory, performance, semantic issues, and global state pollution
+7b4b74063d7a7ee1513708707ba6d40391f0eac1 4c6576a9d69f3ea6686dbb7f34e22212454b358e Michael S <msunwc@gmail.com> 1777593323 -0700	commit: Fix Tier 1 bugs and overhaul documentation
+4c6576a9d69f3ea6686dbb7f34e22212454b358e 754600f4f65ee495b039d5d8468b59fcdfc6d196 Michael S <msunwc@gmail.com> 1777691351 -0700	pull origin main: Fast-forward
+754600f4f65ee495b039d5d8468b59fcdfc6d196 d8f4ad0540ea987f501bb619c7dbcb47e9cc9c79 Michael S <msunwc@gmail.com> 1777693773 -0700	commit: Fix critical parameter discrepancies and integration bugs
+d8f4ad0540ea987f501bb619c7dbcb47e9cc9c79 8a2fbdbe41f4e3ad321a39e90e1e8cc59b07bb7e Michael S <msunwc@gmail.com> 1777697594 -0700	commit: Implement comprehensive parameter fixes and testing infrastructure
+8a2fbdbe41f4e3ad321a39e90e1e8cc59b07bb7e 9e115d90a91f7d3e49e638f1f03422aa1f7c6241 Michael S <msunwc@gmail.com> 1777742036 -0700	commit: Fix critical issues: NumPy compatibility, dependency management, import logging, Velocity Verlet
+9e115d90a91f7d3e49e638f1f03422aa1f7c6241 16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 Michael S <msunwc@gmail.com> 1777921628 -0700	commit: Refactor: Apply 20 code quality fixes from review
+16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 2b380111609454a23f41631af8102246ad78d8ec Michael S <msunwc@gmail.com> 1777921646 -0700	pull origin main --rebase (start): checkout 2b380111609454a23f41631af8102246ad78d8ec
+2b380111609454a23f41631af8102246ad78d8ec 16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 Michael S <msunwc@gmail.com> 1777922210 -0700	rebase (abort): returning to refs/heads/main
+16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 Michael S <msunwc@gmail.com> 1777922301 -0700	reset: moving to HEAD
+16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 Michael S <msunwc@gmail.com> 1777922306 -0700	checkout: moving from main to refactor/code-quality-fixes
+16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 Michael S <msunwc@gmail.com> 1777947235 -0700	checkout: moving from refactor/code-quality-fixes to main
+16daa8295cc104b77a0b0ec2ba1cca5c75e7e3f1 e2e58f3183d310fc9cd30875856729eab221c0cb Michael S <msunwc@gmail.com> 1777947248 -0700	commit: Update test files and cascade runner with latest fixes
+e2e58f3183d310fc9cd30875856729eab221c0cb 02b08d90ca1a2d0df6e840ed5495126db8139fa5 Michael S <msunwc@gmail.com> 1777947273 -0700	commit (merge): Resolve merge conflicts and integrate MPC and random seed features
+02b08d90ca1a2d0df6e840ed5495126db8139fa5 8b454f5ed010598db9d5521a75ea31932c8c3e52 Michael S <msunwc@gmail.com> 1778002132 -0700	pull origin main: Fast-forward
+8b454f5ed010598db9d5521a75ea31932c8c3e52 8b454f5ed010598db9d5521a75ea31932c8c3e52 Michael S <msunwc@gmail.com> 1778003991 -0700	reset: moving to origin/main
+8b454f5ed010598db9d5521a75ea31932c8c3e52 4f1b56a672e0ba883a348bbacf22f9f1c1aff931 Michael S <msunwc@gmail.com> 1778004412 -0700	commit: docs: condense documentation to essential technical content
+4f1b56a672e0ba883a348bbacf22f9f1c1aff931 232faa5288faf87315287dcd9c1b0acca52ae27c Michael S <msunwc@gmail.com> 1778020663 -0700	commit: docs: add comprehensive research data package for publication
+232faa5288faf87315287dcd9c1b0acca52ae27c c47833ecec2ceb181e3391a6f755a4433a8bcc05 Michael S <msunwc@gmail.com> 1778023856 -0700	commit: Add research compilation output
+c47833ecec2ceb181e3391a6f755a4433a8bcc05 b31ca5a5545ced5c968f1356df1c846236cab96e Michael S <msunwc@gmail.com> 1778043814 -0700	commit: docs: update research documentation and enhance orbital visualization
+b31ca5a5545ced5c968f1356df1c846236cab96e 9635270bd9e714d703428b2904ad7cbf09d7f1fb Michael S <msunwc@gmail.com> 1778045664 -0700	commit: fix: improve physics calculations and DOM safety in orbital visualization
+9635270bd9e714d703428b2904ad7cbf09d7f1fb f372b00fe5cf245cf1c641a5bc500fa91e343375 Michael S <msunwc@gmail.com> 1778519716 -0700	pull origin main: Fast-forward
+f372b00fe5cf245cf1c641a5bc500fa91e343375 04fc59e1272d32dfb8ff86b6433b7485caf083b5 Michael S <msunwc@gmail.com> 1778533734 -0700	commit: Update project with architecture documentation and simulation improvements
+04fc59e1272d32dfb8ff86b6433b7485caf083b5 81a593fbd7fda8d77768eea81fcace177b6817a2 Michael S <msunwc@gmail.com> 1778542229 -0700	commit: Add anchoring force outputs and Sobol/cascade compatibility
+81a593fbd7fda8d77768eea81fcace177b6817a2 8cf0aa24a9f8954b342c9c21651e4797e17edf04 Michael S <msunwc@gmail.com> 1778628527 -0700	commit: Add pre-wipe summary document
+8cf0aa24a9f8954b342c9c21651e4797e17edf04 4a52219b7da2c67e5e01b6d52fd2c800c7480b5a Bittermun <msunwc@gmail.com> 1778821702 -0700	commit: Consolidated KERNEL audit docs, added feasibility assessment to ACTION_PLAN.md, archived redundant files
+8cf0aa24a9f8954b342c9c21651e4797e17edf04 e33b2d8bddcc796c9d9ba5f3f7ec937a80de9a95 Bittermun <msunwc@gmail.com> 1778821715 -0700	commit: Consolidated KERNEL audit docs, added feasibility assessment to ACTION_PLAN.md, archived redundant files
+8cf0aa24a9f8954b342c9c21651e4797e17edf04 8cf0aa24a9f8954b342c9c21651e4797e17edf04 Bittermun <msunwc@gmail.com> 1778821737 -0700	checkout: moving from main to copilot/solve-physics-direction-issues
+8cf0aa24a9f8954b342c9c21651e4797e17edf04 86026930a31408168c4a33a5dda333a1b35bb7fe Bittermun <msunwc@gmail.com> 1778821892 -0700	commit: Consolidated KERNEL audit docs, added feasibility assessment to ACTION_PLAN.md, archived redundant files

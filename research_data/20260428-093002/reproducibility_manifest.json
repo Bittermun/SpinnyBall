@@ -1,0 +1,18 @@
+{
+  "timestamp": "2026-04-28T09:30:02.514794",
+  "git_commit": "1b6b743fb5ade22c8222e045031c2ad3d66c137a",
+  "python_version": "3.14.0 (tags/v3.14.0:ebf955d, Oct  7 2025, 10:15:03) [MSC v.1944 64 bit (AMD64)]",
+  "numpy_version": "2.3.5",
+  "random_seeds": {
+    "t3_sweep": 42,
+    "convergence_study": 42
+  },
+  "methodology": {
+    "confidence_level": 0.95,
+    "ci_method": "Wilson score interval for proportions",
+    "convergence_criterion": "CI width < 5%",
+    "max_realizations": 10000,
+    "time_step": 0.01,
+    "time_horizon": 10.0
+  }
+}
