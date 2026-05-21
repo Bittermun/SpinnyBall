@@ -170,23 +170,23 @@ attitude = AttitudeFluxGyroDomain(
 
 #### Thermal Anchor (`thermal_anchor.py`)
 
-2-node thermal model:
-- Stator and rotor temperatures
-- Radiative cooling
-- Cryocooler with load-dependent power
-- Eddy heating input from attitude
+Multi-mode thermal domain modeling temperature-dependent heat loads:
+- Passive radiative equilibrium: Simulates high-Curie passive magnetics (e.g. Samarium-Cobalt Halbach arrays) operating without active cooling by balancing eddy-current hypervelocity heating and solar absorption against blackbody space radiation.
+- Active cryogenic cooling: Simulates high-stiffness superconducting bearings (GdBCO) with a Stirling/pulse-tube cryocooler featuring a temperature-dependent coefficient of performance (COP) and cooling power.
+- Multi-node thermal coupling (stator/rotor) and radiative transfer.
 
 **Integrator**: Adaptive RK45
 
 **Outputs**:
-- Temperatures with uncertainty
-- Cryocooler power/COP
+- Node temperatures with error bounds
+- Eddy heating loads and cryocooler power consumption/COP (if active cooling enabled)
 
 ```python
 thermal = ThermalAnchorDomain(
     stator_mass=10.0,
     rotor_mass=5.0,
-    cryocooler_power_77k=5.0  # W
+    enable_cryocooler=False,      # Set True for active GdBCO cooling
+    cryocooler_power_77k=5.0      # W (if enabled)
 )
 ```
 

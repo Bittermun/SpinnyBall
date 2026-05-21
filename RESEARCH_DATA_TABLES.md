@@ -185,7 +185,7 @@
 
 | Risk Category | Probability | Impact | Mitigation Strategy | Residual Risk |
 |---------------|------------:|-------:|---------------------|--------------:|
-| Cascade failure | <10⁻¹⁰ | Catastrophic | 5% stiffness degradation model; N=3,000 MC validation | Low |
+| Cascade failure | <10⁻¹⁰ | Catastrophic | Redistributed load stiffness model ($L_f = 1 + \alpha / N_{\text{neighbors}}$); N=3,000 MC validation | Low |
 | Thermal quench (GdBCO) | Moderate | High | Redundant cryocoolers; passive SmCo backup | Medium |
 | Debris collision | Low | High | Distributed architecture; self-healing stream | Medium |
 | Control latency >65ms | Low | Medium | MPC predictive control; edge computing | Low |

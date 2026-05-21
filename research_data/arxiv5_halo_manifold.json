@@ -1,0 +1,307 @@
+﻿{
+  "status": "success",
+  "results_count": 1,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 2,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    },
+    {
+      "id": "1211.0310v1",
+      "title": "Large Synoptic Survey Telescope: Dark Energy Science Collaboration",
+      "pdf_url": "https://arxiv.org/pdf/1211.0310v1",
+      "summary": "This white paper describes the LSST Dark Energy Science Collaboration (DESC), whose goal is the study of dark energy and related topics in fundamental physics with data from the Large Synoptic Survey Telescope (LSST). It provides an overview of dark energy science and describes the current and anticipated state of the field. It makes the case for the DESC by laying out a robust analytical framework for dark energy science that has been defined by its members and the comprehensive three-year work plan they have developed for implementing that framework. The analysis working groups cover five key probes of dark energy: weak lensing, large scale structure, galaxy clusters, Type Ia supernovae, and strong lensing. The computing working groups span cosmological simulations, galaxy catalogs, photon simulations and a systematic software and computational framework for LSST dark energy data analysis. The technical working groups make the connection between dark energy science and the LSST system. The working groups have close linkages, especially through the use of the photon simulations to study the impact of instrument design and survey strategy on analysis methodology and cosmological parameter estimation. The white paper describes several high priority tasks identified by each of the 16 working groups. Over the next three years these tasks will help prepare for LSST analysis, make synergistic connections with ongoing cosmological surveys and provide the dark energy community with state of the art analysis tools. Members of the community are invited to join the LSST DESC, according to the membership policies described in the white paper. Applications to sign up for associate membership may be made by submitting the Web form at http://www.slac.stanford.edu/exp/lsst/desc/signup.html with a short statement of the work they wish to pursue that is relevant to the LSST DESC.",
+      "published": "2012-11-01T21:23:33Z",
+      "comment": "133 pages; a White Paper describing the goals of the LSST Dark Energy Science Collaboration and its work plan for the next three years",
+      "primary_category": "astro-ph.CO",
+      "authors": [
+        " LSST Dark Energy Science Collaboration"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 3,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    },
+    {
+      "id": "1211.0310v1",
+      "title": "Large Synoptic Survey Telescope: Dark Energy Science Collaboration",
+      "pdf_url": "https://arxiv.org/pdf/1211.0310v1",
+      "summary": "This white paper describes the LSST Dark Energy Science Collaboration (DESC), whose goal is the study of dark energy and related topics in fundamental physics with data from the Large Synoptic Survey Telescope (LSST). It provides an overview of dark energy science and describes the current and anticipated state of the field. It makes the case for the DESC by laying out a robust analytical framework for dark energy science that has been defined by its members and the comprehensive three-year work plan they have developed for implementing that framework. The analysis working groups cover five key probes of dark energy: weak lensing, large scale structure, galaxy clusters, Type Ia supernovae, and strong lensing. The computing working groups span cosmological simulations, galaxy catalogs, photon simulations and a systematic software and computational framework for LSST dark energy data analysis. The technical working groups make the connection between dark energy science and the LSST system. The working groups have close linkages, especially through the use of the photon simulations to study the impact of instrument design and survey strategy on analysis methodology and cosmological parameter estimation. The white paper describes several high priority tasks identified by each of the 16 working groups. Over the next three years these tasks will help prepare for LSST analysis, make synergistic connections with ongoing cosmological surveys and provide the dark energy community with state of the art analysis tools. Members of the community are invited to join the LSST DESC, according to the membership policies described in the white paper. Applications to sign up for associate membership may be made by submitting the Web form at http://www.slac.stanford.edu/exp/lsst/desc/signup.html with a short statement of the work they wish to pursue that is relevant to the LSST DESC.",
+      "published": "2012-11-01T21:23:33Z",
+      "comment": "133 pages; a White Paper describing the goals of the LSST Dark Energy Science Collaboration and its work plan for the next three years",
+      "primary_category": "astro-ph.CO",
+      "authors": [
+        " LSST Dark Energy Science Collaboration"
+      ]
+    },
+    {
+      "id": "astro-ph/0612386v1",
+      "title": "The Earth-Moon CR3BP: A full Atlas of low-energy fast periodic transfer orbits",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0612386v1",
+      "summary": "In the framework of the planar CR3BP for mass parameter mu=0.0121505, corresponding to the Earth-Moon system, we identify and describe 80 families of periodic orbits encircling both the Earth and the Moon (\"transfer\" orbits). All the orbits in these families have very low energies, most of them corresponding to values of the Jacobi constant C for which the Hill surface is closed at the Lagrangian point L2. All of these orbits have also short period T, generally under six months. Most of the families are composed of orbits that are asymmetric with respect to the Earth-Moon axis.   The main results presented for each family are: (i) the characteristic curves T(h), y(h), v_y(h), and v_x(h) on the Poincare section Sigma_1={x=0.836915310,y,v_x>0,v_y} normal to the Earth-Moon axis at the Lagrangian point L1, parameterized by their energy h=-C/2 in the synodic coordinate system; (ii) the stability parameter along each family; (iii) the intersections x_i(h) of the orbits with the Earth-Moon axis, on the Poincare section Sigma_2={x,y=0,v_x},v_y>0}; (iv) plots of some selected orbits and details of their circumlunar region; and (v) numerical data for the intersection of an orbit with Sigma_1 at a reference value of h. Some possible extensions and applications of this work are also discussed.",
+      "published": "2006-12-14T15:52:24Z",
+      "comment": "This paper is the accompanying article to a shortened version submitted to Celestial Mechanics and Dynamical Astronomy in December 2006, under the title \"The Earth--Moon CR3BP: an Atlas of low-energy fast periodic transfer orbits\"",
+      "primary_category": "astro-ph",
+      "authors": [
+        "Alejandro M. Leiva",
+        "Carlos B. Briozzo"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 4,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    },
+    {
+      "id": "1211.0310v1",
+      "title": "Large Synoptic Survey Telescope: Dark Energy Science Collaboration",
+      "pdf_url": "https://arxiv.org/pdf/1211.0310v1",
+      "summary": "This white paper describes the LSST Dark Energy Science Collaboration (DESC), whose goal is the study of dark energy and related topics in fundamental physics with data from the Large Synoptic Survey Telescope (LSST). It provides an overview of dark energy science and describes the current and anticipated state of the field. It makes the case for the DESC by laying out a robust analytical framework for dark energy science that has been defined by its members and the comprehensive three-year work plan they have developed for implementing that framework. The analysis working groups cover five key probes of dark energy: weak lensing, large scale structure, galaxy clusters, Type Ia supernovae, and strong lensing. The computing working groups span cosmological simulations, galaxy catalogs, photon simulations and a systematic software and computational framework for LSST dark energy data analysis. The technical working groups make the connection between dark energy science and the LSST system. The working groups have close linkages, especially through the use of the photon simulations to study the impact of instrument design and survey strategy on analysis methodology and cosmological parameter estimation. The white paper describes several high priority tasks identified by each of the 16 working groups. Over the next three years these tasks will help prepare for LSST analysis, make synergistic connections with ongoing cosmological surveys and provide the dark energy community with state of the art analysis tools. Members of the community are invited to join the LSST DESC, according to the membership policies described in the white paper. Applications to sign up for associate membership may be made by submitting the Web form at http://www.slac.stanford.edu/exp/lsst/desc/signup.html with a short statement of the work they wish to pursue that is relevant to the LSST DESC.",
+      "published": "2012-11-01T21:23:33Z",
+      "comment": "133 pages; a White Paper describing the goals of the LSST Dark Energy Science Collaboration and its work plan for the next three years",
+      "primary_category": "astro-ph.CO",
+      "authors": [
+        " LSST Dark Energy Science Collaboration"
+      ]
+    },
+    {
+      "id": "astro-ph/0612386v1",
+      "title": "The Earth-Moon CR3BP: A full Atlas of low-energy fast periodic transfer orbits",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0612386v1",
+      "summary": "In the framework of the planar CR3BP for mass parameter mu=0.0121505, corresponding to the Earth-Moon system, we identify and describe 80 families of periodic orbits encircling both the Earth and the Moon (\"transfer\" orbits). All the orbits in these families have very low energies, most of them corresponding to values of the Jacobi constant C for which the Hill surface is closed at the Lagrangian point L2. All of these orbits have also short period T, generally under six months. Most of the families are composed of orbits that are asymmetric with respect to the Earth-Moon axis.   The main results presented for each family are: (i) the characteristic curves T(h), y(h), v_y(h), and v_x(h) on the Poincare section Sigma_1={x=0.836915310,y,v_x>0,v_y} normal to the Earth-Moon axis at the Lagrangian point L1, parameterized by their energy h=-C/2 in the synodic coordinate system; (ii) the stability parameter along each family; (iii) the intersections x_i(h) of the orbits with the Earth-Moon axis, on the Poincare section Sigma_2={x,y=0,v_x},v_y>0}; (iv) plots of some selected orbits and details of their circumlunar region; and (v) numerical data for the intersection of an orbit with Sigma_1 at a reference value of h. Some possible extensions and applications of this work are also discussed.",
+      "published": "2006-12-14T15:52:24Z",
+      "comment": "This paper is the accompanying article to a shortened version submitted to Celestial Mechanics and Dynamical Astronomy in December 2006, under the title \"The Earth--Moon CR3BP: an Atlas of low-energy fast periodic transfer orbits\"",
+      "primary_category": "astro-ph",
+      "authors": [
+        "Alejandro M. Leiva",
+        "Carlos B. Briozzo"
+      ]
+    },
+    {
+      "id": "1003.0925v2",
+      "title": "Orbital migration of low-mass planets in evolutionary radiative models: Avoiding catastrophic infall",
+      "pdf_url": "https://arxiv.org/pdf/1003.0925v2",
+      "summary": "Outward migration of low-mass planets has recently been shown to be a possibility in non-barotropic disks. We examine the consequences of this result in evolutionary models of protoplanetary disks. Planet migration occurs towards equilibrium radii with zero torque. These radii themselves migrate inwards because of viscous accretion and photoevaporation. We show that as the surface density and temperature fall, the planet orbital migration and disk depletion timescales eventually become comparable, with the precise timing depending on the mass of the planet. When this occurs, the planet decouples from the equilibrium radius. At this time, however, the gas surface density is already too low to drive substantial further migration. A higher mass planet, of 10 Earth masses, can open a gap during the late evolution of the disk, and stops migrating. Low mass planets, with 1 or 0.1 Earth masses, released beyond 1 AU in our models, avoid migrating into the star. Our results provide support for the reduced migration rates adopted in recent planet population synthesis models.",
+      "published": "2010-03-04T04:52:58Z",
+      "comment": "6 pages, 4 figures. Accepted by ApJ. In press.",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1088/2041-8205/715/2/L68",
+      "authors": [
+        "W. Lyra",
+        "S. -J. Paardekooper",
+        "M. -M. Mac Low"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 5,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    },
+    {
+      "id": "1211.0310v1",
+      "title": "Large Synoptic Survey Telescope: Dark Energy Science Collaboration",
+      "pdf_url": "https://arxiv.org/pdf/1211.0310v1",
+      "summary": "This white paper describes the LSST Dark Energy Science Collaboration (DESC), whose goal is the study of dark energy and related topics in fundamental physics with data from the Large Synoptic Survey Telescope (LSST). It provides an overview of dark energy science and describes the current and anticipated state of the field. It makes the case for the DESC by laying out a robust analytical framework for dark energy science that has been defined by its members and the comprehensive three-year work plan they have developed for implementing that framework. The analysis working groups cover five key probes of dark energy: weak lensing, large scale structure, galaxy clusters, Type Ia supernovae, and strong lensing. The computing working groups span cosmological simulations, galaxy catalogs, photon simulations and a systematic software and computational framework for LSST dark energy data analysis. The technical working groups make the connection between dark energy science and the LSST system. The working groups have close linkages, especially through the use of the photon simulations to study the impact of instrument design and survey strategy on analysis methodology and cosmological parameter estimation. The white paper describes several high priority tasks identified by each of the 16 working groups. Over the next three years these tasks will help prepare for LSST analysis, make synergistic connections with ongoing cosmological surveys and provide the dark energy community with state of the art analysis tools. Members of the community are invited to join the LSST DESC, according to the membership policies described in the white paper. Applications to sign up for associate membership may be made by submitting the Web form at http://www.slac.stanford.edu/exp/lsst/desc/signup.html with a short statement of the work they wish to pursue that is relevant to the LSST DESC.",
+      "published": "2012-11-01T21:23:33Z",
+      "comment": "133 pages; a White Paper describing the goals of the LSST Dark Energy Science Collaboration and its work plan for the next three years",
+      "primary_category": "astro-ph.CO",
+      "authors": [
+        " LSST Dark Energy Science Collaboration"
+      ]
+    },
+    {
+      "id": "astro-ph/0612386v1",
+      "title": "The Earth-Moon CR3BP: A full Atlas of low-energy fast periodic transfer orbits",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0612386v1",
+      "summary": "In the framework of the planar CR3BP for mass parameter mu=0.0121505, corresponding to the Earth-Moon system, we identify and describe 80 families of periodic orbits encircling both the Earth and the Moon (\"transfer\" orbits). All the orbits in these families have very low energies, most of them corresponding to values of the Jacobi constant C for which the Hill surface is closed at the Lagrangian point L2. All of these orbits have also short period T, generally under six months. Most of the families are composed of orbits that are asymmetric with respect to the Earth-Moon axis.   The main results presented for each family are: (i) the characteristic curves T(h), y(h), v_y(h), and v_x(h) on the Poincare section Sigma_1={x=0.836915310,y,v_x>0,v_y} normal to the Earth-Moon axis at the Lagrangian point L1, parameterized by their energy h=-C/2 in the synodic coordinate system; (ii) the stability parameter along each family; (iii) the intersections x_i(h) of the orbits with the Earth-Moon axis, on the Poincare section Sigma_2={x,y=0,v_x},v_y>0}; (iv) plots of some selected orbits and details of their circumlunar region; and (v) numerical data for the intersection of an orbit with Sigma_1 at a reference value of h. Some possible extensions and applications of this work are also discussed.",
+      "published": "2006-12-14T15:52:24Z",
+      "comment": "This paper is the accompanying article to a shortened version submitted to Celestial Mechanics and Dynamical Astronomy in December 2006, under the title \"The Earth--Moon CR3BP: an Atlas of low-energy fast periodic transfer orbits\"",
+      "primary_category": "astro-ph",
+      "authors": [
+        "Alejandro M. Leiva",
+        "Carlos B. Briozzo"
+      ]
+    },
+    {
+      "id": "1003.0925v2",
+      "title": "Orbital migration of low-mass planets in evolutionary radiative models: Avoiding catastrophic infall",
+      "pdf_url": "https://arxiv.org/pdf/1003.0925v2",
+      "summary": "Outward migration of low-mass planets has recently been shown to be a possibility in non-barotropic disks. We examine the consequences of this result in evolutionary models of protoplanetary disks. Planet migration occurs towards equilibrium radii with zero torque. These radii themselves migrate inwards because of viscous accretion and photoevaporation. We show that as the surface density and temperature fall, the planet orbital migration and disk depletion timescales eventually become comparable, with the precise timing depending on the mass of the planet. When this occurs, the planet decouples from the equilibrium radius. At this time, however, the gas surface density is already too low to drive substantial further migration. A higher mass planet, of 10 Earth masses, can open a gap during the late evolution of the disk, and stops migrating. Low mass planets, with 1 or 0.1 Earth masses, released beyond 1 AU in our models, avoid migrating into the star. Our results provide support for the reduced migration rates adopted in recent planet population synthesis models.",
+      "published": "2010-03-04T04:52:58Z",
+      "comment": "6 pages, 4 figures. Accepted by ApJ. In press.",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1088/2041-8205/715/2/L68",
+      "authors": [
+        "W. Lyra",
+        "S. -J. Paardekooper",
+        "M. -M. Mac Low"
+      ]
+    },
+    {
+      "id": "cond-mat/0106135v2",
+      "title": "Superstructures at low spin - high spin transitions",
+      "pdf_url": "https://arxiv.org/pdf/cond-mat/0106135v2",
+      "summary": "In many transition metal compounds, in particular those containing Fe^{2+} and Co^{3+}, there occur spin-state transitions between low-spin and high-spin (or intermediate-spin) states. We show that typical interactions between similar spin-state ions are short-range repulsion, and long-range interaction which can have different sign depending on the elastic anisotropy of the lattice and on the direction between respective ions. Due to such character of effective interactions at the spin-state transitions there may occur different superstructures -- ordered arrangement of different spin-states, which in particular may have the form of stripes. The properties of the system TlSr_2CoO_5 for which such a superstructure was recently observed experimentally, are discussed from this point of view.",
+      "published": "2001-06-07T16:46:56Z",
+      "comment": "11 pages, 1 Postscript figure",
+      "primary_category": "cond-mat.str-el",
+      "authors": [
+        "D. I. Khomskii",
+        "U. L\u00f6w"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 6,
+  "papers": [
+    {
+      "id": "astro-ph/0510346v1",
+      "title": "The Dark Energy Survey",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0510346v1",
+      "summary": "We describe the Dark Energy Survey (DES), a proposed optical-near infrared survey of 5000 sq. deg of the South Galactic Cap to ~24th magnitude in SDSS griz, that would use a new 3 sq. deg CCD camera to be mounted on the Blanco 4-m telescope at Cerro Telolo Inter-American Observatory (CTIO). The survey data will allow us to measure the dark energy and dark matter densities and the dark energy equation of state through four independent methods: galaxy clusters, weak gravitational lensing tomography, galaxy angular clustering, and supernova distances. These methods are doubly complementary: they constrain different combinations of cosmological model parameters and are subject to different systematic errors. By deriving the four sets of measurements from the same data set with a common analysis framework, we will obtain important cross checks of the systematic errors and thereby make a substantial and robust advance in the precision of dark energy measurements.",
+      "published": "2005-10-12T13:33:59Z",
+      "comment": "White Paper submitted to the Dark Energy Task Force, 42 pages",
+      "primary_category": "astro-ph",
+      "authors": [
+        " The Dark Energy Survey Collaboration"
+      ]
+    },
+    {
+      "id": "1211.0310v1",
+      "title": "Large Synoptic Survey Telescope: Dark Energy Science Collaboration",
+      "pdf_url": "https://arxiv.org/pdf/1211.0310v1",
+      "summary": "This white paper describes the LSST Dark Energy Science Collaboration (DESC), whose goal is the study of dark energy and related topics in fundamental physics with data from the Large Synoptic Survey Telescope (LSST). It provides an overview of dark energy science and describes the current and anticipated state of the field. It makes the case for the DESC by laying out a robust analytical framework for dark energy science that has been defined by its members and the comprehensive three-year work plan they have developed for implementing that framework. The analysis working groups cover five key probes of dark energy: weak lensing, large scale structure, galaxy clusters, Type Ia supernovae, and strong lensing. The computing working groups span cosmological simulations, galaxy catalogs, photon simulations and a systematic software and computational framework for LSST dark energy data analysis. The technical working groups make the connection between dark energy science and the LSST system. The working groups have close linkages, especially through the use of the photon simulations to study the impact of instrument design and survey strategy on analysis methodology and cosmological parameter estimation. The white paper describes several high priority tasks identified by each of the 16 working groups. Over the next three years these tasks will help prepare for LSST analysis, make synergistic connections with ongoing cosmological surveys and provide the dark energy community with state of the art analysis tools. Members of the community are invited to join the LSST DESC, according to the membership policies described in the white paper. Applications to sign up for associate membership may be made by submitting the Web form at http://www.slac.stanford.edu/exp/lsst/desc/signup.html with a short statement of the work they wish to pursue that is relevant to the LSST DESC.",
+      "published": "2012-11-01T21:23:33Z",
+      "comment": "133 pages; a White Paper describing the goals of the LSST Dark Energy Science Collaboration and its work plan for the next three years",
+      "primary_category": "astro-ph.CO",
+      "authors": [
+        " LSST Dark Energy Science Collaboration"
+      ]
+    },
+    {
+      "id": "astro-ph/0612386v1",
+      "title": "The Earth-Moon CR3BP: A full Atlas of low-energy fast periodic transfer orbits",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0612386v1",
+      "summary": "In the framework of the planar CR3BP for mass parameter mu=0.0121505, corresponding to the Earth-Moon system, we identify and describe 80 families of periodic orbits encircling both the Earth and the Moon (\"transfer\" orbits). All the orbits in these families have very low energies, most of them corresponding to values of the Jacobi constant C for which the Hill surface is closed at the Lagrangian point L2. All of these orbits have also short period T, generally under six months. Most of the families are composed of orbits that are asymmetric with respect to the Earth-Moon axis.   The main results presented for each family are: (i) the characteristic curves T(h), y(h), v_y(h), and v_x(h) on the Poincare section Sigma_1={x=0.836915310,y,v_x>0,v_y} normal to the Earth-Moon axis at the Lagrangian point L1, parameterized by their energy h=-C/2 in the synodic coordinate system; (ii) the stability parameter along each family; (iii) the intersections x_i(h) of the orbits with the Earth-Moon axis, on the Poincare section Sigma_2={x,y=0,v_x},v_y>0}; (iv) plots of some selected orbits and details of their circumlunar region; and (v) numerical data for the intersection of an orbit with Sigma_1 at a reference value of h. Some possible extensions and applications of this work are also discussed.",
+      "published": "2006-12-14T15:52:24Z",
+      "comment": "This paper is the accompanying article to a shortened version submitted to Celestial Mechanics and Dynamical Astronomy in December 2006, under the title \"The Earth--Moon CR3BP: an Atlas of low-energy fast periodic transfer orbits\"",
+      "primary_category": "astro-ph",
+      "authors": [
+        "Alejandro M. Leiva",
+        "Carlos B. Briozzo"
+      ]
+    },
+    {
+      "id": "1003.0925v2",
+      "title": "Orbital migration of low-mass planets in evolutionary radiative models: Avoiding catastrophic infall",
+      "pdf_url": "https://arxiv.org/pdf/1003.0925v2",
+      "summary": "Outward migration of low-mass planets has recently been shown to be a possibility in non-barotropic disks. We examine the consequences of this result in evolutionary models of protoplanetary disks. Planet migration occurs towards equilibrium radii with zero torque. These radii themselves migrate inwards because of viscous accretion and photoevaporation. We show that as the surface density and temperature fall, the planet orbital migration and disk depletion timescales eventually become comparable, with the precise timing depending on the mass of the planet. When this occurs, the planet decouples from the equilibrium radius. At this time, however, the gas surface density is already too low to drive substantial further migration. A higher mass planet, of 10 Earth masses, can open a gap during the late evolution of the disk, and stops migrating. Low mass planets, with 1 or 0.1 Earth masses, released beyond 1 AU in our models, avoid migrating into the star. Our results provide support for the reduced migration rates adopted in recent planet population synthesis models.",
+      "published": "2010-03-04T04:52:58Z",
+      "comment": "6 pages, 4 figures. Accepted by ApJ. In press.",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1088/2041-8205/715/2/L68",
+      "authors": [
+        "W. Lyra",
+        "S. -J. Paardekooper",
+        "M. -M. Mac Low"
+      ]
+    },
+    {
+      "id": "cond-mat/0106135v2",
+      "title": "Superstructures at low spin - high spin transitions",
+      "pdf_url": "https://arxiv.org/pdf/cond-mat/0106135v2",
+      "summary": "In many transition metal compounds, in particular those containing Fe^{2+} and Co^{3+}, there occur spin-state transitions between low-spin and high-spin (or intermediate-spin) states. We show that typical interactions between similar spin-state ions are short-range repulsion, and long-range interaction which can have different sign depending on the elastic anisotropy of the lattice and on the direction between respective ions. Due to such character of effective interactions at the spin-state transitions there may occur different superstructures -- ordered arrangement of different spin-states, which in particular may have the form of stripes. The properties of the system TlSr_2CoO_5 for which such a superstructure was recently observed experimentally, are discussed from this point of view.",
+      "published": "2001-06-07T16:46:56Z",
+      "comment": "11 pages, 1 Postscript figure",
+      "primary_category": "cond-mat.str-el",
+      "authors": [
+        "D. I. Khomskii",
+        "U. L\u00f6w"
+      ]
+    },
+    {
+      "id": "2210.12085v2",
+      "title": "Minimal Entanglement and Emergent Symmetries in Low-energy QCD",
+      "pdf_url": "https://arxiv.org/pdf/2210.12085v2",
+      "summary": "We study low-energy scattering of spin-1/2 baryons from the perspective of quantum information science, focusing on the correlation between entanglement minimization and the appearance of accidental symmetries. The baryon transforms as an octet under the SU(3) flavor symmetry and its interactions below the pion threshold are described by contact operators in an effective field theory (EFT) of QCD. Despite there being 64 channels in the 2-to-2 scattering, only six independent operators in the EFT are predicted by SU(3). We show that successive entanglement minimization in SU(3)-symmetric channels are correlated with increasingly large emergent symmetries in the EFT. In particular, we identify scattering channels whose entanglement suppression are indicative of emergent SU(6), SO(8), SU(8), and SU(16) symmetries. We also observe the appearance of non-relativistic conformal invariance in channels with unnaturally large scattering lengths. Improved precision from lattice simulations could help determine the degree of entanglement suppression, and consequently the amount of accidental symmetry, in low-energy QCD.",
+      "published": "2022-10-21T16:20:01Z",
+      "comment": "42 pages, 3 figures",
+      "primary_category": "quant-ph",
+      "journal_ref": "Phys.Rev.C 107, 025204 (2023)",
+      "doi": "10.1103/PhysRevC.107.025204",
+      "authors": [
+        "Qiaofeng Liu",
+        "Ian Low",
+        "Thomas Mehen"
+      ]
+    }
+  ]
+}

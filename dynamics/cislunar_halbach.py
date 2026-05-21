@@ -128,6 +128,12 @@ class CR3BPHalbachPropagator(CR3BPMasconPropagator):
         r_rel_km = packet_pos_km - halbach_pos_km
         r_rel_m = r_rel_km * self.KM_TO_M
         
+        # Distance threshold optimization: beyond 10 km, the magnetic force decays to less than 10^-20 N.
+        # This is 8+ orders of magnitude below machine double-precision compared to typical ECI/lunar gravity,
+        # so we short-circuit Legendre polynomial evaluations to avoid performance bottlenecks.
+        if np.linalg.norm(r_rel_m) > 10000.0:
+            return np.array([0.0, 0.0, 0.0])
+        
         # Compute gradient (d B/dx tensor)
         try:
             grad_B = self.halbach.gradient(r_rel_m, degree=self.halbach_config.halbach_degree_max)
@@ -149,24 +155,24 @@ class CR3BPHalbachPropagator(CR3BPMasconPropagator):
         
         return accel_kms2
     
-    def _accelerations(self, t: float, state: np.ndarray) -> np.ndarray:
+    def _accelerations(self, state: np.ndarray, time_abs: float) -> np.ndarray:
         """
         Compute total acceleration: CR3BP + Mascon + Halbach.
         
         Args:
-            t: Time (relative to propagation start)
             state: State vector
+            time_abs: Absolute time (for SPICE updates)
         
         Returns:
             Acceleration vector [a_x, a_y, a_z]
         """
         # CR3BP + Mascon accelerations (from parent)
-        accel = super()._accelerations(t, state)
+        accel = super()._accelerations(state, time_abs)
         
         # Add Halbach perturbations
         if self.halbach_config.use_halbach:
-            accel_halbach = self._halbach_acceleration(state, t)
-            accel += accel_halbach
+            accel_halbach = self._halbach_acceleration(state, time_abs)
+            accel[3:6] += accel_halbach
         
         return accel
     

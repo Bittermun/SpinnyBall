@@ -1,0 +1,378 @@
+﻿{
+  "status": "success",
+  "results_count": 1,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 2,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    },
+    {
+      "id": "2304.09210v1",
+      "title": "Survival and dynamics of rings of co-orbital planets under perturbations",
+      "pdf_url": "https://arxiv.org/pdf/2304.09210v1",
+      "summary": "In co-orbital planetary systems, two or more planets share the same orbit around their star. Here we test the dynamical stability of co-orbital rings of planets perturbed by outside forces. We test two setups: i) 'stationary' rings of planets that, when unperturbed, remain equally-spaced along their orbit; and ii) horseshoe constellation systems, in which planets are continually undergoing horseshoe librations with their immediate neighbors. We show that a single rogue planet crossing the planets' orbit more massive than a few lunar masses (0.01-0.04 Earth masses) systematically disrupts a co-orbital ring of 6, 9, 18, or 42 Earth-mass planets located at 1 au. Stationary rings are more resistant to perturbations than horseshoe constellations, yet when perturbed they can transform into stable horseshoe constellation systems. Given sufficient time, any co-orbital ring system will be perturbed into either becoming a horseshoe constellation or complete destabilization.",
+      "published": "2023-04-18T18:01:55Z",
+      "comment": "5 pages, 4 figures. Re-submitted to MNRAS. Blog post about co-orbital constellations here: https://planetplanet.net/2023/04/20/constellations-of-co-orbital-planets/",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/stad1294",
+      "authors": [
+        "Sean N. Raymond",
+        "Dimitri Veras",
+        "Matthew S. Clement",
+        "Andre Izidoro",
+        "David Kipping",
+        "Victoria Meadows"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 3,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    },
+    {
+      "id": "2304.09210v1",
+      "title": "Survival and dynamics of rings of co-orbital planets under perturbations",
+      "pdf_url": "https://arxiv.org/pdf/2304.09210v1",
+      "summary": "In co-orbital planetary systems, two or more planets share the same orbit around their star. Here we test the dynamical stability of co-orbital rings of planets perturbed by outside forces. We test two setups: i) 'stationary' rings of planets that, when unperturbed, remain equally-spaced along their orbit; and ii) horseshoe constellation systems, in which planets are continually undergoing horseshoe librations with their immediate neighbors. We show that a single rogue planet crossing the planets' orbit more massive than a few lunar masses (0.01-0.04 Earth masses) systematically disrupts a co-orbital ring of 6, 9, 18, or 42 Earth-mass planets located at 1 au. Stationary rings are more resistant to perturbations than horseshoe constellations, yet when perturbed they can transform into stable horseshoe constellation systems. Given sufficient time, any co-orbital ring system will be perturbed into either becoming a horseshoe constellation or complete destabilization.",
+      "published": "2023-04-18T18:01:55Z",
+      "comment": "5 pages, 4 figures. Re-submitted to MNRAS. Blog post about co-orbital constellations here: https://planetplanet.net/2023/04/20/constellations-of-co-orbital-planets/",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/stad1294",
+      "authors": [
+        "Sean N. Raymond",
+        "Dimitri Veras",
+        "Matthew S. Clement",
+        "Andre Izidoro",
+        "David Kipping",
+        "Victoria Meadows"
+      ]
+    },
+    {
+      "id": "astro-ph/0405128v1",
+      "title": "Probing the Evolution of the Galaxy Interaction/Merger Rate Using Collisional Ring Galaxies",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0405128v1",
+      "summary": "We present the results from our program to determine the evolution of the galaxy interaction/merger rate with redshift using the unique star-forming characteristics of collisional ring galaxies. We have identified 25 distant collisional ring galaxy candidates (CRGCs) in a total of 162 deep Hubble Space Telescope Wide Field/Planetary Camera-2 images obtained from the HST Archives. Based on measured and estimated redshifts, these 25 CRGCs all lie in the redshift interval of 0.1 < z < 1. Using the local collisional ring galaxy volume density and the new ``standard'' cosmology, we find that in order to account for the number of identified CRGCs in our surveyed fields, the galaxy interaction/merger rate, parameterized as (1 + z)^m, must increase steeply with redshift.We determine a minimum value of m = 5.2 $\\pm$ 0.7, though m could be as high as 7 or 8. We can rule out a non-evolving (m = 0) and weakly evolving (m = 1-2) galaxy interaction/merger rate at greater than the 4 sigma level of confidence.",
+      "published": "2004-05-06T22:51:20Z",
+      "comment": "Accepted in the Astrophysical Journal (11 pages, 4 figures). Higher resolution version of the figures is available at http://www.astro.cornell.edu/~vassilis/papers/",
+      "primary_category": "astro-ph",
+      "journal_ref": "Astrophys.J. 612 (2004) 679-689",
+      "doi": "10.1086/422420",
+      "authors": [
+        "R. J. Lavery",
+        "A. Remijan",
+        "V. Charmandaris",
+        "R. D. Hayes",
+        "A. A. Ring"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 4,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    },
+    {
+      "id": "2304.09210v1",
+      "title": "Survival and dynamics of rings of co-orbital planets under perturbations",
+      "pdf_url": "https://arxiv.org/pdf/2304.09210v1",
+      "summary": "In co-orbital planetary systems, two or more planets share the same orbit around their star. Here we test the dynamical stability of co-orbital rings of planets perturbed by outside forces. We test two setups: i) 'stationary' rings of planets that, when unperturbed, remain equally-spaced along their orbit; and ii) horseshoe constellation systems, in which planets are continually undergoing horseshoe librations with their immediate neighbors. We show that a single rogue planet crossing the planets' orbit more massive than a few lunar masses (0.01-0.04 Earth masses) systematically disrupts a co-orbital ring of 6, 9, 18, or 42 Earth-mass planets located at 1 au. Stationary rings are more resistant to perturbations than horseshoe constellations, yet when perturbed they can transform into stable horseshoe constellation systems. Given sufficient time, any co-orbital ring system will be perturbed into either becoming a horseshoe constellation or complete destabilization.",
+      "published": "2023-04-18T18:01:55Z",
+      "comment": "5 pages, 4 figures. Re-submitted to MNRAS. Blog post about co-orbital constellations here: https://planetplanet.net/2023/04/20/constellations-of-co-orbital-planets/",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/stad1294",
+      "authors": [
+        "Sean N. Raymond",
+        "Dimitri Veras",
+        "Matthew S. Clement",
+        "Andre Izidoro",
+        "David Kipping",
+        "Victoria Meadows"
+      ]
+    },
+    {
+      "id": "astro-ph/0405128v1",
+      "title": "Probing the Evolution of the Galaxy Interaction/Merger Rate Using Collisional Ring Galaxies",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0405128v1",
+      "summary": "We present the results from our program to determine the evolution of the galaxy interaction/merger rate with redshift using the unique star-forming characteristics of collisional ring galaxies. We have identified 25 distant collisional ring galaxy candidates (CRGCs) in a total of 162 deep Hubble Space Telescope Wide Field/Planetary Camera-2 images obtained from the HST Archives. Based on measured and estimated redshifts, these 25 CRGCs all lie in the redshift interval of 0.1 < z < 1. Using the local collisional ring galaxy volume density and the new ``standard'' cosmology, we find that in order to account for the number of identified CRGCs in our surveyed fields, the galaxy interaction/merger rate, parameterized as (1 + z)^m, must increase steeply with redshift.We determine a minimum value of m = 5.2 $\\pm$ 0.7, though m could be as high as 7 or 8. We can rule out a non-evolving (m = 0) and weakly evolving (m = 1-2) galaxy interaction/merger rate at greater than the 4 sigma level of confidence.",
+      "published": "2004-05-06T22:51:20Z",
+      "comment": "Accepted in the Astrophysical Journal (11 pages, 4 figures). Higher resolution version of the figures is available at http://www.astro.cornell.edu/~vassilis/papers/",
+      "primary_category": "astro-ph",
+      "journal_ref": "Astrophys.J. 612 (2004) 679-689",
+      "doi": "10.1086/422420",
+      "authors": [
+        "R. J. Lavery",
+        "A. Remijan",
+        "V. Charmandaris",
+        "R. D. Hayes",
+        "A. A. Ring"
+      ]
+    },
+    {
+      "id": "1412.1881v1",
+      "title": "Stable Orbits of Rigid, Rotating, Precessing, Massive Rings",
+      "pdf_url": "https://arxiv.org/pdf/1412.1881v1",
+      "summary": "The dynamics of a rigid, rotating, precessing, massive ring orbiting a point mass within the perimeter of the ring are considered. It is demonstrated that orbits dynamically stable against perturbations in three dimensions exist for a range of rigid body rotation parameters of the ring. Previous analysis and some well-known works of fiction have considered the stability of both rigid and flexible, non-precessing ring systems and found that they are unstable in the plane of the ring unless an active stabilization system is employed. There does not appear to be any analyses previously published considering rigid body precession of such a system or that demonstrate passive stability in three dimensions. Deviations from perfect rigidity and possible applications of such a system are discussed.",
+      "published": "2014-12-05T02:13:18Z",
+      "comment": "29 pages, 10 figures",
+      "primary_category": "physics.class-ph",
+      "authors": [
+        "Edward D. Rippert"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 5,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    },
+    {
+      "id": "2304.09210v1",
+      "title": "Survival and dynamics of rings of co-orbital planets under perturbations",
+      "pdf_url": "https://arxiv.org/pdf/2304.09210v1",
+      "summary": "In co-orbital planetary systems, two or more planets share the same orbit around their star. Here we test the dynamical stability of co-orbital rings of planets perturbed by outside forces. We test two setups: i) 'stationary' rings of planets that, when unperturbed, remain equally-spaced along their orbit; and ii) horseshoe constellation systems, in which planets are continually undergoing horseshoe librations with their immediate neighbors. We show that a single rogue planet crossing the planets' orbit more massive than a few lunar masses (0.01-0.04 Earth masses) systematically disrupts a co-orbital ring of 6, 9, 18, or 42 Earth-mass planets located at 1 au. Stationary rings are more resistant to perturbations than horseshoe constellations, yet when perturbed they can transform into stable horseshoe constellation systems. Given sufficient time, any co-orbital ring system will be perturbed into either becoming a horseshoe constellation or complete destabilization.",
+      "published": "2023-04-18T18:01:55Z",
+      "comment": "5 pages, 4 figures. Re-submitted to MNRAS. Blog post about co-orbital constellations here: https://planetplanet.net/2023/04/20/constellations-of-co-orbital-planets/",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/stad1294",
+      "authors": [
+        "Sean N. Raymond",
+        "Dimitri Veras",
+        "Matthew S. Clement",
+        "Andre Izidoro",
+        "David Kipping",
+        "Victoria Meadows"
+      ]
+    },
+    {
+      "id": "astro-ph/0405128v1",
+      "title": "Probing the Evolution of the Galaxy Interaction/Merger Rate Using Collisional Ring Galaxies",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0405128v1",
+      "summary": "We present the results from our program to determine the evolution of the galaxy interaction/merger rate with redshift using the unique star-forming characteristics of collisional ring galaxies. We have identified 25 distant collisional ring galaxy candidates (CRGCs) in a total of 162 deep Hubble Space Telescope Wide Field/Planetary Camera-2 images obtained from the HST Archives. Based on measured and estimated redshifts, these 25 CRGCs all lie in the redshift interval of 0.1 < z < 1. Using the local collisional ring galaxy volume density and the new ``standard'' cosmology, we find that in order to account for the number of identified CRGCs in our surveyed fields, the galaxy interaction/merger rate, parameterized as (1 + z)^m, must increase steeply with redshift.We determine a minimum value of m = 5.2 $\\pm$ 0.7, though m could be as high as 7 or 8. We can rule out a non-evolving (m = 0) and weakly evolving (m = 1-2) galaxy interaction/merger rate at greater than the 4 sigma level of confidence.",
+      "published": "2004-05-06T22:51:20Z",
+      "comment": "Accepted in the Astrophysical Journal (11 pages, 4 figures). Higher resolution version of the figures is available at http://www.astro.cornell.edu/~vassilis/papers/",
+      "primary_category": "astro-ph",
+      "journal_ref": "Astrophys.J. 612 (2004) 679-689",
+      "doi": "10.1086/422420",
+      "authors": [
+        "R. J. Lavery",
+        "A. Remijan",
+        "V. Charmandaris",
+        "R. D. Hayes",
+        "A. A. Ring"
+      ]
+    },
+    {
+      "id": "1412.1881v1",
+      "title": "Stable Orbits of Rigid, Rotating, Precessing, Massive Rings",
+      "pdf_url": "https://arxiv.org/pdf/1412.1881v1",
+      "summary": "The dynamics of a rigid, rotating, precessing, massive ring orbiting a point mass within the perimeter of the ring are considered. It is demonstrated that orbits dynamically stable against perturbations in three dimensions exist for a range of rigid body rotation parameters of the ring. Previous analysis and some well-known works of fiction have considered the stability of both rigid and flexible, non-precessing ring systems and found that they are unstable in the plane of the ring unless an active stabilization system is employed. There does not appear to be any analyses previously published considering rigid body precession of such a system or that demonstrate passive stability in three dimensions. Deviations from perfect rigidity and possible applications of such a system are discussed.",
+      "published": "2014-12-05T02:13:18Z",
+      "comment": "29 pages, 10 figures",
+      "primary_category": "physics.class-ph",
+      "authors": [
+        "Edward D. Rippert"
+      ]
+    },
+    {
+      "id": "2304.04801v2",
+      "title": "Efficient multi-timescale dynamics of precessing black-hole binaries",
+      "pdf_url": "https://arxiv.org/pdf/2304.04801v2",
+      "summary": "We present analytical and numerical progress on black-hole binary spin precession at second post-Newtonian order using multi-timescale methods. In addition to the commonly used effective spin which acts as a constant of motion, we exploit the weighted spin difference and show that such reparametrization cures the coordinate singularity that affected the previous formulation for the case of equal-mass binaries. The dynamics on the precession timescale is written down in closed form in both coprecessing and inertial frames. Radiation reaction can then be introduced in a quasi-adiabatic fashion such that, at least for binaries on quasi-circular orbits, gravitational inspirals reduce to solving a single ordinary differential equation. We provide a broad review of the resulting phenomenology and rewrite the relevant physics in terms of the newly adopted parametrization. This includes the spin-orbit resonances, the up-down instability, spin propagation at past time infinity, and new precession estimators to be used in gravitational-wave astronomy. Our findings are implemented in version 2 of the public Python module PRECESSION. Performing a precession-averaged post-Newtonian evolution from/to arbitrarily large separation takes $\\lesssim 0.1$ s on a single off-the-shelf processor - a 50x speedup compared to our previous implementation. This allows for a wide variety of applications including propagating gravitational-wave posterior samples as well as population-synthesis predictions of astrophysical nature.",
+      "published": "2023-04-10T18:21:11Z",
+      "comment": "Code available at https://github.com/dgerosa/precession",
+      "primary_category": "gr-qc",
+      "journal_ref": "Phys. Rev. D 108, 024042 (2023)",
+      "doi": "10.1103/PhysRevD.108.024042",
+      "authors": [
+        "Davide Gerosa",
+        "Giulia Fumagalli",
+        "Matthew Mould",
+        "Giovanni Cavallotto",
+        "Diego Padilla Monroy",
+        "Daria Gangardt",
+        "Viola De Renzis"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 6,
+  "papers": [
+    {
+      "id": "1605.01067v3",
+      "title": "PRECESSION: Dynamics of spinning black-hole binaries with python",
+      "pdf_url": "https://arxiv.org/pdf/1605.01067v3",
+      "summary": "We present the numerical code PRECESSION: a new open-source python module to study the dynamics of precessing black-hole binaries in the post-Newtonian regime. The code provides a comprehensive toolbox to (i) study the evolution of the black-hole spins along their precession cycles, (ii) perform gravitational-wave driven binary inspirals using both orbit-averaged and precession-averaged integrations, and (iii) predict the properties of the merger remnant through fitting formulae obtained from numerical-relativity simulations. PRECESSION is a ready-to-use tool to add the black-hole spin dynamics to larger-scale numerical studies such as gravitational-wave parameter estimation codes, population synthesis models to predict gravitational-wave event rates, galaxy merger trees and cosmological simulations of structure formation. PRECESSION provides fast and reliable integration methods to propagate statistical samples of black-hole binaries from/to large separations where they form to/from small separations where they become detectable, thus linking gravitational-wave observations of spinning black-hole binaries to their astrophysical formation history. The code is also a useful tool to compute initial parameters for numerical-relativity simulations targeting specific precessing systems. PRECESSION can be installed from the Python Package Index and it is freely distributed under version control on Github, where further documentation is provided.",
+      "published": "2016-05-03T20:00:58Z",
+      "comment": "Code homepage: https://davidegerosa.com/precession - Source: https://github.com/dgerosa/precession - Documentation: http://dgerosa.github.io/precession - pypi: https://pypi.python.org/pypi/precession - Fixed typos in Eq. (36-37)",
+      "primary_category": "astro-ph.HE",
+      "journal_ref": "Phys. Rev. D 93, 124066 (2016)",
+      "doi": "10.1103/PhysRevD.93.124066",
+      "authors": [
+        "Davide Gerosa",
+        "Michael Kesden"
+      ]
+    },
+    {
+      "id": "2304.09210v1",
+      "title": "Survival and dynamics of rings of co-orbital planets under perturbations",
+      "pdf_url": "https://arxiv.org/pdf/2304.09210v1",
+      "summary": "In co-orbital planetary systems, two or more planets share the same orbit around their star. Here we test the dynamical stability of co-orbital rings of planets perturbed by outside forces. We test two setups: i) 'stationary' rings of planets that, when unperturbed, remain equally-spaced along their orbit; and ii) horseshoe constellation systems, in which planets are continually undergoing horseshoe librations with their immediate neighbors. We show that a single rogue planet crossing the planets' orbit more massive than a few lunar masses (0.01-0.04 Earth masses) systematically disrupts a co-orbital ring of 6, 9, 18, or 42 Earth-mass planets located at 1 au. Stationary rings are more resistant to perturbations than horseshoe constellations, yet when perturbed they can transform into stable horseshoe constellation systems. Given sufficient time, any co-orbital ring system will be perturbed into either becoming a horseshoe constellation or complete destabilization.",
+      "published": "2023-04-18T18:01:55Z",
+      "comment": "5 pages, 4 figures. Re-submitted to MNRAS. Blog post about co-orbital constellations here: https://planetplanet.net/2023/04/20/constellations-of-co-orbital-planets/",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/stad1294",
+      "authors": [
+        "Sean N. Raymond",
+        "Dimitri Veras",
+        "Matthew S. Clement",
+        "Andre Izidoro",
+        "David Kipping",
+        "Victoria Meadows"
+      ]
+    },
+    {
+      "id": "astro-ph/0405128v1",
+      "title": "Probing the Evolution of the Galaxy Interaction/Merger Rate Using Collisional Ring Galaxies",
+      "pdf_url": "https://arxiv.org/pdf/astro-ph/0405128v1",
+      "summary": "We present the results from our program to determine the evolution of the galaxy interaction/merger rate with redshift using the unique star-forming characteristics of collisional ring galaxies. We have identified 25 distant collisional ring galaxy candidates (CRGCs) in a total of 162 deep Hubble Space Telescope Wide Field/Planetary Camera-2 images obtained from the HST Archives. Based on measured and estimated redshifts, these 25 CRGCs all lie in the redshift interval of 0.1 < z < 1. Using the local collisional ring galaxy volume density and the new ``standard'' cosmology, we find that in order to account for the number of identified CRGCs in our surveyed fields, the galaxy interaction/merger rate, parameterized as (1 + z)^m, must increase steeply with redshift.We determine a minimum value of m = 5.2 $\\pm$ 0.7, though m could be as high as 7 or 8. We can rule out a non-evolving (m = 0) and weakly evolving (m = 1-2) galaxy interaction/merger rate at greater than the 4 sigma level of confidence.",
+      "published": "2004-05-06T22:51:20Z",
+      "comment": "Accepted in the Astrophysical Journal (11 pages, 4 figures). Higher resolution version of the figures is available at http://www.astro.cornell.edu/~vassilis/papers/",
+      "primary_category": "astro-ph",
+      "journal_ref": "Astrophys.J. 612 (2004) 679-689",
+      "doi": "10.1086/422420",
+      "authors": [
+        "R. J. Lavery",
+        "A. Remijan",
+        "V. Charmandaris",
+        "R. D. Hayes",
+        "A. A. Ring"
+      ]
+    },
+    {
+      "id": "1412.1881v1",
+      "title": "Stable Orbits of Rigid, Rotating, Precessing, Massive Rings",
+      "pdf_url": "https://arxiv.org/pdf/1412.1881v1",
+      "summary": "The dynamics of a rigid, rotating, precessing, massive ring orbiting a point mass within the perimeter of the ring are considered. It is demonstrated that orbits dynamically stable against perturbations in three dimensions exist for a range of rigid body rotation parameters of the ring. Previous analysis and some well-known works of fiction have considered the stability of both rigid and flexible, non-precessing ring systems and found that they are unstable in the plane of the ring unless an active stabilization system is employed. There does not appear to be any analyses previously published considering rigid body precession of such a system or that demonstrate passive stability in three dimensions. Deviations from perfect rigidity and possible applications of such a system are discussed.",
+      "published": "2014-12-05T02:13:18Z",
+      "comment": "29 pages, 10 figures",
+      "primary_category": "physics.class-ph",
+      "authors": [
+        "Edward D. Rippert"
+      ]
+    },
+    {
+      "id": "2304.04801v2",
+      "title": "Efficient multi-timescale dynamics of precessing black-hole binaries",
+      "pdf_url": "https://arxiv.org/pdf/2304.04801v2",
+      "summary": "We present analytical and numerical progress on black-hole binary spin precession at second post-Newtonian order using multi-timescale methods. In addition to the commonly used effective spin which acts as a constant of motion, we exploit the weighted spin difference and show that such reparametrization cures the coordinate singularity that affected the previous formulation for the case of equal-mass binaries. The dynamics on the precession timescale is written down in closed form in both coprecessing and inertial frames. Radiation reaction can then be introduced in a quasi-adiabatic fashion such that, at least for binaries on quasi-circular orbits, gravitational inspirals reduce to solving a single ordinary differential equation. We provide a broad review of the resulting phenomenology and rewrite the relevant physics in terms of the newly adopted parametrization. This includes the spin-orbit resonances, the up-down instability, spin propagation at past time infinity, and new precession estimators to be used in gravitational-wave astronomy. Our findings are implemented in version 2 of the public Python module PRECESSION. Performing a precession-averaged post-Newtonian evolution from/to arbitrarily large separation takes $\\lesssim 0.1$ s on a single off-the-shelf processor - a 50x speedup compared to our previous implementation. This allows for a wide variety of applications including propagating gravitational-wave posterior samples as well as population-synthesis predictions of astrophysical nature.",
+      "published": "2023-04-10T18:21:11Z",
+      "comment": "Code available at https://github.com/dgerosa/precession",
+      "primary_category": "gr-qc",
+      "journal_ref": "Phys. Rev. D 108, 024042 (2023)",
+      "doi": "10.1103/PhysRevD.108.024042",
+      "authors": [
+        "Davide Gerosa",
+        "Giulia Fumagalli",
+        "Matthew Mould",
+        "Giovanni Cavallotto",
+        "Diego Padilla Monroy",
+        "Daria Gangardt",
+        "Viola De Renzis"
+      ]
+    },
+    {
+      "id": "1608.07844v2",
+      "title": "A curious ringlet that shares Prometheus' orbit but precesses like the F ring",
+      "pdf_url": "https://arxiv.org/pdf/1608.07844v2",
+      "summary": "Images obtained by the Cassini spacecraft of the region just beyond Saturn's main rings reveal a previously unreported narrow and dusty ringlet that has dynamical connections with both Saturn's small satellite Prometheus and the F ring. The radial position of this ringlet is observed to vary with time and longitude, indicating that it is eccentric with an eccentricity of 0.0012 and that its mean orbital radius varies between 139,300 km and 139,400 km. These mean radii are consistent with material trapped in a co-orbital 1:1 resonance with Prometheus. However, the apsidal precession rate of this ringlet is not that expected for material close to Prometheus' orbit (2.76 degrees/day). Instead, the ringlet appears to be precessing at the same rate as the F ring (2.70 degrees/day). This ringlet therefore appears to consist of material co-rotating with Prometheus whose apsidal precession rates have been modified by interactions with F-ring material. This ringlet may therefore provide new insights into how rings can maintain organized eccentric structures over a range of semi-major axes",
+      "published": "2016-08-28T19:10:09Z",
+      "comment": "Accepted for publication in Icarus. Fixed typos identified in proofs",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1016/j.icarus.2016.08.024",
+      "authors": [
+        "M. M. Hedman",
+        "B. J. Carter"
+      ]
+    }
+  ]
+}

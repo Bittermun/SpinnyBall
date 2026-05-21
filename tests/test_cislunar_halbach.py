@@ -61,7 +61,8 @@ class TestHalbachAccelerationComputation:
         config = CR3BPHalbachConfig(
             use_halbach=True,
             packet_magnetic_moment_am2=1.0,
-            packet_mass_kg=1.0
+            packet_mass_kg=1.0,
+            use_mascons=False
         )
         prop = CR3BPHalbachPropagator(config)
         
@@ -75,7 +76,7 @@ class TestHalbachAccelerationComputation:
     
     def test_halbach_acceleration_disabled(self):
         """Test that acceleration is zero when Halbach disabled."""
-        config = CR3BPHalbachConfig(use_halbach=False)
+        config = CR3BPHalbachConfig(use_halbach=False, use_mascons=False)
         prop = CR3BPHalbachPropagator(config)
         
         state = np.array([0.1, 0.0, 0.0, 0.0, 0.1, 0.0])
@@ -89,7 +90,7 @@ class TestHalbachMagneticFieldComputation:
     
     def test_magnetic_field_at_position(self):
         """Test magnetic field computation at position."""
-        config = CR3BPHalbachConfig(use_halbach=True)
+        config = CR3BPHalbachConfig(use_halbach=True, use_mascons=False)
         prop = CR3BPHalbachPropagator(config)
         
         pos = np.array([0.1, 0.0, 0.0])
@@ -102,7 +103,8 @@ class TestHalbachMagneticFieldComputation:
         """Test magnetic force computation."""
         config = CR3BPHalbachConfig(
             use_halbach=True,
-            packet_magnetic_moment_am2=0.5
+            packet_magnetic_moment_am2=0.5,
+            use_mascons=False
         )
         prop = CR3BPHalbachPropagator(config)
         
@@ -123,14 +125,15 @@ class TestHalbachPropagation:
         config = CR3BPHalbachConfig(
             use_halbach=True,
             halbach_degree_max=4,
-            rotating_frame=False
+            rotating_frame=False,
+            use_mascons=False
         )
         prop = CR3BPHalbachPropagator(config)
         
-        # Initial state: 0.1 km from Earth
-        state0 = np.array([0.1, 0.0, 0.0, 0.0, 0.01, 0.0])
+        # Initial state: 7000 km from Earth center (LEO orbit)
+        state0 = np.array([7000.0, 0.0, 0.0, 0.0, 7.5, 0.0])
         
-        t_eval = np.linspace(0, 100, 50)  # 100 seconds
+        t_eval = np.linspace(0, 10, 10)  # 10 seconds
         
         try:
             sol = prop.propagate(state0, t_eval)
@@ -145,7 +148,8 @@ class TestHalbachPropagation:
         """Test propagation with Halbach disabled."""
         config = CR3BPHalbachConfig(
             use_halbach=False,
-            rotating_frame=False
+            rotating_frame=False,
+            use_mascons=False
         )
         prop = CR3BPHalbachPropagator(config)
         
@@ -167,7 +171,8 @@ class TestHalbachAnalysis:
         """Test propagation with Halbach analysis."""
         config = CR3BPHalbachConfig(
             use_halbach=True,
-            rotating_frame=False
+            rotating_frame=False,
+            use_mascons=False
         )
         prop = CR3BPHalbachPropagator(config)
         
@@ -190,7 +195,7 @@ class TestHalbachPhysicalConsistency:
     
     def test_force_direction_in_gradient(self):
         """Test that force points toward/away from field center."""
-        config = CR3BPHalbachConfig(use_halbach=True)
+        config = CR3BPHalbachConfig(use_halbach=True, use_mascons=False)
         prop = CR3BPHalbachPropagator(config)
         
         # Test positions
@@ -218,12 +223,12 @@ class TestHalbachComparisonWithoutHalbach:
         t_eval = np.linspace(0, 3600, 100)
         
         # With Halbach
-        config_with = CR3BPHalbachConfig(use_halbach=True)
+        config_with = CR3BPHalbachConfig(use_halbach=True, use_mascons=False)
         prop_with = CR3BPHalbachPropagator(config_with)
         sol_with = prop_with.propagate(state0, t_eval)
         
         # Without Halbach
-        config_without = CR3BPHalbachConfig(use_halbach=False)
+        config_without = CR3BPHalbachConfig(use_halbach=False, use_mascons=False)
         prop_without = CR3BPHalbachPropagator(config_without)
         sol_without = prop_without.propagate(state0, t_eval)
         

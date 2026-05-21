@@ -788,7 +788,7 @@ def convergence_check(P, dt_levels=None):
 
 
 # ---- CELL 10: Main execution ----
-if __name__ == "__main__" or True:
+if __name__ == "__main__":
 
     print("=" * 50)
     print("SGMS V1 -- Lateral Deflection Simulation")

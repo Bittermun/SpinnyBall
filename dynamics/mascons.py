@@ -17,7 +17,7 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Optional, Tuple, Dict
 import numpy as np
-from scipy.special import legendre, lpmn
+from scipy.special import lpmv
 from scipy.interpolate import RegularGridInterpolator
 
 
@@ -290,28 +290,25 @@ class LunarMascon:
         if m > n:
             return 0.0, 0.0
         
-        # Compute P_n^m using scipy
-        if abs(cos_theta) < 1.0:
-            p_nm = legendre(n, m=m, monic=False)(cos_theta)
-            
-            # Derivative: dP/dθ = -sin(θ) * dP/d(cos θ)
-            sin_theta = np.sqrt(1 - cos_theta**2)
-            
-            # Use recurrence for derivative
-            if sin_theta > 1e-10:
-                if m > 0:
-                    p_nm_minus1 = legendre(n - 1, m=m, monic=False)(cos_theta)
-                    dp_nm = (n + m) * p_nm_minus1 - (n - m + 1) * cos_theta * p_nm
-                    dp_nm /= sin_theta
-                else:
-                    dp_nm_dcos = (n * cos_theta * p_nm - (n + 1) * legendre(n - 1, m=0, monic=False)(cos_theta)) / (1 - cos_theta**2 + 1e-15)
-                    dp_nm = -dp_nm_dcos * sin_theta
-            else:
-                dp_nm = 0.0
-        else:
-            p_nm = 1.0 if m == 0 else 0.0
-            dp_nm = 0.0
+        # Ensure cos_theta is within strict mathematical boundaries [-1, 1] to prevent domain errors
+        cos_theta = np.clip(cos_theta, -1.0, 1.0)
         
+        # Compute P_n^m using scipy lpmv
+        p_nm = float(lpmv(m, n, cos_theta))
+        
+        # Derivative: d/dθ P_n^m(cos θ)
+        # Using the same robust, singularity-free recurrence relation as in halbach_multipole.py:
+        # d/dθ P_n^m(cos θ) = 0.5 * [ P_n^{m+1}(cos θ) - (n + m)(n - m + 1) P_n^{m-1}(cos θ) ]
+        # For m = 0: d/dθ P_n^0 = P_n^1
+        if n == 0:
+            dp_nm = 0.0
+        elif m == 0:
+            dp_nm = float(lpmv(1, n, cos_theta))
+        else:
+            p_nm_plus = float(lpmv(m + 1, n, cos_theta)) if m < n else 0.0
+            p_nm_minus = float(lpmv(m - 1, n, cos_theta))
+            dp_nm = 0.5 * (p_nm_plus - (n + m) * (n - m + 1) * p_nm_minus)
+            
         return p_nm, dp_nm
     
     def _spherical_to_cartesian_accel(

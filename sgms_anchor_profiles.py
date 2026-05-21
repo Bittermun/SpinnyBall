@@ -11,4 +11,10 @@ from src.sgms_anchor_profiles import (  # noqa: F401
     load_anchor_profiles,
     resolve_profile_params,
     export_profile_summary_csv,
+    _validate_environment_profile,
+    _validate_geometry_profile,
+    _validate_material_profile,
+    load_environment_catalog,
+    load_geometry_catalog,
+    load_material_catalog,
 )

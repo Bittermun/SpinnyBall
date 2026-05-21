@@ -21,7 +21,7 @@ Physics Reference:
 import numpy as np
 from dataclasses import dataclass
 from typing import Tuple, Dict, Optional
-from scipy.special import legendre, eval_legendre
+from scipy.special import lpmv
 from scipy.optimize import minimize
 
 
@@ -120,57 +120,62 @@ class HalbachSphericalHarmonic:
                 
                 if n == 2 and m == 0:
                     # Quadrupole: typically ~10% of dipole
-                    c_nm = 0.1 * c10 * (1.0 / R**3)
+                    c_nm = 0.1 * c10
                     s_nm = 0.0
                 elif n == 3 and m == 0:
                     # Octupole: typically ~5% of dipole
-                    c_nm = 0.05 * c10 * (1.0 / R**3)
+                    c_nm = 0.05 * c10
                     s_nm = 0.0
                 else:
                     # Higher multipoles: empirical decay
-                    c_nm = (0.01 / (n - 1)) * c10 * (1.0 / R**3)
-                    s_nm = 0.0 if m == 0 else (0.005 / (n - 1)) * c10 * (1.0 / R**3)
+                    c_nm = (0.01 / (n - 1)) * c10
+                    s_nm = 0.0 if m == 0 else (0.005 / (n - 1)) * c10
                 
                 self.coefficients[(n, m)] = (c_nm, s_nm)
     
     def _precompute_legendre(self):
-        """Pre-compute Legendre polynomial objects for efficiency."""
+        """Pre-compute Legendre polynomial objects (no-op for lpmv compatibility)."""
         self.legendre_poly = {}
-        for n in range(0, self.config.degree_max + 1):
-            for m in range(0, n + 1):
-                self.legendre_poly[(n, m)] = legendre(n, m=m, monic=False)
-    
+
     def _legendre_derivative(self, n: int, m: int, cos_theta: float) -> Tuple[float, float]:
         """
-        Compute Legendre polynomial P_n^m(cos(θ)) and its derivative.
+        Compute associated Legendre polynomial P_n^m(cos(θ)) and its θ-derivative.
         
+        Uses Scipy's lpmv(m, n, x) which evaluates the associated Legendre function.
+        To avoid polar singularities and division-by-sine, the derivative is calculated
+        using the robust, singularity-free recurrence relation:
+            d/dθ P_n^m(cos θ) = 0.5 * [ P_n^{m+1}(cos θ) - (n + m)(n - m + 1) P_n^{m-1}(cos θ) ]
+            
+        For m = 0, this simplifies to:
+            d/dθ P_n^0(cos θ) = P_n^1(cos θ)
+            
         Args:
-            n: Degree
-            m: Order
-            cos_theta: cos(θ)
-        
+            n: Degree (n >= 1)
+            m: Order (0 <= m <= n)
+            cos_theta: cos(θ) value in [-1.0, 1.0]
+            
         Returns:
-            (P_n^m, dP_n^m/dθ)
+            Tuple of (P_n^m(cos θ), d/dθ P_n^m(cos θ))
         """
-        # Polynomial value
-        P_nm = eval_legendre(n, cos_theta, n=m)
+        # Ensure cos_theta is within strict mathematical boundaries [-1, 1] to prevent domain errors
+        cos_theta = np.clip(cos_theta, -1.0, 1.0)
         
-        # Derivative using recurrence relation
-        # dP_n^m/dθ = -sin(θ) * recurrence term
-        sin_theta = np.sqrt(1 - cos_theta**2)
+        # Associated Legendre polynomial value
+        P_nm = float(lpmv(m, n, cos_theta))
         
-        if sin_theta < 1e-10:
-            # Near poles: use L'Hôpital's rule
+        # Derivative using singularity-free recurrence relation with respect to θ
+        if n == 0:
             dP_nm = 0.0
+        elif m == 0:
+            # d/dθ P_n^0 = P_n^1
+            dP_nm = float(lpmv(1, n, cos_theta))
         else:
-            # Recurrence: d/dθ P_n^m(cos θ) = -sin θ * [(n+m)(n-m+1) P_{n-1}^m - n cos θ P_n^m] / (n(n+1) sin² θ)
-            if n > 0 and m < n:
-                P_nm_1 = eval_legendre(n - 1, cos_theta, n=m)
-                dP_nm = -(cos_theta * P_nm - P_nm_1) / (sin_theta + 1e-16)
-            else:
-                dP_nm = 0.0
-        
-        return float(P_nm), float(dP_nm)
+            # For m > 0, use the recurrence relation with m+1 and m-1
+            P_nm_plus = float(lpmv(m + 1, n, cos_theta)) if m < n else 0.0
+            P_nm_minus = float(lpmv(m - 1, n, cos_theta))
+            dP_nm = 0.5 * (P_nm_plus - (n + m) * (n - m + 1) * P_nm_minus)
+            
+        return P_nm, dP_nm
     
     def field(self, position: np.ndarray, degree: Optional[int] = None) -> np.ndarray:
         """
@@ -187,7 +192,8 @@ class HalbachSphericalHarmonic:
         
         # Convert to spherical coordinates
         r = np.linalg.norm(position)
-        if r < 1e-10:
+        if r < 1e-6:
+            # EPSILON_MINIMUM_DISTANCE guard to prevent division by zero or NaN propagation at origin
             return np.array([0.0, 0.0, 0.0])
         
         x, y, z = position
@@ -210,26 +216,36 @@ class HalbachSphericalHarmonic:
                 c_nm, s_nm = self.coefficients[(n, m)]
                 
                 # Radial field component
-                # B_r ~ (n+1) * C_nm * (R/r)^(n+2) * P_n^m(cos θ)
+                # B_r = sum (n+1) * C_nm * (R/r)^(n+2) * P_n^m(cos θ)
                 R = self.config.radius_m
                 radial_factor = (n + 1) * (R / r)**(n + 2)
                 
-                P_nm, _ = self._legendre_derivative(n, m, cos_theta)
+                P_nm, dP_nm = self._legendre_derivative(n, m, cos_theta)
                 
                 B_r += radial_factor * (c_nm * np.cos(m * phi) + s_nm * np.sin(m * phi)) * P_nm
                 
                 # Theta component (meridional)
-                # B_θ ~ C_nm * (R/r)^(n+2) * dP_n^m/dθ
-                _, dP_nm = self._legendre_derivative(n, m, cos_theta)
-                
-                meridional_factor = (R / r)**(n + 2) / r
+                # B_θ = - sum (R/r)^(n+2) * [C_nm cos(mφ) + S_nm sin(mφ)] * dP_n^m/dθ
+                # Note: Corrected the mathematical 1/r scaling bug and the minus sign.
+                meridional_factor = -(R / r)**(n + 2)
                 B_theta += meridional_factor * (c_nm * np.cos(m * phi) + s_nm * np.sin(m * phi)) * dP_nm
                 
                 # Azimuthal component
-                # B_φ ~ m * S_nm * (R/r)^(n+2) * P_n^m(cos θ) / sin(θ)
-                if m > 0 and sin_theta > 1e-10:
-                    azimuthal_factor = m * (R / r)**(n + 2) / (r * sin_theta)
-                    B_phi += azimuthal_factor * (-c_nm * np.sin(m * phi) + s_nm * np.cos(m * phi)) * P_nm
+                # B_φ = - sum (R/r)^(n+2) * (m / sin θ) * [-C_nm sin(mφ) + S_nm cos(mφ)] * P_n^m(cos θ)
+                # Note: Corrected the mathematical 1/r scaling bug and the minus sign.
+                if m > 0:
+                    if sin_theta > 1e-10:
+                        azimuthal_factor = -m * (R / r)**(n + 2) / sin_theta
+                        B_phi += azimuthal_factor * (-c_nm * np.sin(m * phi) + s_nm * np.cos(m * phi)) * P_nm
+                    else:
+                        # Near polar singularity (sin_theta -> 0), P_n^m(cos_theta)/sin_theta remains finite.
+                        # For m = 1, limit_{theta->0} P_n^1(cos theta) / sin(theta) = -P_n'(cos theta).
+                        # For m > 1, limit is 0.
+                        if m == 1:
+                            sign_z = 1.0 if cos_theta > 0 else (-1.0)**(n - 1)
+                            limit_val = -0.5 * n * (n + 1) * sign_z
+                            azimuthal_factor = -m * (R / r)**(n + 2)
+                            B_phi += azimuthal_factor * (-c_nm * np.sin(m * phi) + s_nm * np.cos(m * phi)) * limit_val
         
         # Convert back to Cartesian
         sin_phi = np.sin(phi)

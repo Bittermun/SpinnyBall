@@ -14,9 +14,11 @@ For GdBCO superconductors.
 
 | Temp | Cooling | Power |
 |------|---------|-------|
-| 70K | 5W | 50W |
-| 80K | 8W | 60W |
-| 90K | 12W | 80W |
+| Temperature | Cooling Power ($Q_{\text{cool}}$) | Input Power ($P_{\text{input}}$, 12% Carnot Bound @ 300 K) | Actual COP |
+|:---|:---|:---|:---|
+| 70 K | 5 W | 137 W | 0.0365 |
+| 80 K | 8 W | 183 W | 0.0436 |
+| 90 K | 12 W | 233 W | 0.0514 |
 
 Cooldown: 1hr from 300K to 77K.
 

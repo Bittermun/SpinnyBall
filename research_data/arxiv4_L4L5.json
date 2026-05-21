@@ -1,0 +1,398 @@
+﻿{
+  "status": "success",
+  "results_count": 1,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 2,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    },
+    {
+      "id": "2211.13877v1",
+      "title": "Asymmetry in the number of L4 and L5 Jupiter Trojans driven by jumping Jupiter",
+      "pdf_url": "https://arxiv.org/pdf/2211.13877v1",
+      "summary": "Context. More than 10000 Jupiter Trojans have been detected so far. They are moving around the L4 and L5 triangular Lagrangian points of the Sun-Jupiter system and their distributions can provide important clues to the early evolution of the Solar System.   Aims. The number asymmetry of the L4 and L5 Jupiter Trojans is a longstanding problem. We aim to test a new mechanism in order to explain this anomalous feature by invoking the jumping-Jupiter scenario.   Methods. First, we introduce the orbital evolution of Jupiter caused by the giant planet instability in the early Solar System. In this scenario, Jupiter could undergo an outward migration at a very high speed. We then investigate how such a jump changes the numbers of the L4 (N4) and L5 (N5) Trojans.   Results. The outward migration of Jupiter can distort the co-orbital orbits near the Lagrangian points, resulting in L4 Trojans being more stable than the L5 ones. We find that, this mechanism could potentially explain the unbiased number asymmetry of N4/N5~1.6 for the known Jupiter Trojans. The uncertainties of the system parameters, e.g. Jupiter's eccentricity and inclination, the inclination distribution of Jupiter Trojans, are also taken into account and our results about the L4/L5 asymmetry have been further validated. However, the resonant amplitudes of the simulated Trojans are excited to higher values compared to the current population. A possible solution is that collisions among the Trojans may reduce their resonant amplitudes.",
+      "published": "2022-11-25T03:41:40Z",
+      "comment": "11 pages, 5 figures, accepted for publication in A&A",
+      "primary_category": "astro-ph.EP",
+      "journal_ref": "A&A 669, A68 (2023)",
+      "doi": "10.1051/0004-6361/202244443",
+      "authors": [
+        "Jian Li",
+        "Zhihong Jeff Xia",
+        "Fumi Yoshida",
+        "Nikolaos Georgakarakos",
+        "Xin Li"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 3,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    },
+    {
+      "id": "2211.13877v1",
+      "title": "Asymmetry in the number of L4 and L5 Jupiter Trojans driven by jumping Jupiter",
+      "pdf_url": "https://arxiv.org/pdf/2211.13877v1",
+      "summary": "Context. More than 10000 Jupiter Trojans have been detected so far. They are moving around the L4 and L5 triangular Lagrangian points of the Sun-Jupiter system and their distributions can provide important clues to the early evolution of the Solar System.   Aims. The number asymmetry of the L4 and L5 Jupiter Trojans is a longstanding problem. We aim to test a new mechanism in order to explain this anomalous feature by invoking the jumping-Jupiter scenario.   Methods. First, we introduce the orbital evolution of Jupiter caused by the giant planet instability in the early Solar System. In this scenario, Jupiter could undergo an outward migration at a very high speed. We then investigate how such a jump changes the numbers of the L4 (N4) and L5 (N5) Trojans.   Results. The outward migration of Jupiter can distort the co-orbital orbits near the Lagrangian points, resulting in L4 Trojans being more stable than the L5 ones. We find that, this mechanism could potentially explain the unbiased number asymmetry of N4/N5~1.6 for the known Jupiter Trojans. The uncertainties of the system parameters, e.g. Jupiter's eccentricity and inclination, the inclination distribution of Jupiter Trojans, are also taken into account and our results about the L4/L5 asymmetry have been further validated. However, the resonant amplitudes of the simulated Trojans are excited to higher values compared to the current population. A possible solution is that collisions among the Trojans may reduce their resonant amplitudes.",
+      "published": "2022-11-25T03:41:40Z",
+      "comment": "11 pages, 5 figures, accepted for publication in A&A",
+      "primary_category": "astro-ph.EP",
+      "journal_ref": "A&A 669, A68 (2023)",
+      "doi": "10.1051/0004-6361/202244443",
+      "authors": [
+        "Jian Li",
+        "Zhihong Jeff Xia",
+        "Fumi Yoshida",
+        "Nikolaos Georgakarakos",
+        "Xin Li"
+      ]
+    },
+    {
+      "id": "1501.02693v2",
+      "title": "Control of chaos in the vicinity of the Earth--Moon L5 Lagrangian point to keep a spacecraft in orbit",
+      "pdf_url": "https://arxiv.org/pdf/1501.02693v2",
+      "summary": "The concept of Space Manifold Dynamics is a new method of space research. We have applied it along with the basic idea of the method of Ott, Grebogi and York (OGY method) to stabilize the motion of a spacecraft around the triangular Lagrange point L5 of the Earth--Moon system. We have determined the escape rate of the trajectories in the general three- and four-body problem and estimated the average lifetime of the particles. Integrating the two models we mapped in detail the phase space around the L5 point of the Earth--Moon system. Using the phase space portrait our next goal was to apply a modified OGY method to keep a spacecraft close to the vicinity of L5. We modified the equation of motions with the addition of a time dependent force to the motion of the spacecraft. In our orbit--keeping procedure there are three free parameters: (i) the magnitude of the thrust, (ii) the start time and (iii) the length of the control. Based on our numerical experiments we were able to determine possible values for these parameters and successfully apply a control phase to a spacecraft to keep it on orbit around L5.",
+      "published": "2015-01-12T16:22:47Z",
+      "comment": "11 pages, 11 figures (updated Fig. 2), 1 table, accepted for publication in Astron. Nachr",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1002/asna.201412132",
+      "authors": [
+        "Judit Sl\u00edz",
+        "\u00c1ron S\u00fcli",
+        "Tam\u00e1s Kov\u00e1cs"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 4,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    },
+    {
+      "id": "2211.13877v1",
+      "title": "Asymmetry in the number of L4 and L5 Jupiter Trojans driven by jumping Jupiter",
+      "pdf_url": "https://arxiv.org/pdf/2211.13877v1",
+      "summary": "Context. More than 10000 Jupiter Trojans have been detected so far. They are moving around the L4 and L5 triangular Lagrangian points of the Sun-Jupiter system and their distributions can provide important clues to the early evolution of the Solar System.   Aims. The number asymmetry of the L4 and L5 Jupiter Trojans is a longstanding problem. We aim to test a new mechanism in order to explain this anomalous feature by invoking the jumping-Jupiter scenario.   Methods. First, we introduce the orbital evolution of Jupiter caused by the giant planet instability in the early Solar System. In this scenario, Jupiter could undergo an outward migration at a very high speed. We then investigate how such a jump changes the numbers of the L4 (N4) and L5 (N5) Trojans.   Results. The outward migration of Jupiter can distort the co-orbital orbits near the Lagrangian points, resulting in L4 Trojans being more stable than the L5 ones. We find that, this mechanism could potentially explain the unbiased number asymmetry of N4/N5~1.6 for the known Jupiter Trojans. The uncertainties of the system parameters, e.g. Jupiter's eccentricity and inclination, the inclination distribution of Jupiter Trojans, are also taken into account and our results about the L4/L5 asymmetry have been further validated. However, the resonant amplitudes of the simulated Trojans are excited to higher values compared to the current population. A possible solution is that collisions among the Trojans may reduce their resonant amplitudes.",
+      "published": "2022-11-25T03:41:40Z",
+      "comment": "11 pages, 5 figures, accepted for publication in A&A",
+      "primary_category": "astro-ph.EP",
+      "journal_ref": "A&A 669, A68 (2023)",
+      "doi": "10.1051/0004-6361/202244443",
+      "authors": [
+        "Jian Li",
+        "Zhihong Jeff Xia",
+        "Fumi Yoshida",
+        "Nikolaos Georgakarakos",
+        "Xin Li"
+      ]
+    },
+    {
+      "id": "1501.02693v2",
+      "title": "Control of chaos in the vicinity of the Earth--Moon L5 Lagrangian point to keep a spacecraft in orbit",
+      "pdf_url": "https://arxiv.org/pdf/1501.02693v2",
+      "summary": "The concept of Space Manifold Dynamics is a new method of space research. We have applied it along with the basic idea of the method of Ott, Grebogi and York (OGY method) to stabilize the motion of a spacecraft around the triangular Lagrange point L5 of the Earth--Moon system. We have determined the escape rate of the trajectories in the general three- and four-body problem and estimated the average lifetime of the particles. Integrating the two models we mapped in detail the phase space around the L5 point of the Earth--Moon system. Using the phase space portrait our next goal was to apply a modified OGY method to keep a spacecraft close to the vicinity of L5. We modified the equation of motions with the addition of a time dependent force to the motion of the spacecraft. In our orbit--keeping procedure there are three free parameters: (i) the magnitude of the thrust, (ii) the start time and (iii) the length of the control. Based on our numerical experiments we were able to determine possible values for these parameters and successfully apply a control phase to a spacecraft to keep it on orbit around L5.",
+      "published": "2015-01-12T16:22:47Z",
+      "comment": "11 pages, 11 figures (updated Fig. 2), 1 table, accepted for publication in Astron. Nachr",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1002/asna.201412132",
+      "authors": [
+        "Judit Sl\u00edz",
+        "\u00c1ron S\u00fcli",
+        "Tam\u00e1s Kov\u00e1cs"
+      ]
+    },
+    {
+      "id": "2202.13630v1",
+      "title": "Stream Containers for Resource-oriented RDF Stream Processing",
+      "pdf_url": "https://arxiv.org/pdf/2202.13630v1",
+      "summary": "We introduce Stream Containers inspired by the Linked Data Platform as an alternative way to process RDF streams. A Stream Container represents a single RDF data stream that can be accessed in a resource-oriented way which allows for better interoperability with the existing Semantic Web infrastructure. Stream Containers are managed by webservers that are responsible for implementing the S2R operator, i.e. calculating the window for their clients. The clients on the other hand can use a standard SPARQL processor in combination with HTTP requests to do RDF processing. Query results can be converted back to an RDF stream (R2S operator) by posting the data to a Stream Container. Our approach of resource-oriented RDF stream processing can lead to a better distribution of load and thus to better worldwide scalability. We give a general overview of the proposed architecture as well as the formal semantics of the overall system.",
+      "published": "2022-02-28T09:21:59Z",
+      "comment": "Accepted for the Stream Reasoning Workshop 2021 in Milan",
+      "primary_category": "cs.DB",
+      "authors": [
+        "Daniel Schraudner",
+        "Andreas Harth"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 5,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    },
+    {
+      "id": "2211.13877v1",
+      "title": "Asymmetry in the number of L4 and L5 Jupiter Trojans driven by jumping Jupiter",
+      "pdf_url": "https://arxiv.org/pdf/2211.13877v1",
+      "summary": "Context. More than 10000 Jupiter Trojans have been detected so far. They are moving around the L4 and L5 triangular Lagrangian points of the Sun-Jupiter system and their distributions can provide important clues to the early evolution of the Solar System.   Aims. The number asymmetry of the L4 and L5 Jupiter Trojans is a longstanding problem. We aim to test a new mechanism in order to explain this anomalous feature by invoking the jumping-Jupiter scenario.   Methods. First, we introduce the orbital evolution of Jupiter caused by the giant planet instability in the early Solar System. In this scenario, Jupiter could undergo an outward migration at a very high speed. We then investigate how such a jump changes the numbers of the L4 (N4) and L5 (N5) Trojans.   Results. The outward migration of Jupiter can distort the co-orbital orbits near the Lagrangian points, resulting in L4 Trojans being more stable than the L5 ones. We find that, this mechanism could potentially explain the unbiased number asymmetry of N4/N5~1.6 for the known Jupiter Trojans. The uncertainties of the system parameters, e.g. Jupiter's eccentricity and inclination, the inclination distribution of Jupiter Trojans, are also taken into account and our results about the L4/L5 asymmetry have been further validated. However, the resonant amplitudes of the simulated Trojans are excited to higher values compared to the current population. A possible solution is that collisions among the Trojans may reduce their resonant amplitudes.",
+      "published": "2022-11-25T03:41:40Z",
+      "comment": "11 pages, 5 figures, accepted for publication in A&A",
+      "primary_category": "astro-ph.EP",
+      "journal_ref": "A&A 669, A68 (2023)",
+      "doi": "10.1051/0004-6361/202244443",
+      "authors": [
+        "Jian Li",
+        "Zhihong Jeff Xia",
+        "Fumi Yoshida",
+        "Nikolaos Georgakarakos",
+        "Xin Li"
+      ]
+    },
+    {
+      "id": "1501.02693v2",
+      "title": "Control of chaos in the vicinity of the Earth--Moon L5 Lagrangian point to keep a spacecraft in orbit",
+      "pdf_url": "https://arxiv.org/pdf/1501.02693v2",
+      "summary": "The concept of Space Manifold Dynamics is a new method of space research. We have applied it along with the basic idea of the method of Ott, Grebogi and York (OGY method) to stabilize the motion of a spacecraft around the triangular Lagrange point L5 of the Earth--Moon system. We have determined the escape rate of the trajectories in the general three- and four-body problem and estimated the average lifetime of the particles. Integrating the two models we mapped in detail the phase space around the L5 point of the Earth--Moon system. Using the phase space portrait our next goal was to apply a modified OGY method to keep a spacecraft close to the vicinity of L5. We modified the equation of motions with the addition of a time dependent force to the motion of the spacecraft. In our orbit--keeping procedure there are three free parameters: (i) the magnitude of the thrust, (ii) the start time and (iii) the length of the control. Based on our numerical experiments we were able to determine possible values for these parameters and successfully apply a control phase to a spacecraft to keep it on orbit around L5.",
+      "published": "2015-01-12T16:22:47Z",
+      "comment": "11 pages, 11 figures (updated Fig. 2), 1 table, accepted for publication in Astron. Nachr",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1002/asna.201412132",
+      "authors": [
+        "Judit Sl\u00edz",
+        "\u00c1ron S\u00fcli",
+        "Tam\u00e1s Kov\u00e1cs"
+      ]
+    },
+    {
+      "id": "2202.13630v1",
+      "title": "Stream Containers for Resource-oriented RDF Stream Processing",
+      "pdf_url": "https://arxiv.org/pdf/2202.13630v1",
+      "summary": "We introduce Stream Containers inspired by the Linked Data Platform as an alternative way to process RDF streams. A Stream Container represents a single RDF data stream that can be accessed in a resource-oriented way which allows for better interoperability with the existing Semantic Web infrastructure. Stream Containers are managed by webservers that are responsible for implementing the S2R operator, i.e. calculating the window for their clients. The clients on the other hand can use a standard SPARQL processor in combination with HTTP requests to do RDF processing. Query results can be converted back to an RDF stream (R2S operator) by posting the data to a Stream Container. Our approach of resource-oriented RDF stream processing can lead to a better distribution of load and thus to better worldwide scalability. We give a general overview of the proposed architecture as well as the formal semantics of the overall system.",
+      "published": "2022-02-28T09:21:59Z",
+      "comment": "Accepted for the Stream Reasoning Workshop 2021 in Milan",
+      "primary_category": "cs.DB",
+      "authors": [
+        "Daniel Schraudner",
+        "Andreas Harth"
+      ]
+    },
+    {
+      "id": "1910.07471v1",
+      "title": "Celestial Mechanics and Polarization Optics of the Kordylewski Dust Cloud in the Earth-Moon Lagrange Point L5 Part II. Imaging Polarimetric Observation: New Evidence for the Existence of Kordylewski Dust Cloud",
+      "pdf_url": "https://arxiv.org/pdf/1910.07471v1",
+      "summary": "Telescopes mounted with polarizers can study the neutral points of the Earths atmosphere, the solar corona, the surface of planets/moons of the Solar System, distant stars, galaxies and nebulae. These examples demonstrate well that polarimetry is a useful technique to gather astronomical information from spatially extended phenomena. There are two enigmatic celestial objects that can also effectively be studied with imaging polarimetry, namely the Kordylewski dust clouds (KDCs) positioned around the L4 and L5 triangular Lagrangian libration points of the Earth-Moon system. Although in 1961 the Polish astronomer, Kazimierz Kordylewski had observed two bright patches near the L5 point with photography, many astronomers assume that these dust clouds do not exist, because the gravitational perturbation of the Sun, solar wind and other planets may disrupt the stabilizing effect of the L4 and L5 Lagrange points of the Earth and Moon. Using ground-born imaging polarimetry, we present here new observational evidence for the existence of the KDC around the L5 point of the Earth-Moon system. Excluding artefacts induced by the telescope, cirrus clouds or condensation trails of airplanes, the only explanation remains the polarized scattering of sunlight on the particles collected around the L5 point. By our polarimetric detection of the KDC we think it is appropriate to reconsider the pioneering photometric observation of Kordylewski. Our polarimetric evidence is supported by the results of simulation of dust cloud formation in the L5 point of the Earth-Moon system presented in the first part of this paper.",
+      "published": "2019-10-16T16:53:36Z",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/sty2630",
+      "authors": [
+        "Judit Sl\u00edz-Balogh",
+        "Andr\u00e1s Barta",
+        "G\u00e1bor Horv\u00e1th"
+      ]
+    }
+  ]
+}
+{
+  "status": "success",
+  "results_count": 6,
+  "papers": [
+    {
+      "id": "2101.04602v1",
+      "title": "Comparison of the physical properties of the L4 and L5 Trojan asteroids from ATLAS data",
+      "pdf_url": "https://arxiv.org/pdf/2101.04602v1",
+      "summary": "Jupiter has nearly 8000~known co-orbital asteroids orbiting in the L4 and L5 Lagrange points called Jupiter Trojan asteroids. Aside from the greater number density of the L4 cloud the two clouds are in many ways considered to be identical. Using sparse photometric data taken by the Asteroid Terrestrial-impact Last Alert System (ATLAS) for 863 L4 Trojans and 380 L5 Trojans we derive the shape distribution for each of the clouds and find that, on average, the L4 asteroids are more elongated than the L5 asteroids. This shape difference is most likely due to the greater collision rate in the L4 cloud that results from its larger population. We additionally present the phase functions and $c-o$ colours of 266~objects.",
+      "published": "2021-01-12T17:02:47Z",
+      "comment": "22 pages, 9 figures, 2 tables. Accepted by PSJ",
+      "primary_category": "astro-ph.EP",
+      "authors": [
+        "A. McNeill",
+        "N. Erasmus",
+        "D. E. Trilling",
+        "J. P. Emery",
+        "J. L. Tonry",
+        "L. Denneau",
+        "H. Flewelling",
+        "A. Heinze",
+        "B. Stalder",
+        "H. J. Weiland"
+      ]
+    },
+    {
+      "id": "2211.13877v1",
+      "title": "Asymmetry in the number of L4 and L5 Jupiter Trojans driven by jumping Jupiter",
+      "pdf_url": "https://arxiv.org/pdf/2211.13877v1",
+      "summary": "Context. More than 10000 Jupiter Trojans have been detected so far. They are moving around the L4 and L5 triangular Lagrangian points of the Sun-Jupiter system and their distributions can provide important clues to the early evolution of the Solar System.   Aims. The number asymmetry of the L4 and L5 Jupiter Trojans is a longstanding problem. We aim to test a new mechanism in order to explain this anomalous feature by invoking the jumping-Jupiter scenario.   Methods. First, we introduce the orbital evolution of Jupiter caused by the giant planet instability in the early Solar System. In this scenario, Jupiter could undergo an outward migration at a very high speed. We then investigate how such a jump changes the numbers of the L4 (N4) and L5 (N5) Trojans.   Results. The outward migration of Jupiter can distort the co-orbital orbits near the Lagrangian points, resulting in L4 Trojans being more stable than the L5 ones. We find that, this mechanism could potentially explain the unbiased number asymmetry of N4/N5~1.6 for the known Jupiter Trojans. The uncertainties of the system parameters, e.g. Jupiter's eccentricity and inclination, the inclination distribution of Jupiter Trojans, are also taken into account and our results about the L4/L5 asymmetry have been further validated. However, the resonant amplitudes of the simulated Trojans are excited to higher values compared to the current population. A possible solution is that collisions among the Trojans may reduce their resonant amplitudes.",
+      "published": "2022-11-25T03:41:40Z",
+      "comment": "11 pages, 5 figures, accepted for publication in A&A",
+      "primary_category": "astro-ph.EP",
+      "journal_ref": "A&A 669, A68 (2023)",
+      "doi": "10.1051/0004-6361/202244443",
+      "authors": [
+        "Jian Li",
+        "Zhihong Jeff Xia",
+        "Fumi Yoshida",
+        "Nikolaos Georgakarakos",
+        "Xin Li"
+      ]
+    },
+    {
+      "id": "1501.02693v2",
+      "title": "Control of chaos in the vicinity of the Earth--Moon L5 Lagrangian point to keep a spacecraft in orbit",
+      "pdf_url": "https://arxiv.org/pdf/1501.02693v2",
+      "summary": "The concept of Space Manifold Dynamics is a new method of space research. We have applied it along with the basic idea of the method of Ott, Grebogi and York (OGY method) to stabilize the motion of a spacecraft around the triangular Lagrange point L5 of the Earth--Moon system. We have determined the escape rate of the trajectories in the general three- and four-body problem and estimated the average lifetime of the particles. Integrating the two models we mapped in detail the phase space around the L5 point of the Earth--Moon system. Using the phase space portrait our next goal was to apply a modified OGY method to keep a spacecraft close to the vicinity of L5. We modified the equation of motions with the addition of a time dependent force to the motion of the spacecraft. In our orbit--keeping procedure there are three free parameters: (i) the magnitude of the thrust, (ii) the start time and (iii) the length of the control. Based on our numerical experiments we were able to determine possible values for these parameters and successfully apply a control phase to a spacecraft to keep it on orbit around L5.",
+      "published": "2015-01-12T16:22:47Z",
+      "comment": "11 pages, 11 figures (updated Fig. 2), 1 table, accepted for publication in Astron. Nachr",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1002/asna.201412132",
+      "authors": [
+        "Judit Sl\u00edz",
+        "\u00c1ron S\u00fcli",
+        "Tam\u00e1s Kov\u00e1cs"
+      ]
+    },
+    {
+      "id": "2202.13630v1",
+      "title": "Stream Containers for Resource-oriented RDF Stream Processing",
+      "pdf_url": "https://arxiv.org/pdf/2202.13630v1",
+      "summary": "We introduce Stream Containers inspired by the Linked Data Platform as an alternative way to process RDF streams. A Stream Container represents a single RDF data stream that can be accessed in a resource-oriented way which allows for better interoperability with the existing Semantic Web infrastructure. Stream Containers are managed by webservers that are responsible for implementing the S2R operator, i.e. calculating the window for their clients. The clients on the other hand can use a standard SPARQL processor in combination with HTTP requests to do RDF processing. Query results can be converted back to an RDF stream (R2S operator) by posting the data to a Stream Container. Our approach of resource-oriented RDF stream processing can lead to a better distribution of load and thus to better worldwide scalability. We give a general overview of the proposed architecture as well as the formal semantics of the overall system.",
+      "published": "2022-02-28T09:21:59Z",
+      "comment": "Accepted for the Stream Reasoning Workshop 2021 in Milan",
+      "primary_category": "cs.DB",
+      "authors": [
+        "Daniel Schraudner",
+        "Andreas Harth"
+      ]
+    },
+    {
+      "id": "1910.07471v1",
+      "title": "Celestial Mechanics and Polarization Optics of the Kordylewski Dust Cloud in the Earth-Moon Lagrange Point L5 Part II. Imaging Polarimetric Observation: New Evidence for the Existence of Kordylewski Dust Cloud",
+      "pdf_url": "https://arxiv.org/pdf/1910.07471v1",
+      "summary": "Telescopes mounted with polarizers can study the neutral points of the Earths atmosphere, the solar corona, the surface of planets/moons of the Solar System, distant stars, galaxies and nebulae. These examples demonstrate well that polarimetry is a useful technique to gather astronomical information from spatially extended phenomena. There are two enigmatic celestial objects that can also effectively be studied with imaging polarimetry, namely the Kordylewski dust clouds (KDCs) positioned around the L4 and L5 triangular Lagrangian libration points of the Earth-Moon system. Although in 1961 the Polish astronomer, Kazimierz Kordylewski had observed two bright patches near the L5 point with photography, many astronomers assume that these dust clouds do not exist, because the gravitational perturbation of the Sun, solar wind and other planets may disrupt the stabilizing effect of the L4 and L5 Lagrange points of the Earth and Moon. Using ground-born imaging polarimetry, we present here new observational evidence for the existence of the KDC around the L5 point of the Earth-Moon system. Excluding artefacts induced by the telescope, cirrus clouds or condensation trails of airplanes, the only explanation remains the polarized scattering of sunlight on the particles collected around the L5 point. By our polarimetric detection of the KDC we think it is appropriate to reconsider the pioneering photometric observation of Kordylewski. Our polarimetric evidence is supported by the results of simulation of dust cloud formation in the L5 point of the Earth-Moon system presented in the first part of this paper.",
+      "published": "2019-10-16T16:53:36Z",
+      "primary_category": "astro-ph.EP",
+      "doi": "10.1093/mnras/sty2630",
+      "authors": [
+        "Judit Sl\u00edz-Balogh",
+        "Andr\u00e1s Barta",
+        "G\u00e1bor Horv\u00e1th"
+      ]
+    },
+    {
+      "id": "1705.01015v3",
+      "title": "Deep Learning for Tumor Classification in Imaging Mass Spectrometry",
+      "pdf_url": "https://arxiv.org/pdf/1705.01015v3",
+      "summary": "Motivation: Tumor classification using Imaging Mass Spectrometry (IMS) data has a high potential for future applications in pathology. Due to the complexity and size of the data, automated feature extraction and classification steps are required to fully process the data. Deep learning offers an approach to learn feature extraction and classification combined in a single model. Commonly these steps are handled separately in IMS data analysis, hence deep learning offers an alternative strategy worthwhile to explore. Results: Methodologically, we propose an adapted architecture based on deep convolutional networks to handle the characteristics of mass spectrometry data, as well as a strategy to interpret the learned model in the spectral domain based on a sensitivity analysis. The proposed methods are evaluated on two challenging tumor classification tasks and compared to a baseline approach. Competitiveness of the proposed methods are shown on both tasks by studying the performance via cross-validation. Moreover, the learned models are analyzed by the proposed sensitivity analysis revealing biologically plausible effects as well as confounding factors of the considered task. Thus, this study may serve as a starting point for further development of deep learning approaches in IMS classification tasks.",
+      "published": "2017-05-02T15:15:19Z",
+      "comment": "10 pages, 5 figures",
+      "primary_category": "stat.ML",
+      "journal_ref": "Bioinformatics, 2018, Volume 34, Issue 7, Pages 1215-1223",
+      "doi": "10.1093/bioinformatics/btx724",
+      "authors": [
+        "Jens Behrmann",
+        "Christian Etmann",
+        "Tobias Boskamp",
+        "Rita Casadonte",
+        "J\u00f6rg Kriegsmann",
+        "Peter Maass"
+      ]
+    }
+  ]
+}

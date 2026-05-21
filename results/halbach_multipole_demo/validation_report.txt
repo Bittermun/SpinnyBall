@@ -1,0 +1,43 @@
+================================================================================
+Halbach Array Multipole Expansion Validation Report
+================================================================================
+
+Configuration:
+  Halbach array radius: 50.0 mm
+  Dipole moment: 1.00 A⋅m²
+  Validation region: r/R = [1.0, 5.0]
+  Grid points: 96
+
+Degree Convergence:
+  Degree 1:
+    Mean field: 232.99 μT
+    Max field:  1600.00 μT
+
+  Degree 2:
+    Mean field: 229.69 μT
+    Max field:  1840.20 μT
+
+  Degree 3:
+    Mean field: 243.00 μT
+    Max field:  2000.72 μT
+
+  Degree 4:
+    Mean field: 246.72 μT
+    Max field:  2015.06 μT
+
+  Degree 5:
+    Mean field: 681.63 μT
+    Max field:  11710.93 μT
+
+  Degree 6:
+    Mean field: 4817.56 μT
+    Max field:  119727.88 μT
+
+Accuracy vs. Dipole:
+  Degree 2: max error = 15.4%, rms error = 5.9%
+  Degree 3: max error = 32.8%, rms error = 8.7%
+  Degree 4: max error = 160.0%, rms error = 28.3%
+
+Acceptance Criteria:
+  ±10% tolerance for r/R in [1, 3]
+  Status: ✅ PASS

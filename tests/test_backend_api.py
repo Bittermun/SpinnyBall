@@ -4,6 +4,7 @@ Test script for digital twin backend API endpoints.
 This script verifies the FastAPI backend endpoints work correctly.
 """
 
+import pytest
 import sys
 from pathlib import Path
 
@@ -121,6 +122,7 @@ def test_simulation_state():
     print("  ✓ Simulation state retrieval working")
 
 
+@pytest.mark.slow
 def test_monte_carlo_endpoint():
     """Test Monte Carlo endpoint (small sample)."""
     print("Testing Monte Carlo endpoint...")

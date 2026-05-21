@@ -231,9 +231,9 @@ See [`dynamics/multi_body.py`](../dynamics/multi_body.py) for integration exampl
    - Time-varying Moon position updates during long propagations
    - SRP with SPICE Sun direction
 
-3. **Shepherd Control in Cislunar Context**
-   - Closed-loop control for packet spacing
-   - Δv budget tracking across cislunar legs
+3. **Guided-Beam Electromagnetic Deflection and Shepherding Control**
+   - Closed-loop electromagnetic packet stabilization and spacing maintenance
+   - Δv budget tracking across cislunar ballistic corridors
 
 4. **Monte Carlo Extension**
    - Cislunar perturbation sampling

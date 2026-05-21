@@ -129,5 +129,46 @@ def test_stress_calculation_uses_formula():
     assert result['stress_margin'] > 0
 
 
+def test_phase3_logistics_and_resonance_metrics():
+    """Verify Discrete Coherence Stability Criterion and launch cost savings."""
+    # Test case 1: low velocity (slingshot disabled)
+    r_low = mission_level_metrics(
+        u=1600, mp=8, r=0.05, omega=5236,
+        h_km=550, ms=1000, g_gain=0.001, k_fp=5000,
+        spacing=0.48
+    )
+    assert "coherence_stable" in r_low
+    assert "limit_spacing_m" in r_low
+    assert "propellant_saved_kg_per_yr" in r_low
+    assert "booster_cost_savings_usd_per_yr" in r_low
+    assert isinstance(r_low["coherence_stable"], bool)
+    assert isinstance(r_low["limit_spacing_m"], float)
+    
+    # At u=1600, spacing=0.48 should be coherence stable
+    assert r_low["coherence_stable"] == True
+    # slingshot is disabled (u < 5000)
+    assert r_low["propellant_saved_kg_per_yr"] == 0.0
+    assert r_low["booster_cost_savings_usd_per_yr"] == 0.0
+
+    # Test case 2: high velocity (slingshot enabled)
+    r_high = mission_level_metrics(
+        u=6000, mp=8, r=0.05, omega=5236,
+        h_km=550, ms=1000, g_gain=0.001, k_fp=5000,
+        spacing=0.48
+    )
+    # slingshot is enabled (u >= 5000)
+    assert r_high["propellant_saved_kg_per_yr"] > 0.0
+    assert r_high["booster_cost_savings_usd_per_yr"] > 0.0
+    
+    # Test case 3: unstable spacing (spacing > 90 km)
+    r_unstable = mission_level_metrics(
+        u=1600, mp=8, r=0.05, omega=5236,
+        h_km=550, ms=1000, g_gain=0.001, k_fp=5000,
+        spacing=95000.0  # 95 km (greater than 90 km limit)
+    )
+    assert r_unstable["coherence_stable"] == False
+    assert r_unstable["feasible"] == False
+
+
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

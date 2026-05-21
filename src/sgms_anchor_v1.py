@@ -1494,14 +1494,24 @@ def mission_level_metrics(
         metrics = analytical_metrics(params)
         k_eff = metrics["k_eff"]
 
+    # 9b. Discrete Coherence Stability Criterion
+    limit_spacing = float(2.0 * np.pi * u * np.sqrt(ms / k_eff)) if k_eff > 0.0 else 0.0
+    coherence_stable = bool((spacing <= limit_spacing) and (spacing <= 90000.0))
+
+    # 9c. Quantify rocket booster propellant and launch cost savings
+    N_slingshot_per_year = budget.N_slingshot_pipeline * (365.0 / 30.0)
+    propellant_saved_kg_per_yr = N_slingshot_per_year * mp * (np.exp(slingshot_dv / (350.0 * 9.81)) - 1.0)
+    booster_cost_savings_usd_per_yr = propellant_saved_kg_per_yr * 10000.0
+
     # 9. Feasibility check
-    feasible = (
+    feasible = bool(
         stress_margin >= 1.5 and  # Safety factor 1.5
         thermal_margin >= 5.0 and  # At least 5K thermal margin
         k_eff >= 6000.0 and  # Minimum stiffness requirement
         N_packets <= 100000 and  # Reasonable packet count
         budget.M_total_kg <= 10000.0 and  # Use budget total, not just stream (10 tons)
-        energy_budget.service_lifetime_hours >= 8760  # At least 1 year service life
+        energy_budget.service_lifetime_hours >= 8760 and  # At least 1 year service life
+        coherence_stable
     )
 
     return {
@@ -1515,6 +1525,11 @@ def mission_level_metrics(
         "thermal_margin": thermal_margin,
         "k_eff": k_eff,
         "feasible": feasible,
+        # Phase 3 returns
+        "coherence_stable": coherence_stable,
+        "limit_spacing_m": limit_spacing,
+        "propellant_saved_kg_per_yr": propellant_saved_kg_per_yr,
+        "booster_cost_savings_usd_per_yr": booster_cost_savings_usd_per_yr,
         # Additional diagnostics
         "stream_length_m": stream_length,
         "centrifugal_stress_Pa": centrifugal_stress,

@@ -2,7 +2,9 @@
 
 ## System Architecture
 
-Spin-stabilized gyroscopic mass-stream anchor for cislunar station-keeping. Stiffness from momentum-flux reaction + flux-pinning superconducting bearings. Feedback controller modulates effective stiffness via gain `g_gain`.
+The Spin-Stabilized Gyroscopic Mass-Stream (SGMS) anchor represents a propellantless station-keeping paradigm for cislunar nodes. Rather than employing continuous physical tracks or guide tethers stretching across space (which would introduce prohibitive mass penalties), the system relies on a **Guided-Beam Ballistic Free-Flight** topology.
+
+Packets travel through cislunar vacuum in unguided, Keplerian ballistic trajectories (Free-Flight Corridors) spanning up to 380,000 km. Localized stabilization, steering, and momentum transfer occur exclusively within discrete satellite stations (Nodes) equipped with electromagnetic deflection channels and passive **flux-pinning Samarium-Cobalt ($\text{Sm}_2\text{Co}_{17}$)** permanent magnet bearings. A feedback controller modulates effective stiffness at each node via the gain `g_gain` to compensate for sensor error and dynamic drift.
 
 ## Operational Parameters
 
@@ -21,39 +23,41 @@ Spin-stabilized gyroscopic mass-stream anchor for cislunar station-keeping. Stif
 
 ## Sobol Optimal Parameters
 
-| Parameter | Operational | Optimal | Δ |
-|-----------|-------------|---------|---|
-| u (m/s) | 15,000 | 588.8 | -63% |
-| lam (kg/m) | 72.92 | 15.47 | -7% |
-| mp (kg) | 35 | 4.57 | -43% |
-| g_gain | 0.000140 | 0.0004 | +186% |
-| k_eff | 2.3e6 | 8,145 | — |
+Sobol global sensitivity analysis (Saltelli sampling, N=20,480 total runs) identifies stream velocity $u$ as the dominant driver of infrastructure mass. The table below represents the transition from the high-velocity operational envelope (`smco-heavy`) to the low-velocity Sobol-optimal design envelope (`paper-recommended`), showing mathematically consistent values and exact relative changes ($\Delta$):
 
-k_eff target: 6,000–10,000 N/m.
+| Parameter | Operational (`smco-heavy`) | Optimal (`paper-recommended`) | Δ |
+|-----------|----------------------------|-------------------------------|---|
+| u (m/s) | 15,000 | 588.8 | -96.07% |
+| lam (kg/m) | 72.92 | 9.52 | -86.94% |
+| mp (kg) | 35.00 | 4.57 | -86.94% |
+| g_gain | 0.000140 | 0.000400 | +185.71% |
+| k_eff (N/m) | 2.31e6 | 7,320 | -99.68% |
+
+*Note: Packet spacing is maintained at 0.48 m across both profiles. Optimal k_eff falls safely within the 6,000–10,000 N/m design target.*
 
 ## Physical Models
 
-**Effective stiffness**: `k_eff = λu²g_gain + k_fp`
+**Effective stiffness**: $k_{eff} = \lambda u^2 g_{gain} + k_{fp}$ (active controller feedback momentum coupling + passive magnetostatic flux-pinning stiffness)
 
-**Momentum flux**: `F = λu²`
+**Momentum flux**: $F = \lambda u^2$
 
-**Centrifugal stress**: `σ = mω²/(4πr)` — CFRP (2 GPa) required at 50k RPM (σ ≈ 765 MPa, SF=2.61). BFRP (800 MPa) insufficient.
+**Centrifugal stress**: $\sigma = \frac{3+\nu}{8} \rho \omega^2 r^2$ — CFRP (2 GPa tensile limit) required at 50,000 RPM ($\sigma \approx 765$ MPa, SF=2.61). Basalt Fiber Reinforced Polymer (BFRP) is insufficient at this spin rate.
 
-**Thermal limit**: T_ss = 379 K at 15 km/s. SmCo operating at 106°C with 15.7% margin below 450 K limit. GdBCO quench risk at this velocity.
+**Thermal limit**: $T_{ss} = 379$ K at 15 km/s. SmCo permanent magnet arrays operate in passive radiative-vacuum equilibrium at 106°C, representing a 15.7% thermal safety margin below the 450 K material degradation limit. Active Stirling/pulse-tube cryocoolers are reserved strictly for auxiliary/backup GdBCO systems, as eddy-current hypervelocity heating at 15 km/s poses a high GdBCO thermal quench risk.
 
-## Material: SmCo vs GdBCO
+## Material: Passive SmCo vs Cryo-HTS GdBCO
 
-- **GdBCO**: Extreme pinning, quench risk at 15 km/s (eddy heating exceeds radiative cooling)
-- **SmCo**: Passively stable to 300°C. 95% less auxiliary power than cryogenic HTS systems
+- **GdBCO (High-Temperature Superconductor)**: Offers high magnetic pinning fields, but exhibits extreme vulnerability to thermal quench at high velocities ($u > 1$ km/s) due to hypervelocity eddy-current dissipation exceeding active space-qualified Stirling cryocooler capacities.
+- **SmCo (Samarium-Cobalt Permanent Magnets)**: Passively stable up to 300°C in vacuum. Eliminates active cryogenics, resulting in a 95% reduction in auxiliary power requirements compared to HTS options.
 
 ## Control-Latency Stability
 
-Empirical stability boundary (JAX sweep): latency < 20ms for 2.1x margin. η_ind = 0.82 safety limit tolerates 42ms delay.
+Empirical stability boundaries from JAX-accelerated sweeps establish a strict latency limit of $<20$ ms to maintain a 2.1x control safety margin. The indicator safety parameter $\eta_{ind} = 0.82$ provides a hard physical boundary, tolerating a maximum feedback latency of 42 ms before system-wide phase lag drives exponential divergence.
 
 ## JAX Acceleration
 
-LQR surrogate + vectorized RK4 achieves 0.96s per full sweep (3,751x speedup).
+Our LQR surrogate + vectorized RK4 integrator engine, compiled via XLA, achieves a 0.96s full-sweep execution time (3,751x speedup over native CPU iterations), enabling massive statistical validation.
 
 ## Statistical Methodology
 
-Wilson score CI (binomial), normal CI (means), 5% CI width convergence threshold, adaptive MC (N=100 to N=10,000), containment threshold = 2 nodes, cascade threshold = 1.05x stiffness reduction.
+Confidence intervals are calculated using the Wilson Score method for binomial rates (fault containment) and standard Normal distributions for system parameter means. The adaptive Monte Carlo algorithm automatically scales sample sizes (N=100 to N=10,000) until the 5% confidence interval width threshold is achieved. System cascade propagation is modeled as a localized load redistribution process where adjacent surviving nodes' passive flux-pinning stiffness is scaled down by a load factor $L_f = 1 + \alpha / N_{\text{neighbors}}$ ($\alpha = 0.10$), with a node failing only if its dynamic effective stiffness drops below the 50% nominal stiffness threshold ($3,000$ N/m).

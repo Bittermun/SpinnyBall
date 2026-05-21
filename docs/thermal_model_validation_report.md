@@ -8,6 +8,15 @@
 
 Comprehensive validation of thermal model and flux-pinning bug fixes for GdBCO-based space packets. All critical physics corrections have been implemented, tested, and validated. The thermal model now correctly implements radiative cooling for space vacuum, and flux-pinning integration properly handles GdBCO material properties and torque calculations.
 
+## Architectural Paradigm Update: Passive Samarium-Cobalt ($\text{Sm}_2\text{Co}_{17}$) vs. Cryogenic GdBCO
+
+While the original validation campaign detailed below focused heavily on cryogenic High-Temperature Superconductor (HTS) **GdBCO** packets and nodes (with a strict critical temperature boundary of $T_c = 92\text{ K}$ and an operational constraint of $90\text{ K}$), the system has subsequently undergone a major architectural pivot for the 15 km/s high-velocity mass-stream baseline:
+
+1. **Passive radiative-vacuum equilibrium**: High-velocity packets ($u = 15,000\text{ m/s}$) experience high inductive eddy-current heating within the deflection channels. Standardizing on passive **Samarium-Cobalt ($\text{Sm}_2\text{Co}_{17}$)** permanent magnet Halbach arrays allows the system to operate at a stable, passive radiative-equilibrium temperature of $379\text{ K}$ ($106^\circ\text{C}$). This is well within the SmCo thermal degradation limit ($450\text{ K}$), completely eliminating the need for active cryogenic cooling, and reducing auxiliary power requirements by $95\%$.
+2. **HTS as an Auxiliary/Backup Alternative**: Active Stirling or pulse-tube space cryocoolers (modeled strictly under the thermodynamic limit of $12\%$ relative Carnot coefficient of performance) are reserved solely for auxiliary/backup GdBCO systems. The $90\text{ K}$ thermal limit and active cryocooler integrations documented in this report remain active and valid in the codebase for these backup/HTS configurations, but they represent a secondary design path due to high quench risks from eddy-current dissipation at hypervelocities.
+
+This dual-mode capability ensures that the codebase can simulate both the high-efficiency passive SmCo permanent magnet envelope and the highly sensitive, cryogenically controlled HTS GdBCO envelope.
+
 ## Implementation Summary
 
 ### Thermal Model Fixes

@@ -88,7 +88,7 @@ This document compiles all simulation results, sensitivity analyses, and perform
 - Time horizon: 3,600 s (1 hour operational window)
 - Realizations per fault rate: N=200
 - Fault rates tested: 10⁻⁸ to 10³ faults/hr (15 logarithmic steps)
-- Cascade threshold: 5% stiffness reduction per failure; cascade triggers at 1.05× cumulative reduction
+- Cascade model: Localized load redistribution scaling down stiffness by $L_f = 1 + \alpha / N_{\text{neighbors}}$ ($\alpha = 0.10$); failure trigger at 50% nominal stiffness ($3,000$ N/m)
 
 ### Results Summary
 
@@ -101,7 +101,7 @@ This document compiles all simulation results, sensitivity analyses, and perform
 | Statistical confidence          | >99.99%              |
 | Total realizations analyzed     | 2,400+              |
 
-**Key Finding:** System exhibits robust cascade containment at all operational fault rates. The 5% per-failure degradation model requires ≥20 simultaneous node failures to trigger cascade—a statistically negligible probability (<10⁻¹⁰) at environmental rates.
+**Key Finding:** System exhibits robust cascade containment at all operational fault rates. The localized load-redistribution model ($L_f = 1 + \alpha / N_{\text{neighbors}}$) requires multiple highly clustered node failures to drop neighbor stiffness below the 50% threshold ($3,000$ N/m)—a statistically negligible probability (<10⁻¹⁰) at environmental rates.
 
 **Stress Test Results:**
 - At λ = 15–20 faults/hr (extreme scenario), cascade probability reaches ~5%
@@ -296,7 +296,7 @@ python scripts/compile_research_data.py
 
 ### Current Limitations
 1. **Reduced-order model:** Neglects flexible body dynamics, packet-packet magnetic coupling
-2. **Idealized fault model:** 5% stiffness reduction may not capture real failure modes (e.g., quench, mechanical fracture)
+2. **Idealized fault model:** The load-redistribution model uses a 50% stiffness failure threshold ($3,000$ N/m) which may not capture complex multi-physics failure modes (e.g., dynamic magnet quench, structural mechanical fracture)
 3. **Orbital mechanics:** Simplified J₂-only perturbation; neglects solar radiation pressure, third-body effects
 4. **Deployment logistics:** Energy injection model assumes instantaneous stream population; realistic phasing not modeled
 
