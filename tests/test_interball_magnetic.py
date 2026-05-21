@@ -88,13 +88,9 @@ class TestDipoleDipoleForce:
         
         F = dipole_dipole_force(m1, m2, r_vec)
         
-        # Side-by-side parallel dipoles repel
-        # F is the force ON m1, so if m2 is at +x, F should push m1 toward -x
-        # But the formula gives F[0] > 0, meaning the force is in +x direction
-        # This means m1 is being pushed toward m2, which is attractive
-        # Actually, for side-by-side with dipoles parallel to z, the force is attractive
-        # Let's just verify the force is non-zero and finite
-        assert np.isfinite(F[0])
+        # dipole_dipole_force returns force on m2 (arg 2) due to m1 (arg 1).
+        # For side-by-side parallel dipoles, force on m2 should be +x (repulsive).
+        assert F[0] > 0
         assert np.isclose(F[1], 0.0, atol=1e-10)
         assert np.isclose(F[2], 0.0, atol=1e-10)
     
@@ -257,7 +253,9 @@ class TestInterBallMagneticInteraction:
         # Middle ball should feel repulsion from both sides
         # Forces should roughly cancel for symmetric configuration
         F_middle = forces[1]
-        assert np.isfinite(F_middle[0])
+        assert np.isclose(F_middle[0], 0.0, atol=1e-10)
+        assert forces[0][0] < 0.0
+        assert forces[2][0] > 0.0
     
     def test_compute_torques_shape(self):
         """Test that torques have correct shape."""

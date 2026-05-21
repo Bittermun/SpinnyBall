@@ -77,6 +77,9 @@ def run_t3_sweep(
     enable_cascade_propagation: bool = False,  # NEW: Enable cascade propagation
     fault_injection_mode: str = "rate",  # NEW: Fault injection mode
     n_guaranteed_faults: int = 0,  # NEW: Guaranteed faults
+    pass_fail_eta_ind_min: float = 0.82,
+    pass_fail_stress_max: float = 1.2e9,
+    pass_fail_k_eff_min: float = 6000.0,
 ) -> dict:
     """
     Run T3 sweep: fault rate vs cascade/containment metrics.
@@ -136,9 +139,9 @@ def run_t3_sweep(
             fault_injection_mode=fault_injection_mode,
             n_guaranteed_faults=n_guaranteed_faults,
             pass_fail_gates={
-                "eta_ind": (0.82, ">="),
-                "stress": (1.2e9, "<="),
-                "k_eff": (6000.0, ">="),
+                "eta_ind": (pass_fail_eta_ind_min, ">="),
+                "stress": (pass_fail_stress_max, "<="),
+                "k_eff": (pass_fail_k_eff_min, ">="),
             },
         )
 
@@ -197,6 +200,23 @@ def run_t3_sweep(
         'fault_events_total_per_point': fault_events_total_per_point,
         'sanity_warnings': sanity_warnings,
     }
+
+
+def _make_json_serializable(obj):
+    """Convert numpy arrays / scalars in results to plain Python types for json.dump."""
+    import numpy as np
+
+    if isinstance(obj, np.ndarray):
+        return obj.tolist()
+    if isinstance(obj, (np.floating, np.float32, np.float64)):
+        return float(obj)
+    if isinstance(obj, (np.integer, np.int32, np.int64)):
+        return int(obj)
+    if isinstance(obj, dict):
+        return {k: _make_json_serializable(v) for k, v in obj.items()}
+    if isinstance(obj, list):
+        return [_make_json_serializable(v) for v in obj]
+    return obj
 
 
 def plot_t3_results(results: dict, output_file: str = 'sweep_t3_fault_cascade.png'):
@@ -273,23 +293,133 @@ def analyze_containment_threshold(results: dict) -> dict:
     }
 
 
+def _parse_cli_args():
+    import argparse
+    parser = argparse.ArgumentParser(description="T3 Sweep: fault rate vs cascade/containment metrics")
+
+    # Sweep shape
+    parser.add_argument("--fault_rate_min", type=float, default=1e-6)
+    parser.add_argument("--fault_rate_max", type=float, default=1e-2)
+    parser.add_argument("--n_fault_rate_points", type=int, default=12)
+
+    # Physics / gates
+    parser.add_argument("--cascade_threshold", type=float, default=1.05)
+    parser.add_argument("--containment_threshold", type=int, default=2)
+    parser.add_argument("--n_nodes", type=int, default=10)
+    parser.add_argument("--pass_fail_eta_ind_min", type=float, default=0.82)
+    parser.add_argument("--pass_fail_stress_max", type=float, default=1.2e9)
+    parser.add_argument("--pass_fail_k_eff_min", type=float, default=6000.0)
+
+    # Monte Carlo scale
+    parser.add_argument("--n_realizations_per_point", type=int, default=200)
+    parser.add_argument("--time_horizon", type=float, default=3600.0)
+    parser.add_argument("--dt", type=float, default=0.01)
+
+    # Interesting coupling toggles
+    parser.add_argument("--enable_cascade_propagation", action="store_true", default=False)
+    parser.add_argument("--enable_thermal_quench", action="store_true", default=False)
+    parser.add_argument("--quench_detection_enabled", action="store_true", default=False)
+
+    # Fault injection mode
+    parser.add_argument("--fault_injection_mode", choices=["rate", "guaranteed", "poisson"], default="rate")
+    parser.add_argument("--n_guaranteed_faults", type=int, default=0)
+
+    # Artifacts
+    parser.add_argument("--out_dir", type=str, default="sweep_results")
+    parser.add_argument("--save_plot", action="store_true", default=False)
+    parser.add_argument("--no_plot", action="store_true", default=False)
+
+    # Runtime
+    parser.add_argument("--seed", type=int, default=None)
+    parser.add_argument("--smoke_test", action="store_true", default=False)
+    return parser.parse_args()
+
+
+def _timestamp():
+    import datetime
+    return datetime.datetime.now().strftime("%Y%m%d-%H%M%S")
+
+
+def _ensure_dir(path: str) -> None:
+    os.makedirs(path, exist_ok=True)
+
+
 if __name__ == "__main__":
-    # Run sweep with extended range to find cascade boundary
+    args = _parse_cli_args()
+
+    # Smoke test presets (fast, still exercises pipeline)
+    if args.smoke_test:
+        args.n_fault_rate_points = min(args.n_fault_rate_points, 4)
+        args.n_realizations_per_point = min(args.n_realizations_per_point, 20)
+        args.time_horizon = min(args.time_horizon, 60.0)  # 60s is enough for basic wiring
+
+        # Ensure failures happen even in short horizon
+        if args.fault_injection_mode == "rate":
+            # With short horizon, rate-based injection may lead to zero injected faults.
+            # Switch to guaranteed for smoke test.
+            args.fault_injection_mode = "guaranteed"
+            args.n_guaranteed_faults = max(args.n_guaranteed_faults, 1)
+
+    if args.seed is not None:
+        np.random.seed(args.seed)
+
     results = run_t3_sweep(
-        fault_rate_range=(1e-6, 1e-2),  # Extended to 1e-2 to find cascade boundary
-        n_fault_rate_points=12,  # More points for finer resolution
-        cascade_threshold=1.05,
-        containment_threshold=2,
-        n_nodes=10,
-        n_realizations_per_point=200,  # High-resolution for convergence (doubled for 1hr horizon)
-        time_horizon=3600.0,  # 1 hour - required for meaningful rare-event fault statistics at 1e-6/hr
+        fault_rate_range=(args.fault_rate_min, args.fault_rate_max),
+        n_fault_rate_points=args.n_fault_rate_points,
+        cascade_threshold=args.cascade_threshold,
+        containment_threshold=args.containment_threshold,
+        n_nodes=args.n_nodes,
+        n_realizations_per_point=args.n_realizations_per_point,
+        time_horizon=args.time_horizon,
+        enable_cascade_propagation=args.enable_cascade_propagation,
+        fault_injection_mode=args.fault_injection_mode,
+        n_guaranteed_faults=args.n_guaranteed_faults,
+        pass_fail_eta_ind_min=args.pass_fail_eta_ind_min,
+        pass_fail_stress_max=args.pass_fail_stress_max,
+        pass_fail_k_eff_min=args.pass_fail_k_eff_min,
     )
 
-    # Plot results
-    plot_t3_results(results)
+    # Attach run metadata (for provenance)
+    results["run_metadata"] = {
+        "fault_rate_range": [args.fault_rate_min, args.fault_rate_max],
+        "n_fault_rate_points": args.n_fault_rate_points,
+        "cascade_threshold": args.cascade_threshold,
+        "containment_threshold": args.containment_threshold,
+        "n_nodes": args.n_nodes,
+        "n_realizations_per_point": args.n_realizations_per_point,
+        "time_horizon": args.time_horizon,
+        "enable_cascade_propagation": args.enable_cascade_propagation,
+        "enable_thermal_quench": args.enable_thermal_quench,
+        "quench_detection_enabled": args.quench_detection_enabled,
+        "fault_injection_mode": args.fault_injection_mode,
+        "n_guaranteed_faults": args.n_guaranteed_faults,
+        "dt": args.dt,
+        "seed": args.seed,
+        "smoke_test": args.smoke_test,
+        "artifact_timestamp": _timestamp(),
+    }
 
     # Analyze containment threshold
     analysis = analyze_containment_threshold(results)
+    results["analysis"] = analysis
+
+    # Save JSON artifacts
+    _ensure_dir(args.out_dir)
+    ts = results["run_metadata"]["artifact_timestamp"]
+    json_path = os.path.join(args.out_dir, f"t3_sweep_results_{ts}.json")
+    import json
+    with open(json_path, "w", encoding="utf-8") as f:
+        json.dump(
+            _make_json_serializable(results),
+            f,
+            indent=2
+        )
+    logger.info(f"Saved sweep results JSON: {json_path}")
+
+    # Plot results (optional)
+    if args.save_plot and not args.no_plot:
+        plot_path = os.path.join(args.out_dir, f"t3_sweep_plot_{ts}.png")
+        plot_t3_results(results, output_file=plot_path)
 
     # Print summary
     print("\n=== T3 SWEEP SUMMARY ===")

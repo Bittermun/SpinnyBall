@@ -218,7 +218,7 @@ class Packet:
             r_vec = neighbor_pos - my_pos
 
             # Force from neighbor
-            F = dipole_dipole_force(my_dipole, neighbor_dipole, r_vec)
+            F = dipole_dipole_force(neighbor_dipole, my_dipole, -r_vec)
             total_force += F
 
         return total_force
