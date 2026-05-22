@@ -2,6 +2,17 @@
 
 Closed-loop gyroscopic mass-stream anchor for station-keeping in cislunar space.
 
+> [!WARNING]
+> ### CRITICAL PHYSICAL FEASIBILITY LIMIT: THE PRECISION THRESHOLD SHOWSTOPPER
+> 
+> The physical feasibility of the SpinnyBall mass-stream anchor is fundamentally limited by **extreme precision requirements** that present severe engineering showstoppers:
+> 
+> - **Nanorad Launch Targeting ($<10^{-9}\text{ rad}$):** Launching 35-kg packets at 15 km/s across 380,000 km ballistic corridors requires sub-nanorad angular precision to hit receiving stator apertures. A deviation of just $0.0001^{\circ}$ offsets the packet by over 660 km, creating a stream of destructive hypervelocity space debris.
+> - **Sub-Microsecond Control Latency ($\le 5\ \mu\text{s}$):** Compressing packet spacing to equal interaction length ($L_{\text{spacing}} \approx L_{\text{int}} \approx 1.5\text{ m}$) suppresses pulsed mechanical shocks but demands active Model Predictive Control (MPC) operating with a closed-loop delay $\tau_{\text{delay}} \le 5\ \mu\text{s}$ to prevent lateral shepherding collapse. A $1\ \mu\text{s}$ timing delay results in a $1.5\text{ cm}$ spatial lag, causing hypervelocity stator collisions.
+> - **Gyroscopic writhing torque cancellation:** Paired CW and CCW streams must perfectly cancel the $1.99\text{ MN}\cdot\text{m}$ of gyroscopic torque with sub-micron spatial and phase synchronization.
+> 
+> As such, the system remains a highly speculative, uncertainty-bounded theoretical model whose real-world execution requires shepherding and manufacturing precision that exceeds current state-of-the-art capabilities.
+
 ## Overview
 
 Spin-stabilized magnetic packets (50k RPM) circulate along an orbital circumference. Momentum-flux anchoring generates restoring force: F = λu²sin(θ). Flux-pinned superconducting bearings provide passive stiffness. Two material options: SmCo (passive, ~379K) or GdBCO (active cryogenic, ~77K).
@@ -38,15 +49,15 @@ graph TD
 - **Monte Carlo**: 256k realizations via JAX/XLA in 0.96s. T3 sweep extended to 3600s for rare-event statistics.
 - **Sobol (9 params, N=1,024 base → 20,480 evaluations)**: Velocity dominates mass variance (79%) and k_eff variance (81%). SmCo feasibility 0.3%, GdBCO 17.3% with 1-year lifetime constraint enforced.
 - **Speedup**: 3,751× faster than legacy CPU implementations with JAX acceleration
-- **Infrastructure mass reduction**: 99.9% at 15 km/s vs 500 m/s baseline (velocity scaling ∝ v⁻²)
+- **Infrastructure mass scaling**: High velocities bound the circulating active-stream mass envelope, though total integrated system mass is governed by non-linear control stator and cryogenic scaling.
 
 ### Material Comparison (N=20,480 samples each)
-| Magnet | Structure | Feasibility | Optimal Mass | Power | Notes |
-|--------|-----------|------------:|-------------:|------:|-------|
-| SmCo | BFRP | 0.28% | 117 kg | ~0 W | Passive thermal @ 379K |
-| SmCo | CNT_yarn | 1.33% | 117 kg | ~0 W | Best SmCo option |
-| GdBCO | BFRP | 17.6% | 30 kg | ~2 MW | High stiffness, cryogenic |
-| GdBCO | CNT_yarn | 28.5% | 30 kg | ~2 MW | Best overall feasibility |
+| Magnet | Structure | Feasibility | Active-Stream Mass Limit | Power | Notes |
+|--------|-----------|------------:|:-------------------------|------:|-------|
+| SmCo | BFRP | 0.28% | Bounded by velocity scaling | ~0 W | Passive thermal @ 379K |
+| SmCo | CNT_yarn | 1.33% | Bounded by velocity scaling | ~0 W | Best SmCo option |
+| GdBCO | BFRP | 17.6% | Bounded by velocity scaling | ~2 MW | High stiffness, cryogenic |
+| GdBCO | CNT_yarn | 28.5% | Bounded by velocity scaling | ~2 MW | Best overall feasibility |
 
 **Trade-off**: SmCo enables passive cooling (zero power) but lower feasibility due to thermal constraints. GdBCO provides higher field strength and feasibility but requires MW-scale cryocooling infrastructure.
 

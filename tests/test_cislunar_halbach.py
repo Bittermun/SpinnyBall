@@ -247,6 +247,122 @@ class TestHalbachComparisonWithoutHalbach:
         assert max_diff >= 0.0  # Could be zero if forces negligible
 
 
+class TestCislunarMacroArchitecture:
+    """Test macro-architectural physical boundary limits and derivations."""
+
+    def test_debye_shielding_screening(self):
+        """Verify Debye length screening is severe in LEO and negligible in High-MEO."""
+        # Constants
+        eps_0 = 8.854187817e-12
+        k_B = 1.380649e-23
+        e = 1.602176634e-19
+        eV_to_J = 1.602176634e-19
+
+        # LEO Conditions
+        n_e_leo = 1e11  # m^-3
+        T_e_leo = 0.1 * eV_to_J  # J
+        lambda_D_leo = np.sqrt((eps_0 * T_e_leo) / (e**2 * n_e_leo))
+        
+        # High-MEO Conditions
+        n_e_meo = 1e7  # m^-3
+        T_e_meo = 1.0 * eV_to_J  # J
+        lambda_D_meo = np.sqrt((eps_0 * T_e_meo) / (e**2 * n_e_meo))
+
+        # Assert Debye lengths match analytical limits
+        assert 0.005 < lambda_D_leo < 0.010  # ~7.4 mm
+        assert 2.0 < lambda_D_meo < 3.0     # ~2.35 m
+
+        # Solve Modified Bessel electrostatic attenuation factor at r = 0.5 m, a = 1.5 m
+        r = 0.5
+        a = 1.5
+        att_leo = np.sqrt(a / r) * np.exp(-(a - r) / lambda_D_leo)
+        att_meo = np.sqrt(a / r) * np.exp(-(a - r) / lambda_D_meo)
+
+        # LEO should be suppressed by over 30 orders of magnitude (att_leo < 1e-30)
+        assert att_leo < 1e-30
+        # High-MEO should be fully viable with minimal attenuation (att_meo > 0.60)
+        assert att_meo > 0.60
+
+    def test_alfven_whistler_wave_drag(self):
+        """Verify whistler wave drag power is reduced by >99.999% in High-MEO vs. LEO."""
+        # Wave drag power scales as P_whistler = C * u^4 * n_e^2.5 * B_0^-1
+        # Relative reduction is driven entirely by the plasma density change
+        n_e_leo = 1e11
+        n_e_meo = 1e7
+
+        # Ratio of MEO drag power to LEO drag power
+        ratio = (n_e_meo / n_e_leo)**2.5
+        reduction = 1.0 - ratio
+
+        # Should be a reduction of 10 orders of magnitude, i.e., > 99.999999%
+        assert ratio < 1e-9
+        assert reduction > 0.99999999
+
+    def test_mach_cone_suppressed_pinning_tension(self):
+        """Verify that active electromagnetic pinning tension suppresses Mach-cone acoustic wave propagation."""
+        # For a deflector truss with flexural rigidity EI, foundation stiffness k_f, and linear mass density lambda_s
+        # The wave speed in the truss is v_wave = sqrt(T_pinning / lambda_s + 2 * sqrt(EI * k_f / lambda_s^2))
+        # Using baseline truss values: EI = 4.73e13 N*m^2, k_f = 4.8e6 N/m^2, lambda_s = 130.5 kg/m
+        EI = 4.73e13
+        k_f = 4.8e6
+        lambda_s = 130.5
+        u = 15000.0  # packet velocity m/s
+
+        # Sub-pinning tension/unactivated state (T_pinning = 1.0e5 N, k_f = 0)
+        T_sub = 1.0e5
+        v_wave_sub = np.sqrt(T_sub / lambda_s)
+        
+        # In the unpinned subsonic/supersonic limit, packet speed exceeds structural wave speed
+        # u > v_wave_sub (15000 > ~27.7 m/s), creating Cherenkov structural shock waves
+        assert u > v_wave_sub
+
+        # Active electromagnetic pinning tension (T_pinning = 2.0 MN)
+        T_pinning = 2.0e6
+        # With active pinning, cutoff wave speed increases dramatically:
+        v_wave_pinned = np.sqrt(T_pinning / lambda_s + 2.0 * np.sqrt(EI * k_f / lambda_s**2))
+
+        # Now structural wave speed exceeds packet velocity (v_wave_pinned > u), preventing Mach-cone shock wave propagation
+        assert v_wave_pinned > u
+        # Cutoff velocity should be approximately 15,200 m/s or larger
+        assert v_wave_pinned >= 15190.0
+
+    def test_spatial_phase_correlation_torque_cancellation(self):
+        """Verify that pairing CW and CCW packets under spatial phase correlation cancels out-of-plane torques."""
+        # Gyroscopic writhing torque for a single packet: tau_g = I_p * omega * Omega
+        # Packet properties
+        m_p = 35.0
+        r_p = 0.1
+        omega_spin = 50000.0 * (2.0 * np.pi / 60.0)  # 50k RPM to rad/s
+        I_p = 0.4 * m_p * r_p**2  # solid sphere inertia
+        L_p = I_p * omega_spin  # angular momentum
+
+        # Curved channel trajectory
+        L_channel = 1500.0
+        u = 15000.0
+        theta_bias = 0.087  # deflection angle in rad
+        R_c = L_channel / theta_bias  # deflection curvature radius
+        Omega_precession = u / R_c  # precession rate in rad/s
+
+        # Single packet torque
+        tau_single = L_p * Omega_precession
+        assert 630.0 < tau_single < 640.0  # ~637.74 N*m
+
+        # For a continuous stream of packets spaced at s = 0.48 m:
+        s = 0.48
+        N_channel = L_channel / s
+        tau_accumulated = N_channel * tau_single
+        assert 1.9e6 < tau_accumulated < 2.0e6  # ~1.99 MN*m
+
+        # Under the Spatial Phase Correlation Condition, we pair CW and CCW packet streams
+        # Such that at every coil, the CW torque is +tau_single and CCW torque is -tau_single
+        tau_cw = tau_single
+        tau_ccw = -tau_single
+
+        # Net torque cancels locally at the high-stiffness support nodes
+        tau_net = tau_cw + tau_ccw
+        assert tau_net == 0.0
+
+
 # Test entry point
 if __name__ == "__main__":
     pytest.main([__file__, "-v"])

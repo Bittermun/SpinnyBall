@@ -1,5 +1,14 @@
 # SpinnyBall Simulation Architecture v2.0
 
+> [!WARNING]
+> ### FIDELITY LIMITATION & DYNAMIC PRECISION DISCLAIMER
+> 
+> While the v2.0 simulation framework incorporates structure-preserving symplectic integration and rigorous error propagation, it operates as a simplified macroscopic model. It **does not simulate nano-scale shepherding and control loop jitter** that present physical showstoppers:
+> 
+> 1. **Zero Jitter Assumption:** The simulation assumes perfect high-speed Hall-effect sensor accuracy and zero timing jitter. In a real-world shepherding corridor at 15 km/s, a control loop delay jitter exceeding **1.0 microsecond** drives runaway Earnshaw instability and hypervelocity collisions.
+> 2. **Perfect Targeting Approximation:** The Mechanics Stream Domain does not model spatial alignment deviations of the launching and receiving aperture arrays, which require $<10^{-9}\text{ rad}$ angular tracking precision.
+> 3. **Unresolved System Mass:** The thermal and structural domains do not resolve the non-linear scaling of multi-megawatt active HTS helium-jacket cryostats and dynamic winching damping subsystems, bounding the design to a highly speculative envelope.
+
 ## Overview
 
 This is a comprehensive physics simulation framework for the SpinnyBall orbital mechanics system, featuring:

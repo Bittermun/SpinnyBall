@@ -38,8 +38,8 @@
 
 ### Performance Metrics
 ```
-Infrastructure Mass Reduction:     99.9% at 15 km/s vs 500 m/s baseline
-Optimal Infrastructure Mass:       280 kg (SmCo @ 15 km/s)
+Infrastructure Mass Scaling:       O(v⁻²) scaling bounds active mass limits
+Integrated System Mass:            Bounded by control stator & cryogenic mass envelopes
 Cascade Safety Margin:             >150,000× over environmental fault rates
 Monte Carlo Throughput:            267,000 realizations/second
 Computational Speedup:             3,751× faster than legacy CPU
@@ -62,13 +62,13 @@ ROM Validation Error:              <0.1% energy conservation
 
 ### Comparative Advantage vs. Conventional Propulsion
 ```
-Method              Thrust    Isp      Propellant    Power      Mass        Mission Life
-Cold gas (N₂)       4.2 N     65 s     20,870 kg/yr  0 kW       ~50 kg      Propellant-limited
-Hydrazine           4.2 N     220 s    6,170 kg/yr   0 kW       ~30 kg      Propellant-limited
-Hall effect         4.2 N     1,500 s  905 kg/yr     1.5 kW     ~20 kg      Propellant-limited
-Ion (NSTAR)         4.2 N     3,100 s  437 kg/yr     2.3 kW     ~30 kg      Propellant-limited
-SGMS (SmCo)         4.2 N     N/A      0 kg/yr       0.054 kW   280 kg      Unlimited*
-SGMS (GdBCO)        4.2 N     N/A      0 kg/yr       2,000 kW   ~560 kg     Unlimited*
+Method              Thrust    Isp      Propellant    Power      Mission Life
+Cold gas (N₂)       4.2 N     65 s     20,870 kg/yr  0 kW       Propellant-limited
+Hydrazine           4.2 N     220 s    6,170 kg/yr   0 kW       Propellant-limited
+Hall effect         4.2 N     1,500 s  905 kg/yr     1.5 kW     Propellant-limited
+Ion (NSTAR)         4.2 N     3,100 s  437 kg/yr     2.3 kW     Propellant-limited
+SGMS (SmCo)         4.2 N     N/A      0 kg/yr       0.054 kW   Unlimited*
+SGMS (GdBCO)        4.2 N     N/A      0 kg/yr       2,000 kW   Unlimited*
 
 * Limited only by component lifetime, not consumables
 ```
@@ -106,7 +106,7 @@ SGMS (GdBCO)        4.2 N     N/A      0 kg/yr       2,000 kW   ~560 kg     Unli
 **Files:** `extended_velocity_sweep_*.json`, `paper_figures/fig1_velocity_scaling.png`
 - 10 velocity points from 500 to 15,000 m/s
 - Confirms theoretical N ∝ v⁻² scaling (R² > 0.999)
-- Infrastructure mass reduction: 0% to 99.9%
+- Infrastructure mass scaling: Multi-order-of-magnitude active mass envelope reduction at high velocities
 
 ### 5. Material Feasibility Analysis
 **Files:** `mission_analysis_results/*_feasible.npy`, `paper_figures/fig3_material_feasibility.png`
@@ -251,7 +251,7 @@ This repository showcases cutting-edge research practices:
 
 ## Impact Statement (For Paper Introduction)
 
-"This work presents the first comprehensive systems analysis of gyroscopic mass-stream anchors for cislunar station-keeping. By combining reduced-order modeling with JAX-accelerated Monte Carlo validation (N > 256,000), we demonstrate that propellantless infrastructure can achieve >99.9% mass reduction compared to low-velocity baselines while maintaining safety margins exceeding 150,000× over environmental fault rates. Global sensitivity analysis reveals stream velocity as the dominant design parameter (79-81% variance explained), enabling systematic optimization across 12 material configurations. The resulting architecture represents a paradigm shift from consumable propulsion to sustainable orbital infrastructure for long-duration cislunar operations."
+"This work presents the first comprehensive systems analysis of gyroscopic mass-stream anchors for cislunar station-keeping. By combining reduced-order modeling with JAX-accelerated Monte Carlo validation (N > 256,000), we demonstrate that propellantless infrastructure can achieve substantial active-stream mass scaling reductions at hypervelocities, though bounded by active shepherding, exergy cooling, and dynamic winching damping, while maintaining safety margins exceeding 150,000× over environmental fault rates. Global sensitivity analysis reveals stream velocity as the dominant design parameter (79-81% variance explained), enabling systematic optimization across 12 material configurations. The resulting architecture represents a paradigm shift from consumable propulsion to sustainable orbital infrastructure for long-duration cislunar operations."
 
 ---
 
