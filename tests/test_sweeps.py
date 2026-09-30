@@ -201,6 +201,13 @@ def test_t3_sweep_small_grid():
         n_nodes=5,
         n_realizations_per_point=10,
         time_horizon=1.0,
+        dt=0.02,
+        enable_cascade_propagation=True,
+        enable_thermal_quench=True,
+        quench_detection_enabled=True,
+        fault_injection_mode="guaranteed",
+        n_guaranteed_faults=1,
+        random_seed=7,
     )
 
     # Check result structure
@@ -208,10 +215,17 @@ def test_t3_sweep_small_grid():
     assert 'cascade_probability' in results
     assert 'containment_rate' in results
     assert 'success_rate' in results
+    assert 'failure_mode_distribution' in results
+    assert 'failure_modes_per_point' in results
+    assert 'diagnostics_per_point' in results
+    assert 'fault_events_total_per_point' in results
 
     # Check array lengths
     assert len(results['fault_rates']) == 3
     assert len(results['cascade_probability']) == 3
+    assert len(results['failure_modes_per_point']) == 3
+    assert len(results['diagnostics_per_point']) == 3
+    assert len(results['fault_events_total_per_point']) == 3
 
     # Check values are valid
     assert np.all(results['cascade_probability'] >= 0.0)

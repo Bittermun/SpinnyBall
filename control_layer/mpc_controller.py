@@ -270,7 +270,7 @@ class MPCController:
             'ipopt.print_level': 0,
             'ipopt.tol': 1e-6,
             'ipopt.max_iter': 100,
-            'print_time': False,  # Silences CasADi's timer output
+            # 'print_time': False,  # Silences CasADi's timer output, but also removes timing stats
         }
         self.opti.solver('ipopt', opts)
     
@@ -317,12 +317,14 @@ class MPCController:
 
         # Solve
         sol = self.opti.solve()
-        
+
         # Extract optimal control
         u_opt = sol.value(self.u)
-        
+
+        solve_time = sol.stats().get('t_wall_total', 0.0)
+
         info = {
-            'solve_time': sol.stats()['t_wall_total'],
+            'solve_time': solve_time,
             'success': sol.stats()['success'],
             'iterations': sol.stats()['iter_count'],
             'delay_steps': self.delay_steps,

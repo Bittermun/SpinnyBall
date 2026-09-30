@@ -15,6 +15,7 @@ import sys
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')))
 
 import logging
+from collections import Counter
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -74,12 +75,16 @@ def run_t3_sweep(
     n_nodes: int = 10,
     n_realizations_per_point: int = 100,
     time_horizon: float = 3600.0,  # Extended to 1 hour for rare-event (1e-6/hr) fault statistics
+    dt: float = 0.01,
     enable_cascade_propagation: bool = False,  # NEW: Enable cascade propagation
+    enable_thermal_quench: bool = False,
+    quench_detection_enabled: bool = False,
     fault_injection_mode: str = "rate",  # NEW: Fault injection mode
     n_guaranteed_faults: int = 0,  # NEW: Guaranteed faults
     pass_fail_eta_ind_min: float = 0.82,
     pass_fail_stress_max: float = 1.2e9,
     pass_fail_k_eff_min: float = 6000.0,
+    random_seed: int | None = None,
 ) -> dict:
     """
     Run T3 sweep: fault rate vs cascade/containment metrics.
@@ -92,9 +97,13 @@ def run_t3_sweep(
         n_nodes: Number of nodes in the lattice
         n_realizations_per_point: Monte-Carlo runs per fault rate
         time_horizon: Simulation time horizon (s). Default 3600s (1 hour) for rare-event fault statistics at 1e-6/hr and below.
+        dt: Integration timestep (s).
         enable_cascade_propagation: Enable neighbor load redistribution (Root Cause #2)
+        enable_thermal_quench: Enable thermal/quench coupling in the Monte Carlo loop.
+        quench_detection_enabled: Enable quench detection monitoring.
         fault_injection_mode: "rate", "guaranteed", or "poisson" (Root Cause #1)
         n_guaranteed_faults: Number of guaranteed faults per realization
+        random_seed: Optional seed for deterministic realizations.
 
     Returns:
         Dictionary with sweep results
@@ -107,6 +116,9 @@ def run_t3_sweep(
     nodes_affected_std = []
     containment_rate = []
     success_rate = []
+    failure_modes_per_point = []
+    diagnostics_per_point = []
+    failure_mode_distribution = Counter()
 
     # NEW: Diagnostic tracking - Trust Strategy #1
     fault_events_total_per_point = []
@@ -130,14 +142,17 @@ def run_t3_sweep(
         config = MonteCarloConfig(
             n_realizations=n_realizations_per_point,
             time_horizon=time_horizon,
-            dt=0.01,
+            dt=dt,
             fault_rate=fault_rate,
             cascade_threshold=cascade_threshold,
             containment_threshold=containment_threshold,
             # NEW: Root Cause fixes
             enable_cascade_propagation=enable_cascade_propagation,
+            enable_thermal_quench=enable_thermal_quench,
+            quench_detection_enabled=quench_detection_enabled,
             fault_injection_mode=fault_injection_mode,
             n_guaranteed_faults=n_guaranteed_faults,
+            random_seed=random_seed,
             pass_fail_gates={
                 "eta_ind": (pass_fail_eta_ind_min, ">="),
                 "stress": (pass_fail_stress_max, "<="),
@@ -159,6 +174,8 @@ def run_t3_sweep(
         # Calculate aggregated statistics
         success_count = sum(1 for r in individual_results if r.success)
         cascade_count = sum(1 for r in individual_results if r.cascade_occurred)
+        point_failure_modes = Counter(r.failure_mode for r in individual_results if r.failure_mode)
+        failure_mode_distribution.update(point_failure_modes)
 
         cascade_probability.append(cascade_count / n_realizations_per_point)
         success_rate.append(success_count / n_realizations_per_point)
@@ -174,6 +191,18 @@ def run_t3_sweep(
 
         # NEW: Track diagnostic counters - Trust Strategy #1
         faults_at_this_point = sum(r.fault_events_injected for r in individual_results)
+        thermal_violations_at_this_point = sum(r.thermal_violations_count for r in individual_results)
+        quench_events_at_this_point = sum(r.quench_events for r in individual_results)
+        max_temperature_at_this_point = max((r.max_temperature_reached for r in individual_results), default=0.0)
+        cascade_generations_at_this_point = max((r.cascade_generations for r in individual_results), default=0)
+        diagnostics_per_point.append({
+            "fault_events_total": faults_at_this_point,
+            "thermal_violations_total": thermal_violations_at_this_point,
+            "quench_events_total": quench_events_at_this_point,
+            "max_temperature_reached": max_temperature_at_this_point,
+            "cascade_generations_max": cascade_generations_at_this_point,
+        })
+        failure_modes_per_point.append(dict(point_failure_modes))
         fault_events_total_per_point.append(faults_at_this_point)
 
         # Check sanity - Trust Strategy #2
@@ -196,6 +225,9 @@ def run_t3_sweep(
         'cascade_threshold': cascade_threshold,
         'containment_threshold': containment_threshold,
         'n_nodes': n_nodes,
+        'failure_mode_distribution': dict(failure_mode_distribution),
+        'failure_modes_per_point': failure_modes_per_point,
+        'diagnostics_per_point': diagnostics_per_point,
         # NEW: Diagnostic tracking - Trust Strategy #1 & #4
         'fault_events_total_per_point': fault_events_total_per_point,
         'sanity_warnings': sanity_warnings,
@@ -371,12 +403,16 @@ if __name__ == "__main__":
         n_nodes=args.n_nodes,
         n_realizations_per_point=args.n_realizations_per_point,
         time_horizon=args.time_horizon,
+        dt=args.dt,
         enable_cascade_propagation=args.enable_cascade_propagation,
+        enable_thermal_quench=args.enable_thermal_quench,
+        quench_detection_enabled=args.quench_detection_enabled,
         fault_injection_mode=args.fault_injection_mode,
         n_guaranteed_faults=args.n_guaranteed_faults,
         pass_fail_eta_ind_min=args.pass_fail_eta_ind_min,
         pass_fail_stress_max=args.pass_fail_stress_max,
         pass_fail_k_eff_min=args.pass_fail_k_eff_min,
+        random_seed=args.seed,
     )
 
     # Attach run metadata (for provenance)
@@ -388,6 +424,7 @@ if __name__ == "__main__":
         "n_nodes": args.n_nodes,
         "n_realizations_per_point": args.n_realizations_per_point,
         "time_horizon": args.time_horizon,
+        "dt": args.dt,
         "enable_cascade_propagation": args.enable_cascade_propagation,
         "enable_thermal_quench": args.enable_thermal_quench,
         "quench_detection_enabled": args.quench_detection_enabled,
@@ -402,6 +439,12 @@ if __name__ == "__main__":
     # Analyze containment threshold
     analysis = analyze_containment_threshold(results)
     results["analysis"] = analysis
+
+    # Keep a sweep-level failure-mode summary alongside the per-point breakdown.
+    failure_mode_distribution = Counter()
+    for point_modes in results.get("failure_modes_per_point", []):
+        failure_mode_distribution.update(point_modes)
+    results["failure_mode_distribution"] = dict(failure_mode_distribution)
 
     # Save JSON artifacts
     _ensure_dir(args.out_dir)
@@ -428,6 +471,20 @@ if __name__ == "__main__":
     print(f"Mean containment rate: {analysis['mean_containment_rate']*100:.1f}%")
     print(f"\nFault rate where cascade probability > 10^-6: {analysis['cascade_threshold_fault_rate']:.2e} /hr")
     print(f"Fault rate where containment rate < 95%: {analysis['containment_threshold_fault_rate']:.2e} /hr")
+
+    if results["failure_mode_distribution"]:
+        print("\nFailure mode distribution:")
+        for mode, count in sorted(results["failure_mode_distribution"].items()):
+            print(f"  {mode}: {count}")
+
+    if results.get("diagnostics_per_point"):
+        last_diag = results["diagnostics_per_point"][-1]
+        print("\nLast point diagnostics:")
+        print(f"  Fault events: {last_diag['fault_events_total']}")
+        print(f"  Thermal violations: {last_diag['thermal_violations_total']}")
+        print(f"  Quench events: {last_diag['quench_events_total']}")
+        print(f"  Max temperature: {last_diag['max_temperature_reached']:.2f} K")
+        print(f"  Max cascade generations: {last_diag['cascade_generations_max']}")
 
     print("\nDetailed results:")
     for fr, cp, cr, sr in zip(

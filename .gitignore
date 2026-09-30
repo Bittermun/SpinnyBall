@@ -1,4 +1,3 @@
-```
 # Python cache
 __pycache__/
 *.pyc
@@ -39,9 +38,10 @@ htmlcov/
 # OS specific
 .DS_Store
 Thumbs.db
-```
 
-# Local workbench review artifacts
+# Local workbench review and smoke-test artifacts
 .local/
 .playwright-cli/
-output/playwright/
+output/
+sweep_results_autonomous/
+sweep_results_smoke*/

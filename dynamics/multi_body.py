@@ -357,8 +357,13 @@ class EventQueue:
         """Get all events at or before given time."""
         result = []
         while self.events and self.events[0][0] <= time:
-            _, event = heapq.heappop(self.events)
-            result.append(event)
+            item = heapq.heappop(self.events)
+            # The item could be a tuple (time, event) or an anomalous un-tupled item
+            if isinstance(item, tuple) and len(item) == 2:
+                result.append(item[1])
+            else:
+                # Handle unexpected structures gracefully
+                logger.warning(f"Unexpected item in event queue: {item}")
         return result
 
     def remove_processed(self, time: float):

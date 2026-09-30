@@ -364,11 +364,14 @@ def simulate_anchor_with_flux_pinning(
 
         # Calculate stream force (momentum flux restoring force)
         # This was missing - causing identical results across parameter variations
-        lam_u2 = params["lam"] * params["u"] ** 2
-        theta_cmd = params["g_gain"] * x
-        theta_plus = params["theta_bias"] - 0.5 * theta_cmd
-        theta_minus = params["theta_bias"] + 0.5 * theta_cmd
-        f_stream = (1.0 + params["eps"]) * lam_u2 * theta_plus - (1.0 - params["eps"]) * lam_u2 * theta_minus
+        lam_u2 = params.get("lam", 0.0) * params.get("u", 0.0) ** 2
+        g_gain = params.get("g_gain", 0.0)
+        theta_bias = params.get("theta_bias", 0.0)
+        eps = params.get("eps", 0.0)
+        theta_cmd = g_gain * x
+        theta_plus = theta_bias - 0.5 * theta_cmd
+        theta_minus = theta_bias + 0.5 * theta_cmd
+        f_stream = (1.0 + eps) * lam_u2 * theta_plus - (1.0 - eps) * lam_u2 * theta_minus
 
         # Velocity Verlet integration
         # m_s * x_ddot + c_damp * x_dot + k_eff * x = f_stream
@@ -380,10 +383,10 @@ def simulate_anchor_with_flux_pinning(
         k_eff_new = k_fp_new + params["k_structural"] if "k_structural" in params else k_fp_new
 
         # Recalculate stream force at new position
-        theta_cmd_new = params["g_gain"] * x
-        theta_plus_new = params["theta_bias"] - 0.5 * theta_cmd_new
-        theta_minus_new = params["theta_bias"] + 0.5 * theta_cmd_new
-        f_stream_new = (1.0 + params["eps"]) * lam_u2 * theta_plus_new - (1.0 - params["eps"]) * lam_u2 * theta_minus_new
+        theta_cmd_new = g_gain * x
+        theta_plus_new = theta_bias - 0.5 * theta_cmd_new
+        theta_minus_new = theta_bias + 0.5 * theta_cmd_new
+        f_stream_new = (1.0 + eps) * lam_u2 * theta_plus_new - (1.0 - eps) * lam_u2 * theta_minus_new
 
         a_new = (f_stream_new - params["c_damp"] * (v + a_old * dt) - k_eff_new * x) / params["ms"]
         v += 0.5 * (a_old + a_new) * dt
@@ -1122,16 +1125,19 @@ def mission_level_metrics(
         if magnet_material in MATERIAL_PROPERTIES:
             props = MATERIAL_PROPERTIES[magnet_material]
             T_limit = props.get('Tc', {}).get('value', 92.0)
-            # Use material-specific B0 for Bean-London field dependence
-            props.get('B0', {}).get('value', 5.0)
-            # Use material-specific k_fp range for stiffness bounds
+            # Use material-specific k_fp range for stiffness scaling and bounds
             k_fp_range = props.get('k_fp_bulk_range', {}).get('value', [80000, 120000])
+            gdbco_range = MATERIAL_PROPERTIES.get('GdBCO', {}).get(
+                'k_fp_bulk_range', {}).get('value', [80000, 120000])
+            k_fp_scale = ((k_fp_range[0] + k_fp_range[1]) / 2.0) / (
+                (gdbco_range[0] + gdbco_range[1]) / 2.0
+            )
             geometry_scale = MATERIAL_PROPERTIES.get('GdBCO', {}).get(
                 'geometry_scaling_factor', {}).get('value', 0.12)
-            # Cap k_fp to material-specific maximum (bulk * geometry_scale)
+            # Scale and cap k_fp to material-specific maximum (bulk * geometry_scale)
             k_fp_max = k_fp_range[1] * geometry_scale
-            if k_fp is not None and k_fp > k_fp_max:
-                k_fp = k_fp_max
+            if k_fp is not None:
+                k_fp = min(k_fp * k_fp_scale, k_fp_max)
         else:
             T_limit = 92.0
             k_fp_max = None

@@ -20,7 +20,7 @@ Usage:
 """
 
 from dataclasses import dataclass
-from typing import Optional, Callable
+from typing import Callable, Dict, Optional, Tuple
 import numpy as np
 
 from dynamics.cislunar import CR3BPConfig, CR3BPPropagator, CR3BPSolution
@@ -246,7 +246,3 @@ class CR3BPMasconSolution:
             'specific_energy_km2_s2': eps,
             'angular_momentum_magnitude_km2_s': h_mag
         }
-
-
-# Type hint for Tuple
-from typing import Tuple, Dict

@@ -15,23 +15,26 @@ class QuenchThresholds:
     temperature_warning: float = 85.0  # K (13K margin)
     temperature_rate_limit: float = 10.0  # K/s (rapid heating)
     hysteresis: float = 2.0  # K (prevent chatter)
+    immediate_quench: bool = True
+    min_time_above_threshold_s: float = 0.0
 
 
 class QuenchDetector:
     """Quench detection and emergency shutdown logic."""
 
-    def __init__(self, thresholds: QuenchThresholds, initial_temperature: float = 70.0):
+    def __init__(self, thresholds: QuenchThresholds | None = None, initial_temperature: float = 77.0):
         """Initialize quench detector.
 
         Args:
             thresholds: QuenchThresholds with detection parameters
             initial_temperature: Initial temperature for heating rate calculation (K)
         """
-        self.thresholds = thresholds
+        self.thresholds = thresholds or QuenchThresholds()
         self.quenched = False
         self.warning_state = False
         self.prev_temperature = initial_temperature  # K
         self.quench_time = None
+        self._time_above: float = 0.0
 
     def check_temperature(self, temperature: float, dt: float) -> dict:
         """Check temperature for quench conditions.
@@ -82,6 +85,32 @@ class QuenchDetector:
             "emergency_shutdown": self.quenched or rate_violation,
         }
 
+    def check_quench(
+        self,
+        temperature: float,
+        critical_temp: float | None = None,
+        current_time: float | None = None,
+        dt: float = 0.0,
+    ) -> bool:
+        """Check whether temperature triggers a quench event (Monte Carlo runner API)."""
+        threshold = critical_temp if critical_temp is not None else self.thresholds.temperature_critical
+        exceeded = temperature >= threshold
+
+        if self.thresholds.immediate_quench:
+            if exceeded:
+                self.quenched = True
+            return bool(exceeded)
+
+        if exceeded:
+            self._time_above += float(dt)
+        else:
+            self._time_above = 0.0
+
+        is_quenched = self._time_above >= float(self.thresholds.min_time_above_threshold_s)
+        if is_quenched:
+            self.quenched = True
+        return is_quenched
+
     def increment_quench_time(self, dt: float):
         """Increment quench time tracking.
 
@@ -96,3 +125,4 @@ class QuenchDetector:
         self.quenched = False
         self.warning_state = False
         self.quench_time = None
+        self._time_above = 0.0
