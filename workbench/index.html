@@ -1,0 +1,78 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#f5f3ec">
+  <meta name="description" content="A small, reproducible physics laboratory for orbits, free rotation and momentum exchange.">
+  <title>SpinnyBall — A laboratory for motion</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Ccircle cx='32' cy='32' r='27' fill='%231f423c'/%3E%3Cellipse cx='32' cy='32' rx='12' ry='27' fill='none' stroke='%23d6edb9' stroke-width='3' transform='rotate(35 32 32)'/%3E%3C/svg%3E">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<a class="skip" href="#experiment">Skip to experiment</a>
+<header class="masthead">
+  <a class="brand" href="./" aria-label="SpinnyBall home"><svg viewBox="0 0 44 44" aria-hidden="true"><circle cx="22" cy="22" r="18"/><ellipse cx="22" cy="22" rx="8" ry="18" transform="rotate(35 22 22)"/><path d="M5 25c10-9 24-9 34-5"/></svg><span>SpinnyBall<span class="brand-sub">A LABORATORY FOR MOTION</span></span></a>
+  <div class="header-actions"><span class="local-badge"><i></i> Runs on your device</span><button id="notesButton" class="text-button">Model notes <span aria-hidden="true">↗</span></button></div>
+</header>
+<main>
+  <section class="intro">
+    <div><p class="eyebrow">QUESTION. EXPERIMENT. UNDERSTAND.</p><h1>Small worlds. <em>Testable ideas.</em></h1></div>
+    <p>Explore what motion can do.<br>Keep track of what physics allows.</p>
+  </section>
+  <nav class="labs" aria-label="Experiments">
+    <button data-model="orbit" aria-pressed="true"><span class="lab-number">01</span><span>Orbital motion<small>Gravity & escape</small></span><span class="tab-arrow" aria-hidden="true">↗</span></button>
+    <button data-model="spin" aria-pressed="false"><span class="lab-number">02</span><span>Free spin<small>Stability & tumbling</small></span><span class="tab-arrow" aria-hidden="true">↗</span></button>
+    <button data-model="exchange" aria-pressed="false"><span class="lab-number">03</span><span>Momentum exchange<small>Internal & external forces</small></span><span class="tab-arrow" aria-hidden="true">↗</span></button>
+  </nav>
+  <div id="experiment" class="workspace" tabindex="-1">
+    <aside class="controls" aria-label="Experiment configuration">
+      <div class="section-label">SET UP YOUR EXPERIMENT <span id="modelNumber">01</span></div>
+      <h2 id="modelTitle">Orbit laboratory</h2>
+      <p id="description" class="muted"></p>
+      <label class="field-label" for="preset">Start with a scenario</label>
+      <select id="preset"></select>
+      <form id="parameters">
+        <div id="fields"></div>
+        <details class="numerics"><summary>Duration & numerical resolution</summary><div id="numericalFields"></div></details>
+        <button class="primary" id="runButton" type="submit">Run experiment <span aria-hidden="true">→</span></button>
+      </form>
+      <p id="status" role="status" aria-live="polite">Preparing experiment…</p>
+      <div class="try-card"><span class="eyebrow">TRY THIS</span><p id="challenge"></p></div>
+    </aside>
+    <section class="results" aria-label="Simulation results">
+      <div class="stage">
+        <div class="stage-top"><div><span class="stage-label">THE EXPERIMENT</span><h2 id="question"></h2></div><span class="simulation-badge">IDEALIZED MODEL</span></div>
+        <canvas id="scene" aria-label="Simulation visualization. The measurements and charts below provide numerical results." role="img"></canvas>
+        <div class="stage-bottom"><span id="sceneCaption"></span><span id="clock">t = 0 s</span></div>
+        <div id="sceneLegend" class="scene-legend"></div>
+      </div>
+      <div class="transport">
+        <button id="play" class="play" aria-label="Play simulation">▶</button>
+        <button id="reset" class="icon-button" aria-label="Reset playback">↺</button>
+        <input id="timeline" type="range" min="0" max="1" step="0.001" value="0" aria-label="Simulation timeline">
+        <label class="speed-label">Replay <select id="speed" aria-label="Replay speed"><option value="0.5">0.5×</option><option value="1" selected>1×</option><option value="2">2×</option><option value="4">4×</option></select></label>
+      </div>
+      <div class="measurements" aria-label="Measurements at selected time">
+        <div><span id="metricLabel1"></span><strong id="metric1">—</strong></div>
+        <div><span id="metricLabel2"></span><strong id="metric2">—</strong></div>
+        <div><span id="metricLabel3"></span><strong id="metric3">—</strong></div>
+      </div>
+      <div class="plots">
+        <section class="plot-card"><div class="plot-title"><h3 id="signalTitle">Trajectory measurement</h3><span>TIME / s</span></div><canvas id="signalPlot" role="img" aria-label="Measured quantity versus simulation time"></canvas></section>
+        <section class="plot-card"><div class="plot-title"><h3>Energy balance error</h3><span>% OF SCALE</span></div><canvas id="energyPlot" role="img" aria-label="Energy balance residual versus simulation time"></canvas></section>
+      </div>
+      <div class="balance"><span id="balanceBadge" class="balance-badge">Computing</span><span id="balanceText"></span><button id="balanceInfo" class="text-button">What does this mean?</button></div>
+      <div id="warnings" role="alert" hidden></div>
+      <div class="result-actions"><div><button id="pin">＋ Pin comparison</button><button id="clearPin" hidden>Clear</button><span id="pinLabel" class="muted"></span></div><div><button id="importButton">Import</button><button id="exportJSON">Save experiment ↓</button><button id="exportCSV">CSV ↓</button></div></div>
+      <input id="importFile" type="file" accept=".json,application/json" hidden>
+    </section>
+  </div>
+  <section class="model-summary"><div><p class="eyebrow">THE MODEL, IN ONE LINE</p><p id="equation" class="equation"></p></div><div><h3>Know what you are testing.</h3><p id="assumptions"></p></div></section>
+  <footer><span>SpinnyBall <span class="footer-version">/ LAB 1.0</span></span><span>Reproducible runs. Visible assumptions. Room for questions.</span><a id="sourceLink" target="_blank" rel="noreferrer">Read the physics ↗</a></footer>
+</main>
+<dialog id="notes"><button id="closeNotes" aria-label="Close model notes" class="close">×</button><p class="eyebrow">ABOUT THIS LABORATORY</p><h2>Observe the model.<br>Question the result.</h2><p>These are deliberately small numerical experiments. They help isolate a physical principle before adding the complexity of a proposed machine.</p><h3>How to read the checks</h3><p>The energy chart plots (E − E₀ − external work) divided by a documented energy scale. The momentum check includes external impulse; the spin check uses the full angular momentum vector in the inertial frame. Maxima include every integration step, even when the plots show fewer samples.</p><p>The 0.1% indicator is a numerical diagnostic, not evidence of physical accuracy. Halve the integration step and compare the outcome. Energy conservation alone cannot prove that an orbit's phase or a model's assumptions are correct.</p><h3>Reproduce an experiment</h3><p><b>Save experiment</b> includes the parameters, initial state, engine version, state samples, assumptions, source and diagnostics. <b>Import</b> recalculates from those parameters. CSV exports retained samples; the JSON carries their units and provenance. A pinned run is kept only in this tab; save it before closing.</p><h3>What changed?</h3><p>The earlier magnetic mass-stream and “digital twin” prototypes are retained in the repository archive. Their feasibility claims and simulated material readings are not validated by this laboratory. This release makes no claim about a working orbital anchor.</p><p class="muted">The browser calculates locally. No accounts, network APIs or external assets are needed. Code and documentation: MIT license.</p></dialog>
+<noscript><p class="no-script">Enable JavaScript to run the physics laboratory. The repository documentation describes the models and the command-line verification.</p></noscript>
+<script type="module" src="app.mjs"></script>
+</body>
+</html>

@@ -40,3 +40,8 @@ htmlcov/
 .DS_Store
 Thumbs.db
 ```
+
+# Local workbench review artifacts
+.local/
+.playwright-cli/
+output/playwright/

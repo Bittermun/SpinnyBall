@@ -1,0 +1,32 @@
+name: Scientific workbench
+
+on:
+  push:
+    branches: [main, 'codex/**']
+    paths: ['workbench/**', '.github/workflows/workbench.yml']
+  pull_request:
+    paths: ['workbench/**', '.github/workflows/workbench.yml']
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Analytic models, convergence, invariants and serialization
+        run: node --test workbench/tests/physics.test.mjs
+      - name: Local server contract
+        run: python -m unittest discover -s workbench/tests -p "test_*.py"
+      - name: JavaScript syntax
+        run: |
+          node --check workbench/app.mjs
+          node --check workbench/worker.mjs
+          node --check workbench/run.mjs

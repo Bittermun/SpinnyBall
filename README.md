@@ -1,129 +1,67 @@
 # SpinnyBall
 
-Closed-loop gyroscopic mass-stream anchor for station-keeping in cislunar space.
+**A small scientific laboratory for exploring motion, testing ideas, and keeping the physics accountable.**
 
-> [!WARNING]
-> ### CRITICAL PHYSICAL FEASIBILITY LIMIT: THE PRECISION THRESHOLD SHOWSTOPPER
-> 
-> The physical feasibility of the SpinnyBall mass-stream anchor is fundamentally limited by **extreme precision requirements** that present severe engineering showstoppers:
-> 
-> - **Nanorad Launch Targeting ($<10^{-9}\text{ rad}$):** Launching 35-kg packets at 15 km/s across 380,000 km ballistic corridors requires sub-nanorad angular precision to hit receiving stator apertures. A deviation of just $0.0001^{\circ}$ offsets the packet by over 660 km, creating a stream of destructive hypervelocity space debris.
-> - **Sub-Microsecond Control Latency ($\le 5\ \mu\text{s}$):** Compressing packet spacing to equal interaction length ($L_{\text{spacing}} \approx L_{\text{int}} \approx 1.5\text{ m}$) suppresses pulsed mechanical shocks but demands active Model Predictive Control (MPC) operating with a closed-loop delay $\tau_{\text{delay}} \le 5\ \mu\text{s}$ to prevent lateral shepherding collapse. A $1\ \mu\text{s}$ timing delay results in a $1.5\text{ cm}$ spatial lag, causing hypervelocity stator collisions.
-> - **Gyroscopic writhing torque cancellation:** Paired CW and CCW streams must perfectly cancel the $1.99\text{ MN}\cdot\text{m}$ of gyroscopic torque with sub-micron spatial and phase synchronization.
-> 
-> As such, the system remains a highly speculative, uncertainty-bounded theoretical model whose real-world execution requires shepherding and manufacturing precision that exceeds current state-of-the-art capabilities.
+Change a parameter, run a model, inspect the motion and balance errors, pin a comparison, and export a reproducible experiment.
 
-## Overview
+![The orbit laboratory with trajectory, controls and balance plots](docs/assets/workbench.png)
 
-Spin-stabilized magnetic packets (50k RPM) circulate along an orbital circumference. Momentum-flux anchoring generates restoring force: F = λu²sin(θ). Flux-pinned superconducting bearings provide passive stiffness. Two material options: SmCo (passive, ~379K) or GdBCO (active cryogenic, ~77K).
+| Laboratory | Question | Model |
+|---|---|---|
+| Orbital motion | When does an orbit become an escape trajectory? | Planar test particle in a fixed lunar-scale gravity field |
+| Free spin | Why does an asymmetric body tumble around its middle axis? | Torque-free Euler equations and quaternion orientation |
+| Momentum exchange | Can internal motion accelerate a system's center of mass? | Two point masses, a spring, and an optional external force |
 
-![SpinnyBall Conceptual Diagram](./assets/concept_diagram.png)
+These are idealized numerical experiments, not evidence that a magnetic mass-stream anchor is feasible. Older Python research remains available; see [research status](docs/RESEARCH_STATUS.md).
 
-## Architecture
+## Start the laboratory
 
-```mermaid
-graph TD
-    A[Spin-Stabilized Magnetic Packets] --> B[Gyroscopic Dynamics]
-    C[Flux-Pinned Superconducting Bearings] --> D[Passive Stiffness]
-    E[Orbital Circumference] --> F[Momentum-Flux Anchoring]
-    B --> G[Cascade Risk Management]
-    D --> G
-    F --> G
-    G --> H[Station Keeping Control]
-    H --> I[Monte Carlo Analysis]
-    I --> J[JAX Acceleration]
-    J --> K[Results Dashboard]
-```
+From the repository root, with Python 3.10+ installed:
 
-## Physics
+~~~sh
+python -m workbench
+~~~
 
-- Gyroscopic dynamics: I·ω̇ + ω×(I×ω) = τ
-- Flux-pinning: Jc(B,T) = Jc0·(1-T/Tc)^n·f(B)
-- Effective stiffness: k_eff = λu²g_gain + k_fp
-- Centrifugal stress: σ = m·ω²r/(4πr) at operational spin rates
+This opens **http://127.0.0.1:8765/**. No pip install, Poetry, GPU, API key, account or internet connection is needed. A current browser with JavaScript and module workers is required. If the port is occupied, use `--port 8766` or `--port 0` for an available port. Use `--no-browser` to suppress opening a tab; Ctrl+C stops the server.
 
-## Key Results
+You can also serve the static `workbench/` directory over HTTP. Opening its HTML directly with a file URL does not support the module worker.
 
-### Performance Metrics
-- **Cascade boundary**: λ_crit ≈ 15–20/hr (stress test, N=100). System stable at operational rates (<10⁻³/hr) with >99.99% containment.
-- **Monte Carlo**: 256k realizations via JAX/XLA in 0.96s. T3 sweep extended to 3600s for rare-event statistics.
-- **Sobol (9 params, N=1,024 base → 20,480 evaluations)**: Velocity dominates mass variance (79%) and k_eff variance (81%). SmCo feasibility 0.3%, GdBCO 17.3% with 1-year lifetime constraint enforced.
-- **Speedup**: 3,751× faster than legacy CPU implementations with JAX acceleration
-- **Infrastructure mass scaling**: High velocities bound the circulating active-stream mass envelope, though total integrated system mass is governed by non-linear control stator and cryogenic scaling.
+## Try an experiment
 
-### Material Comparison (N=20,480 samples each)
-| Magnet | Structure | Feasibility | Active-Stream Mass Limit | Power | Notes |
-|--------|-----------|------------:|:-------------------------|------:|-------|
-| SmCo | BFRP | 0.28% | Bounded by velocity scaling | ~0 W | Passive thermal @ 379K |
-| SmCo | CNT_yarn | 1.33% | Bounded by velocity scaling | ~0 W | Best SmCo option |
-| GdBCO | BFRP | 17.6% | Bounded by velocity scaling | ~2 MW | High stiffness, cryogenic |
-| GdBCO | CNT_yarn | 28.5% | Bounded by velocity scaling | ~2 MW | Best overall feasibility |
+1. In **Orbital motion**, select **Circular** and press Play. Radius remains nearly constant.
+2. Choose **Pin comparison**, then **Elliptical**. The amber dashed curve is the pinned run.
+3. Change **Speed / circular speed** to **1.42**, then **Apply & run**. Positive specific orbital energy indicates an unbound orbit in this model.
+4. Expand **Duration & numerical resolution**, halve the integration step and rerun. Compare the trajectory and reported balance errors.
+5. **Save experiment** exports parameters, initial conditions, model/version information, retained samples and diagnostics. **Import** recalculates from parameters. **CSV** exports the sampled trajectory.
 
-**Trade-off**: SmCo enables passive cooling (zero power) but lower feasibility due to thermal constraints. GdBCO provides higher field strength and feasibility but requires MW-scale cryocooling infrastructure.
+Playback replays computed samples: the whole run takes approximately 24 seconds at 1×. Pause, scrub or reset without changing the experiment. A comparison is held only in this tab; save it before closing.
 
-### Visual Results Summary
-📊 **Performance Comparison**              |  📈 **System Stability Analysis**
-:---------------------------------------:|:---------------------------------------:
-![Performance Chart](./assets/performance_chart.png) | ![Stability Chart](./assets/stability_chart.png)
+## Reproduce and verify
 
-## Getting Started
+Node.js 20+ is needed only for command-line experiments and tests; no npm dependencies are required:
 
-### Prerequisites
-- Python 3.9+
-- Poetry package manager
+~~~sh
+node --test workbench/tests/physics.test.mjs
+node workbench/run.mjs orbit orbit.json
+node workbench/run.mjs orbit.json replay.json
+python -m unittest discover -s workbench/tests -p "test_*.py"
+~~~
 
-### Quick Setup
-
-```bash
-poetry install
-python src/sgms_anchor_v1.py
-pytest tests/test_simulation_invariants.py -v
-python check_damping.py
-```
+The worker and CLI share the same pure JavaScript engine. Tests use independent analytic solutions, convergence, balance laws, invalid inputs and serialization. See [verification evidence](docs/WORKBENCH_VALIDATION.md).
 
 ## Documentation
 
-- **[Architecture Guide](ARCHITECTURE.md)** — v2.0 simulation framework with uncertainty quantification
-- [Technical Specification](docs/TECHNICAL_SPEC.md) — full physics derivations
-- [Research Dataset](docs/RESEARCH_DATASET.md) — sweep results and data files
-- [Benchmarks](BENCHMARKS.md) — performance metrics
-- [Mission Analysis](MISSION_LEVEL_ANALYSIS.md) — operational scenarios
+- [Models and equations](docs/WORKBENCH_MODELS.md): units, assumptions, integrators, balance scales and sources.
+- [Architecture](ARCHITECTURE.md): model, worker, interface and export boundaries.
+- [Direction and research status](docs/RESEARCH_STATUS.md): what changed and what remains experimental.
+- [Contributing](CONTRIBUTING.md): development and verification.
 
-## New in v2.0: Simulation Architecture
+Previous interfaces are retained under [archive/interfaces](archive/interfaces/README.md), and earlier front-page documentation under [docs/archive/pre-workbench](docs/archive/pre-workbench/README.md). Historical benchmark, containment, material feasibility and mass-reduction claims are not workbench results.
 
-The v2.0 release introduces a comprehensive physics simulation framework:
+## Limits and next work
 
-### Key Features
-- **Uncertainty Quantification**: All physics outputs include error bounds via `UncertainQuantity`
-- **Structure-Preserving Integration**: Symplectic integrators (VelocityVerlet, StormerVerlet) for long-term stability
-- **Corrected Physics**: Fixed equations for Halbach field, slingshot energy, atmosphere model
-- **Multi-Timescale Coupling**: Operator splitting with macro-step scheduling
+The three experiments are not coupled into a mission simulator. This release has no magnetic bearings, thermal coupling, control system, collision dynamics, uncertainty inference or empirical calibration. Numerical balance diagnostics are not physical uncertainty bounds.
 
-### Quick Example
-```python
-from sim.scheduler import MacroScheduler, SchedulerConfig
-from sim.domains import MechanicsStreamDomain, OrbitalEnvironmentDomain
+Useful next steps are analytic-reference overlays, uncertainty experiments, and adding verified interactions only after establishing their assumptions and independent tests.
 
-# Create multi-physics simulation
-scheduler = MacroScheduler(SchedulerConfig(macro_dt=1.0))
-scheduler.register_domain("mechanics", MechanicsStreamDomain(n_balls=10))
-scheduler.register_domain("orbital", OrbitalEnvironmentDomain())
-
-# Run with uncertainty tracking
-scheduler.initialize()
-scheduler.run(100.0)
-```
-
-See [ARCHITECTURE.md](ARCHITECTURE.md) for detailed documentation.
-
-## Contributing
-
-We welcome contributions! Please read our [Contributing Guidelines](CONTRIBUTING.md) and [Code of Conduct](CODE_OF_CONDUCT.md) before submitting pull requests.
-
-## License
-
-This project is licensed under the terms specified in the LICENSE file - see [LICENSE](LICENSE) for details.
-
-## Contact
-
-Project Link: [https://github.com/msunw/SpinnyBall](https://github.com/msunw/SpinnyBall)
+MIT licensed; see [LICENSE](LICENSE). [GitHub repository](https://github.com/Bittermun/SpinnyBall).
