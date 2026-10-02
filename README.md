@@ -1,10 +1,9 @@
 # SpinnyBall
 
 **A small scientific laboratory for exploring motion, testing ideas, and keeping the physics accountable.**
-
+I know few if any people read this, but if you do, please help me find the advanced concepts forum. -msunwc@gmail.com
 Change a parameter, run a model, inspect the motion and balance errors, pin a comparison, and export a reproducible experiment.
 
-![The orbit laboratory with trajectory, controls and balance plots](docs/assets/workbench.png)
 
 | Laboratory | Question | Model |
 |---|---|---|
