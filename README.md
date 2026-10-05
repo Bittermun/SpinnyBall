@@ -41,12 +41,14 @@ Node.js 20+ is needed only for command-line experiments and tests; no npm depend
 
 ~~~sh
 node --test workbench/tests/physics.test.mjs
+node --test workbench/tests/audit.test.mjs
 node workbench/run.mjs orbit orbit.json
 node workbench/run.mjs orbit.json replay.json
+node workbench/verify-external.mjs orbit.json --mu 4.905e12
 python -m unittest discover -s workbench/tests -p "test_*.py"
 ~~~
 
-The worker and CLI share the same pure JavaScript engine. Tests use independent analytic solutions, convergence, balance laws, invalid inputs and serialization. See [verification evidence](docs/WORKBENCH_VALIDATION.md).
+The worker and CLI share the same pure JavaScript engine. External projects can also use `workbench/verify-external.mjs` as an independent verification oracle to audit their own trajectory CSVs/JSONs against Keplerian conservation laws with SpinnyBall's strict `< 0.1%` balance threshold. Tests use independent analytic solutions, convergence, balance laws, invalid inputs and serialization. See [verification evidence](docs/WORKBENCH_VALIDATION.md).
 
 ## Documentation
 

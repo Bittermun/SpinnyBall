@@ -1,8 +1,10 @@
-import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate, orbitElements } from './physics.mjs';
+import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate, orbitElements, keplerOrbitPoints } from './physics.mjs';
+import { parseTrajectoryData, auditOrbitTrajectory } from './audit.mjs';
 
 const $ = id => document.getElementById(id);
-const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b' };
-let model = 'orbit', draft = configFor(model), result = null, pinned = null;
+const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b', cyan: '#5dd8ce' };
+let model = 'orbit', draft = configFor(model), result = null, pinned = null, auditedTrajectory = null;
+
 let playing = false, fraction = 0, replaySpeed = 1, previousFrame = 0, requestId = 0;
 let busy = false, dirty = false, worker;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
@@ -149,15 +151,29 @@ function drawScene() {
 
 function drawOrbit(ctx, w, h, s) {
   const comparison = pinned?.config.model === 'orbit' ? pinned : null;
-  const all = [...result.samples, ...(comparison?.samples || [])].map(s => s.state);
+  const all = [...result.samples, ...(comparison?.samples || []), ...(auditedTrajectory?.samples || [])].map(s => s.state || [s.r[0], s.r[1]]);
   const radius = result.config.surface;
   let minX = -radius, maxX = radius, minY = -radius, maxY = radius;
   for (const state of all) { minX = Math.min(minX, state[0]); maxX = Math.max(maxX, state[0]); minY = Math.min(minY, state[1]); maxY = Math.max(maxY, state[1]); }
   const scale = Math.min((w - 95) / (maxX - minX), (h - 132) / (maxY - minY)) * 0.9;
   const cx = (maxX + minX) / 2, cy = (maxY + minY) / 2;
   const project = (x, y) => [w / 2 + (x - cx) * scale, (h + 54) / 2 - (y - cy) * scale];
+
+  // 1. Exact Kepler analytic reference ellipse (dashed faint sage)
+  const analyticPoints = keplerOrbitPoints(result.config);
+  if (analyticPoints.length) {
+    line(ctx, analyticPoints.map(([x, y]) => project(x, y)), '#78978055', 1, true);
+  }
+
+  // 2. Numerical trajectory and comparison
   line(ctx, result.samples.map(s => project(s.state[0], s.state[1])), '#54786c', 1);
   if (comparison) line(ctx, comparison.samples.map(s => project(s.state[0], s.state[1])), colors.orange, 1, true);
+
+  // 3. External audited trajectory overlay (vibrant cyan dashed)
+  if (auditedTrajectory?.samples) {
+    line(ctx, auditedTrajectory.samples.map(s => project(s.r[0], s.r[1])), colors.cyan, 1.4, true);
+  }
+
   line(ctx, result.samples.filter(p => p.t <= s.t).map(p => project(p.state[0], p.state[1])), colors.green, 2);
   const [mx, my] = project(0, 0), r = radius * scale;
   const gradient = ctx.createRadialGradient(mx - r * 0.35, my - r * 0.3, 0, mx, my, r);
@@ -174,6 +190,7 @@ function drawOrbit(ctx, w, h, s) {
   line(ctx, [[w - bar - 25, h - 47], [w - 25, h - 47]], '#90aaa1');
   label(ctx, `${fmt(km, 0)} km`, w - 25, h - 53, '#90aaa1', 'right');
 }
+
 
 function drawSpin(ctx, w, h, s) {
   const c = result.config, q = s.state.slice(3), origin = [w * 0.54, (h + 48) / 2];
@@ -295,6 +312,59 @@ try {
     catch (error) { status(`Import failed: ${error.message}`, true); }
     finally { event.target.value = ''; }
   });
+
+  // External Trajectory Audit Handler
+  async function handleAuditFile(file) {
+    if (!file) return;
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error('Choose an audit file smaller than 8 MB.');
+      const text = await file.text();
+      const samples = parseTrajectoryData(text);
+      const mu = result?.config.mu || 4.905e12;
+      const r_body = result?.config.surface || 0;
+      const audit = auditOrbitTrajectory(samples, { mu, r_body });
+      auditedTrajectory = { file: file.name, samples, audit };
+      
+      const badgeClass = audit.passed ? 'audit-pass' : 'audit-fail';
+      const badgeText = audit.passed ? '✓ PASSED (&lt; 0.1% drift)' : '✗ FAILED (invariants exceeded threshold)';
+      $('auditContent').innerHTML = `
+        <span class="audit-badge ${badgeClass}">${badgeText}</span>
+        <p class="muted">File: <b>${file.name}</b> (${audit.sampleCount} samples, ${audit.duration.toFixed(1)} s duration, μ = ${mu.toExponential(3)} m³/s²)</p>
+        <table class="audit-table">
+          <tr><th>Invariant / Diagnostic</th><th>Value</th><th>Status</th></tr>
+          <tr><td>Max Energy Error</td><td>${(audit.metrics.maxEnergyRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxEnergyRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
+          <tr><td>Max Angular Momentum Error</td><td>${(audit.metrics.maxAngMomRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxAngMomRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
+          <tr><td>Eccentricity Drift (|Δe|)</td><td>${audit.metrics.maxEccentricityDrift.toExponential(3)}</td><td>—</td></tr>
+          <tr><td>Max Residual Acceleration</td><td>${audit.metrics.maxParasiticAccel.toExponential(3)} m/s²</td><td>—</td></tr>
+          <tr><td>Closest Approach</td><td>${(audit.metrics.closestApproach / 1000).toFixed(1)} km</td><td>${audit.metrics.closestApproach > r_body ? 'Clear' : '⚠ Penetrated'}</td></tr>
+        </table>
+        ${audit.warnings.length ? `<div class="audit-warning-box"><strong>Warnings:</strong><br>${audit.warnings.map(w => `• ${w}`).join('<br>')}</div>` : ''}
+      `;
+      $('auditModal').showModal();
+      needsDraw = true;
+      status(`Audited ${file.name}: ${audit.passed ? 'passed conservation checks' : 'invariants drifted'}.`);
+    } catch (err) {
+      status(`Audit error: ${err.message}`, true);
+    }
+  }
+
+  $('auditButton').addEventListener('click', () => $('auditFile').click());
+  $('auditFile').addEventListener('change', async event => {
+    await handleAuditFile(event.target.files[0]);
+    event.target.value = '';
+  });
+  $('closeAudit').addEventListener('click', () => $('auditModal').close());
+
+  // Drag and drop onto stage
+  const stage = $('stage');
+  stage.addEventListener('dragover', event => { event.preventDefault(); stage.classList.add('dragover'); });
+  stage.addEventListener('dragleave', () => stage.classList.remove('dragover'));
+  stage.addEventListener('drop', async event => {
+    event.preventDefault(); stage.classList.remove('dragover');
+    const file = event.dataTransfer.files[0];
+    if (file) await handleAuditFile(file);
+  });
+
   const showNotes = () => $('notes').showModal();
   $('notesButton').addEventListener('click', showNotes); $('balanceInfo').addEventListener('click', showNotes);
   $('closeNotes').addEventListener('click', () => $('notes').close());
@@ -303,3 +373,4 @@ try {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { playing = false; needsDraw = true; } });
   configure(model, draft); requestAnimationFrame(frame);
 } catch (error) { status(`Could not start: ${error.message}. Serve this folder over localhost with python -m workbench.`, true); }
+

@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { configFor, simulate, validateConfig, readExperiment, toCSV, norm, orbitElements, rotate } from '../physics.mjs';
+import { configFor, simulate, validateConfig, readExperiment, toCSV, norm, orbitElements, rotate, keplerOrbitPoints } from '../physics.mjs';
 
 const close = (actual, expected, tolerance, message = '') => assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} versus ${expected} (±${tolerance})`);
 const last = r => r.samples.at(-1);
@@ -180,3 +180,24 @@ test('quaternion rotation preserves vector length and uses body-to-inertial conv
   const q = [Math.SQRT1_2, 0, 0, Math.SQRT1_2], v = rotate(q, [1, 0, 0]);
   close(v[0], 0, 1e-15); close(v[1], 1, 1e-15); close(norm(v), 1, 1e-15);
 });
+
+test('keplerOrbitPoints generates a closed analytic ellipse matching orbit elements', () => {
+  const c = configFor('orbit', 1); // Elliptical preset
+  const points = keplerOrbitPoints(c, 60);
+  assert.equal(points.length, 61); // Closed loop (0 to 2pi inclusive)
+  
+  // Starting point at periapsis / initial radius
+  close(points[0][0], c.radius, 1e-4, 'start x');
+  close(points[0][1], 0, 1e-4, 'start y');
+  // Ending point closes the loop
+  close(points.at(-1)[0], c.radius, 1e-4, 'end x');
+  close(points.at(-1)[1], 0, 1e-4, 'end y');
+
+  // Semi-major axis check
+  const { semiMajorAxis, eccentricity } = orbitElements(c);
+  // Apoapsis is at index 30 (pi): x = a * (cos(pi) - e) = -a * (1 + e)
+  const apoapsisX = points[30][0];
+  close(apoapsisX, -semiMajorAxis * (1 + eccentricity), 1e-3, 'apoapsis position');
+});
+
+

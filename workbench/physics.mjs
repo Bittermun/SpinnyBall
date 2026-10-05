@@ -238,3 +238,30 @@ export function orbitElements(c) {
   const a = energy < 0 ? -c.mu / (2 * energy) : null;
   return { energy, eccentricity, semiMajorAxis: a, period: a ? TAU * Math.sqrt(a ** 3 / c.mu) : null };
 }
+
+/**
+ * Computes exact Keplerian orbit coordinates (x, y) around the central body.
+ * For bound orbits (e < 1), returns an array of [x, y] points forming a closed ellipse.
+ * @param {object} c Orbit configuration object
+ * @param {number} numPoints Number of segments along the ellipse (default 120)
+ * @returns {Array<[number, number]>}
+ */
+export function keplerOrbitPoints(c, numPoints = 120) {
+  const { energy, eccentricity: e, semiMajorAxis: a } = orbitElements(c);
+  if (energy >= 0 || !a || e >= 1) return []; // Open / unbound trajectory
+  
+  // Directly matches standard orbit parameterization:
+  // x = a * (cos(E) - e), y = a * sqrt(1 - e^2) * sin(E)
+  const b = a * Math.sqrt(1 - e * e);
+  const points = [];
+  
+  for (let i = 0; i <= numPoints; i++) {
+    const E = (TAU * i) / numPoints; // Eccentric anomaly from 0 to 2pi
+    const x = a * (Math.cos(E) - e);
+    const y = b * Math.sin(E);
+    points.push([x, y]);
+  }
+  return points;
+}
+
+
