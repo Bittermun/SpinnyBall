@@ -1,7 +1,7 @@
 import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate, orbitElements, keplerOrbitPoints } from './physics.mjs';
 import { parseTrajectoryData, auditOrbitTrajectory } from './audit.mjs';
 import { nearestSampleAtTime } from './plot-data.mjs';
-import { validateOrbitSweep } from './sweep.mjs';
+import { validateOrbitSweep, toSweepCSV, readOrbitSweep } from './sweep.mjs';
 
 const $ = id => document.getElementById(id);
 const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b', cyan: '#5dd8ce' };
@@ -566,12 +566,40 @@ try {
   $('clearPin').addEventListener('click', () => { pinned = null; updatePin(); needsDraw = true; });
   $('exportJSON').addEventListener('click', () => { if (!result) return; download(`spinnyball-${model}.json`, JSON.stringify({ ...result, exportedAt: new Date().toISOString() }, null, 2), 'application/json'); if (dirty) status('Saved the displayed run. Unapplied parameter edits are not included.'); });
   $('exportCSV').addEventListener('click', () => { if (result) download(`spinnyball-${model}.csv`, toCSV(result), 'text/csv'); });
+  if ($('exportSweepJSON')) {
+    $('exportSweepJSON').addEventListener('click', () => {
+      if (!displayedSweep) return;
+      download('spinnyball-orbit-speed-sweep.json', JSON.stringify({ ...displayedSweep, exportedAt: new Date().toISOString() }, null, 2), 'application/json');
+    });
+  }
+  if ($('exportSweepCSV')) {
+    $('exportSweepCSV').addEventListener('click', () => {
+      if (displayedSweep) download('spinnyball-orbit-speed-sweep.csv', toSweepCSV(displayedSweep), 'text/csv');
+    });
+  }
   $('importButton').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', async event => {
     const file = event.target.files[0]; if (!file) return;
-    try { if (file.size > 8 * 1024 * 1024) throw new Error('Choose an experiment file smaller than 8 MB.'); const config = readExperiment(JSON.parse(await file.text())); configure(config.model, config, -1); }
-    catch (error) { status(`Import failed: ${error.message}`, true); }
-    finally { event.target.value = ''; }
+    try {
+      if (file.size > 8 * 1024 * 1024) throw new Error('Choose an experiment file smaller than 8 MB.');
+      const parsed = JSON.parse(await file.text());
+      if (parsed?.kind === 'orbit-speed-sweep') {
+        const { baseConfig, range } = readOrbitSweep(parsed);
+        $('sweepMinSpeed').value = range.minSpeed;
+        $('sweepMaxSpeed').value = range.maxSpeed;
+        $('sweepCount').value = range.count;
+        configure('orbit', baseConfig, -1);
+        startSweep();
+      } else {
+        const config = readExperiment(parsed);
+        configure(config.model, config, -1);
+      }
+    } catch (error) {
+      status(`Import failed: ${error.message}`, true);
+      setSweepStatus(`Import failed: ${error.message}`, true);
+    } finally {
+      event.target.value = '';
+    }
   });
 
   ['signalPlot', 'energyPlot'].forEach(id => {

@@ -105,3 +105,57 @@ export function runOrbitSweep(baseConfig, range, onProgress = () => {}) {
     units: 'speed: dimensionless multiplier of circular speed; initialEnergyJPerKg: J/kg; finalRadiusKm: km; finalTimeS: s; maxEnergyError: fraction of scale; maxMomentumError: fraction of scale',
   };
 }
+
+/**
+ * Serializes a sweep result into unit-bearing CSV format.
+ * @param {object} sweep SweepResult
+ * @returns {string} CSV text
+ */
+export function toSweepCSV(sweep) {
+  if (!sweep || !Array.isArray(sweep.rows)) throw new Error('Valid sweep result with rows required.');
+  const lines = [[
+    'speed_ratio',
+    'initial_specific_energy_J_per_kg',
+    'classification',
+    'status',
+    'final_radius_km',
+    'final_time_s',
+    'max_scaled_energy_error',
+    'max_scaled_momentum_error'
+  ].join(',')];
+
+  for (const r of sweep.rows) {
+    lines.push([
+      r.speed,
+      r.initialEnergyJPerKg,
+      r.classification,
+      r.status,
+      r.finalRadiusKm,
+      r.finalTimeS,
+      r.maxEnergyError,
+      r.maxMomentumError
+    ].join(','));
+  }
+  return lines.join('\n') + '\n';
+}
+
+/**
+ * Validates an imported orbit speed sweep payload and extracts trusted configuration and range.
+ * Does NOT trust or copy imported rows, status, or diagnostics.
+ * @param {object} value Imported JSON payload
+ * @returns {{ baseConfig: object, range: { minSpeed: number, maxSpeed: number, count: number } }}
+ */
+export function readOrbitSweep(value) {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) {
+    throw new Error('Choose a valid JSON orbit speed sweep file.');
+  }
+  if (value.kind !== 'orbit-speed-sweep') {
+    throw new Error('Use a SpinnyBall orbit speed sweep exported by engine 1.0.0 / sweep schema 1.');
+  }
+  if (value.sweepSchemaVersion !== SWEEP_SCHEMA_VERSION || value.engineVersion !== ENGINE_VERSION) {
+    throw new Error('Use a SpinnyBall orbit speed sweep exported by engine 1.0.0 / sweep schema 1.');
+  }
+
+  const { baseConfig, range } = validateOrbitSweep(value.baseConfig, value.range);
+  return { baseConfig, range };
+}

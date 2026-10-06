@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { configFor, simulate } from '../physics.mjs';
-import { validateOrbitSweep, runOrbitSweep, MAX_SWEEP_RUNS, MAX_SWEEP_STEPS } from '../sweep.mjs';
+import { validateOrbitSweep, runOrbitSweep, toSweepCSV, readOrbitSweep, MAX_SWEEP_RUNS, MAX_SWEEP_STEPS } from '../sweep.mjs';
 
 const close = (actual, expected, tolerance, message = '') =>
   assert.ok(Math.abs(actual - expected) <= tolerance, `${message}: ${actual} versus ${expected} (±${tolerance})`);
@@ -119,4 +119,67 @@ test('validateOrbitSweep rejects invalid models, counts, ranges, and work budget
   // duration 100000, dt 0.1 -> 1,000,000 steps per run; with count 3 -> 3,000,000 steps > 200,000
   const heavyConfig = { ...orbitConfig, duration: 100000, dt: 0.1 };
   assert.throws(() => validateOrbitSweep(heavyConfig, { minSpeed: 1.0, maxSpeed: 1.5, count: 3 }), /steps|budget|work/i);
+});
+
+test('toSweepCSV produces expected headers and consistent column count', () => {
+  const baseConfig = configFor('orbit', 0);
+  const range = { minSpeed: 1.3, maxSpeed: 1.5, count: 3 };
+  const sweep = runOrbitSweep(baseConfig, range);
+
+  const csv = toSweepCSV(sweep);
+  const lines = csv.trim().split('\n');
+  assert.equal(lines.length, 4); // 1 header + 3 data rows
+
+  const header = lines[0].split(',');
+  assert.deepEqual(header, [
+    'speed_ratio',
+    'initial_specific_energy_J_per_kg',
+    'classification',
+    'status',
+    'final_radius_km',
+    'final_time_s',
+    'max_scaled_energy_error',
+    'max_scaled_momentum_error'
+  ]);
+
+  for (let i = 1; i < lines.length; i++) {
+    const cols = lines[i].split(',');
+    assert.equal(cols.length, header.length, `row ${i} column count matches header`);
+  }
+});
+
+test('readOrbitSweep accepts valid sweep and ignores fabricated rows or malicious strings', () => {
+  const baseConfig = configFor('orbit', 0);
+  const range = { minSpeed: 1.3, maxSpeed: 1.5, count: 5 };
+  const validSweep = runOrbitSweep(baseConfig, range);
+
+  // Add forged rows and script-like properties
+  const forgedSweep = {
+    ...validSweep,
+    rows: [
+      { speed: 1.4, initialEnergyJPerKg: -999999, classification: '<script>alert(1)</script>', status: 'forged', finalRadiusKm: 0, finalTimeS: 0, maxEnergyError: 0, maxMomentumError: 0 }
+    ],
+    arbitraryUntrustedData: 'evil',
+  };
+
+  const parsed = readOrbitSweep(forgedSweep);
+  assert.deepEqual(parsed.range, range);
+  assert.equal(parsed.baseConfig.model, 'orbit');
+  assert.equal(parsed.baseConfig.radius, baseConfig.radius);
+  assert.equal(parsed.rows, undefined, 'forged rows must not be preserved or returned');
+});
+
+test('readOrbitSweep rejects foreign schema versions and malformed input', () => {
+  const baseConfig = configFor('orbit', 0);
+  const range = { minSpeed: 1.3, maxSpeed: 1.5, count: 5 };
+  const validSweep = runOrbitSweep(baseConfig, range);
+
+  // Rejects invalid schemaVersion or engineVersion
+  assert.throws(() => readOrbitSweep({ ...validSweep, sweepSchemaVersion: 99 }), /schema/i);
+  assert.throws(() => readOrbitSweep({ ...validSweep, engineVersion: '0.9.0' }), /engine/i);
+  assert.throws(() => readOrbitSweep({ ...validSweep, kind: 'unknown-kind' }), /orbit speed sweep/i);
+
+  // Rejects missing or malformed baseConfig/range
+  assert.throws(() => readOrbitSweep({ ...validSweep, baseConfig: null }), /known experiment|config/i);
+  assert.throws(() => readOrbitSweep({ ...validSweep, range: { minSpeed: 2, maxSpeed: 1, count: 5 } }), /less than/i);
 });
