@@ -68,6 +68,66 @@
       <div class="result-actions"><div><button id="pin">＋ Pin comparison</button><button id="clearPin" hidden>Clear</button><span id="pinLabel" class="muted"></span></div><div><button id="auditButton">Audit external run</button><button id="importButton">Import</button><button id="exportJSON">Save experiment ↓</button><button id="exportCSV">CSV ↓</button></div></div>
       <input id="importFile" type="file" accept=".json,application/json" hidden>
       <input id="auditFile" type="file" accept=".csv,.json,text/csv,application/json" hidden>
+      <section id="sweepPanel" class="sweep-panel">
+        <div class="sweep-header">
+          <div>
+            <span class="eyebrow">PARAMETER SENSITIVITY</span>
+            <h3>Sweep launch speed</h3>
+          </div>
+          <span class="muted">Uses current orbit settings</span>
+        </div>
+        <form id="sweepForm" class="sweep-controls">
+          <div class="sweep-field">
+            <label for="sweepMinSpeed">Min speed <span class="unit">× circular</span></label>
+            <input id="sweepMinSpeed" type="number" min="0.1" max="2" step="0.01" value="1.3" required>
+          </div>
+          <div class="sweep-field">
+            <label for="sweepMaxSpeed">Max speed <span class="unit">× circular</span></label>
+            <input id="sweepMaxSpeed" type="number" min="0.1" max="2" step="0.01" value="1.5" required>
+          </div>
+          <div class="sweep-field">
+            <label for="sweepCount">Points <span class="unit">3–21</span></label>
+            <input id="sweepCount" type="number" min="3" max="21" step="1" value="5" required>
+          </div>
+          <div class="sweep-actions">
+            <button id="runSweepButton" type="submit" class="primary-btn">Run sweep</button>
+            <button id="cancelSweepButton" type="button" hidden>Cancel</button>
+            <button id="exportSweepJSON" type="button" disabled>Save sweep ↓</button>
+            <button id="exportSweepCSV" type="button" disabled>CSV ↓</button>
+          </div>
+        </form>
+        <div id="sweepStatus" class="sweep-status" aria-live="polite"></div>
+        <div id="sweepOutput" class="sweep-output" hidden>
+          <div class="sweep-chart-card">
+            <div class="plot-title">
+              <h4>Final distance from center vs launch speed</h4>
+              <span>√2 ≈ 1.4142 BOUND / UNBOUND THRESHOLD</span>
+            </div>
+            <canvas id="sweepPlot" role="img" aria-label="Orbital speed sweep plot: final distance from center versus launch speed"></canvas>
+          </div>
+          <div class="sweep-table-container">
+            <table id="sweepTable" class="sweep-table">
+              <thead>
+                <tr>
+                  <th>Action</th>
+                  <th>Speed (×)</th>
+                  <th>Initial energy (J/kg)</th>
+                  <th>Classification</th>
+                  <th>Status</th>
+                  <th>Final radius (km)</th>
+                  <th>Final time (s)</th>
+                  <th>Max ΔE (%)</th>
+                  <th>Max ΔL (%)</th>
+                </tr>
+              </thead>
+              <tbody id="sweepTableBody"></tbody>
+            </table>
+          </div>
+          <p class="sweep-note muted">
+            Note: √2 × circular speed is the analytic threshold between bound (negative specific energy) and unbound trajectories in an idealized two-body model. A positive initial energy does not mean escaped within the finite run, nor does large distance imply numerical or physical escape. Balance residuals reflect integration tolerance across all steps.
+          </p>
+        </div>
+      </section>
     </section>
   </div>
   <section class="model-summary"><div><p class="eyebrow">THE MODEL, IN ONE LINE</p><p id="equation" class="equation"></p></div><div><h3>Know what you are testing.</h3><p id="assumptions"></p></div></section>

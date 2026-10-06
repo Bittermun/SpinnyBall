@@ -1,6 +1,7 @@
 import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate, orbitElements, keplerOrbitPoints } from './physics.mjs';
 import { parseTrajectoryData, auditOrbitTrajectory } from './audit.mjs';
 import { nearestSampleAtTime } from './plot-data.mjs';
+import { validateOrbitSweep } from './sweep.mjs';
 
 const $ = id => document.getElementById(id);
 const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b', cyan: '#5dd8ce' };
@@ -9,10 +10,12 @@ let model = 'orbit', draft = configFor(model), result = null, pinned = null, aud
 let playing = false, fraction = 0, replaySpeed = 1, previousFrame = 0, requestId = 0;
 let busy = false, dirty = false, worker;
 let inspectedIndex = null, inspectingPlot = 'signal';
+let sweepWorker = null, sweepRequestId = 0, sweepBusy = false, displayedSweep = null;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmt = (value, digits = 2) => Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : '—';
 const small = value => value === 0 ? '0' : Math.abs(value) < 0.001 ? value.toExponential(1) : fmt(value, 3);
 const status = (message, error = false) => { $('status').textContent = message; $('status').classList.toggle('error', error); };
+const setSweepStatus = (message, error = false) => { if ($('sweepStatus')) { $('sweepStatus').textContent = message; $('sweepStatus').classList.toggle('error', error); } };
 
 function field(item) {
   const [key, label, unit, min, max, step, scale] = item;
@@ -43,6 +46,10 @@ function configure(nextModel, config, presetIndex = 1) {
   $('fields').replaceChildren(); $('numericalFields').replaceChildren();
   for (const item of m.fields) (['dt', 'duration'].includes(item[0]) ? $('numericalFields') : $('fields')).append(field(item));
   $('sceneCaption').textContent = { orbit: 'LUNAR-SCALE GRAVITY · INERTIAL FRAME', spin: 'TORQUE-FREE ROTOR · INERTIAL VIEW', exchange: '1D POINT MASSES · INERTIAL FRAME' }[model];
+  if ($('sweepPanel')) {
+    $('sweepPanel').hidden = model !== 'orbit';
+    if (model !== 'orbit') cancelSweep(true);
+  }
   updatePin(); run(config, false);
 }
 
@@ -336,10 +343,207 @@ function download(filename, content, type) {
   const a = document.createElement('a'); a.href = url; a.download = filename; a.click(); setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
+function initSweepWorker() {
+  sweepWorker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
+  sweepWorker.addEventListener('message', ({ data }) => handleSweepWorkerMessage(data));
+  sweepWorker.addEventListener('error', () => {
+    sweepBusy = false;
+    $('runSweepButton').disabled = false;
+    $('cancelSweepButton').hidden = true;
+    setSweepStatus('The sweep worker encountered an error.', true);
+  });
+}
+
+function handleSweepWorkerMessage(data) {
+  if (data.id !== sweepRequestId) return;
+  if (data.kind === 'sweep-progress') {
+    setSweepStatus(`Running sweep: completed ${data.completed} of ${data.total} points…`);
+    return;
+  }
+  if (data.kind === 'sweep-result') {
+    sweepBusy = false;
+    $('runSweepButton').disabled = false;
+    $('cancelSweepButton').hidden = true;
+    if (data.error) {
+      setSweepStatus(`Sweep error: ${data.error}`, true);
+      return;
+    }
+    displayedSweep = data.result;
+    renderSweep(data.result);
+    setSweepStatus(`Sweep complete: ${data.result.rows.length} points calculated.`);
+    $('exportSweepJSON').disabled = false;
+    $('exportSweepCSV').disabled = false;
+  }
+}
+
+function cancelSweep(quiet = false) {
+  if (sweepBusy) {
+    sweepWorker?.terminate();
+    sweepBusy = false;
+    sweepRequestId++;
+    initSweepWorker();
+    $('runSweepButton').disabled = false;
+    $('cancelSweepButton').hidden = true;
+    if (!quiet) setSweepStatus('Sweep cancelled.');
+  }
+}
+
+function startSweep() {
+  if (sweepBusy) return;
+  if (dirty) {
+    setSweepStatus('Apply & run parameter changes first before starting a sweep.', true);
+    return;
+  }
+  const baseConfig = result ? result.config : draft;
+  const minSpeed = $('sweepMinSpeed').valueAsNumber;
+  const maxSpeed = $('sweepMaxSpeed').valueAsNumber;
+  const count = $('sweepCount').valueAsNumber;
+  const range = { minSpeed, maxSpeed, count };
+  try {
+    validateOrbitSweep(baseConfig, range);
+  } catch (err) {
+    setSweepStatus(err.message, true);
+    return;
+  }
+  sweepBusy = true;
+  $('runSweepButton').disabled = true;
+  $('cancelSweepButton').hidden = false;
+  $('exportSweepJSON').disabled = true;
+  $('exportSweepCSV').disabled = true;
+  setSweepStatus(`Starting sweep: 0 of ${count} points…`);
+  const id = ++sweepRequestId;
+  sweepWorker.postMessage({ id, kind: 'orbit-speed-sweep', config: baseConfig, range });
+}
+
+function drawSweepPlot(sweep) {
+  if (!sweep || !sweep.rows?.length) return;
+  const [ctx, w, h] = context('sweepPlot');
+  const rows = sweep.rows;
+  const left = 65, right = w - 15, top = 20, bottom = h - 25;
+  const speeds = rows.map(r => r.speed);
+  const radii = rows.map(r => r.finalRadiusKm);
+  const minSpeed = Math.min(...speeds);
+  const maxSpeed = Math.max(...speeds);
+  let minRadius = Math.min(...radii);
+  let maxRadius = Math.max(...radii);
+  if (maxRadius - minRadius < 1e-4) {
+    minRadius -= 10;
+    maxRadius += 10;
+  }
+  const padR = (maxRadius - minRadius) * 0.12;
+  minRadius -= padR;
+  maxRadius += padR;
+
+  const speedX = s => left + ((s - minSpeed) / (maxSpeed - minSpeed || 1)) * (right - left);
+  const radiusY = r => bottom - ((r - minRadius) / (maxRadius - minRadius || 1)) * (bottom - top);
+
+  for (let i = 0; i <= 2; i++) {
+    const y = top + (bottom - top) * i / 2;
+    line(ctx, [[left, y], [right, y]], '#d9dfd0', 0.7);
+    const val = maxRadius - (i / 2) * (maxRadius - minRadius);
+    label(ctx, fmt(val, val > 100 ? 0 : 1) + ' km', left - 7, y + 3, '#75816e', 'right');
+  }
+
+  line(ctx, [[left, bottom], [right, bottom]], '#d9dfd0', 0.7);
+  label(ctx, `${fmt(minSpeed, 2)}×`, left, h - 6, '#75816e');
+  label(ctx, `${fmt(maxSpeed, 2)}×`, right, h - 6, '#75816e', 'right');
+  label(ctx, 'Speed (× circular)', (left + right) / 2, h - 6, '#75816e', 'center');
+
+  const sqrt2 = Math.SQRT2;
+  if (sqrt2 >= minSpeed && sqrt2 <= maxSpeed) {
+    const xRef = speedX(sqrt2);
+    line(ctx, [[xRef, top], [xRef, bottom]], '#bd8150', 1, true);
+    label(ctx, '√2', xRef, top - 6, '#bd8150', 'center');
+  }
+
+  const curvePoints = rows.map(r => [speedX(r.speed), radiusY(r.finalRadiusKm)]);
+  line(ctx, curvePoints, '#416e4e', 1.5);
+
+  rows.forEach(r => {
+    const x = speedX(r.speed);
+    const y = radiusY(r.finalRadiusKm);
+    if (r.status === 'surface') {
+      line(ctx, [[x - 4, y - 4], [x + 4, y + 4]], '#9e4928', 1.5);
+      line(ctx, [[x - 4, y + 4], [x + 4, y - 4]], '#9e4928', 1.5);
+    } else if (r.classification === 'unbound') {
+      dot(ctx, x, y, 3.5, '#bd8150');
+    } else {
+      dot(ctx, x, y, 3.5, '#416e4e');
+    }
+  });
+
+  $('sweepPlot').setAttribute('aria-label', `Orbital speed sweep chart. ${rows.length} points from speed ${fmt(minSpeed, 2)} to ${fmt(maxSpeed, 2)} times circular speed. Final distance from center ${fmt(minRadius + padR, 0)} to ${fmt(maxRadius - padR, 0)} km. Vertical dashed line at square root of 2 marks bound and unbound threshold.`);
+}
+
+function renderSweep(sweep) {
+  if (!sweep) return;
+  $('sweepOutput').hidden = false;
+  drawSweepPlot(sweep);
+  const tbody = $('sweepTableBody');
+  tbody.replaceChildren();
+  sweep.rows.forEach(row => {
+    const tr = document.createElement('tr');
+
+    const tdAction = document.createElement('td');
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.textContent = 'Select & run';
+    btn.addEventListener('click', () => {
+      $('param-speed').value = row.speed;
+      draft.speed = row.speed;
+      dirty = false;
+      $('runButton').firstChild.textContent = 'Run experiment ';
+      run({ ...draft, speed: row.speed });
+    });
+    tdAction.append(btn);
+
+    const tdSpeed = document.createElement('td');
+    tdSpeed.textContent = fmt(row.speed, 3);
+
+    const tdEnergy = document.createElement('td');
+    tdEnergy.textContent = fmt(row.initialEnergyJPerKg, 1);
+
+    const tdClass = document.createElement('td');
+    const badge = document.createElement('span');
+    badge.className = `badge ${row.classification}`;
+    badge.textContent = row.classification;
+    tdClass.append(badge);
+
+    const tdStatus = document.createElement('td');
+    tdStatus.textContent = row.status === 'surface' ? 'stopped before surface crossing' : 'complete';
+
+    const tdRadius = document.createElement('td');
+    tdRadius.textContent = fmt(row.finalRadiusKm, 1);
+
+    const tdTime = document.createElement('td');
+    tdTime.textContent = fmt(row.finalTimeS, 1);
+
+    const tdEnergyErr = document.createElement('td');
+    tdEnergyErr.textContent = `${small(row.maxEnergyError * 100)}%`;
+
+    const tdMomErr = document.createElement('td');
+    tdMomErr.textContent = `${small(row.maxMomentumError * 100)}%`;
+
+    tr.append(tdAction, tdSpeed, tdEnergy, tdClass, tdStatus, tdRadius, tdTime, tdEnergyErr, tdMomErr);
+    tbody.append(tr);
+  });
+}
+
 try {
   worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
   worker.addEventListener('message', event => { receive(event); needsDraw = true; });
   worker.addEventListener('error', () => { busy = false; $('runButton').disabled = false; status('The simulation worker could not start. Launch with python -m workbench and use the localhost URL.', true); });
+  initSweepWorker();
+
+  if ($('sweepForm')) {
+    $('sweepForm').addEventListener('submit', event => {
+      event.preventDefault();
+      startSweep();
+    });
+  }
+  if ($('cancelSweepButton')) {
+    $('cancelSweepButton').addEventListener('click', () => cancelSweep(false));
+  }
   $('parameters').addEventListener('submit', event => {
     event.preventDefault();
     const config = { ...draft };
@@ -511,7 +715,7 @@ try {
   $('notesButton').addEventListener('click', showNotes); $('balanceInfo').addEventListener('click', showNotes);
   $('closeNotes').addEventListener('click', () => $('notes').close());
   $('notes').addEventListener('click', event => { if (event.target === $('notes')) { const r = $('notes').getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) $('notes').close(); } });
-  new ResizeObserver(() => { needsDraw = true; }).observe($('scene'));
+  new ResizeObserver(() => { needsDraw = true; if (displayedSweep) drawSweepPlot(displayedSweep); }).observe($('scene'));
   document.addEventListener('visibilitychange', () => { if (document.hidden) { playing = false; needsDraw = true; } });
   configure(model, draft); requestAnimationFrame(frame);
 } catch (error) { status(`Could not start: ${error.message}. Serve this folder over localhost with python -m workbench.`, true); }

@@ -10,6 +10,31 @@
 .audit-warning-box{border:1px solid #dbad6b;background:#fff0d4;color:#754619;border-radius:5px;padding:10px;font-size:11px;margin-top:12px;line-height:1.6}
 .plot-inspection{margin:10px 0;font:11px var(--mono);color:var(--ink);padding:8px 12px;background:#e8ece1;border:1px solid var(--line);border-radius:6px;line-height:1.5}
 .plot-card canvas{cursor:crosshair}
+.sweep-panel{margin-top:24px;padding:20px;border:1px solid var(--line);border-radius:8px;background:#fbfbf7}
+.sweep-header{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:14px;flex-wrap:wrap;gap:8px}
+.sweep-header h3{font-size:16px;font-weight:600;margin:4px 0 0}
+.sweep-controls{display:flex;gap:14px;align-items:flex-end;flex-wrap:wrap;margin-bottom:12px}
+.sweep-field{display:flex;flex-direction:column;gap:5px;flex:1;min-width:110px}
+.sweep-field label{font-size:11px;color:#4c5b50;font-weight:600}
+.sweep-field input{border:1px solid var(--line);background:#fff;border-radius:5px;padding:8px 10px;font:12px var(--mono)}
+.sweep-actions{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.sweep-actions button{padding:8px 12px;font-size:11px}
+.sweep-actions .primary-btn{background:var(--green);color:#f6f8eb;border:0}
+.sweep-actions .primary-btn:hover{background:#33634e}
+.sweep-status{font:11px var(--mono);color:var(--muted);min-height:18px;margin:6px 0 12px}
+.sweep-status.error{color:#a83c22}
+.sweep-output{margin-top:14px}
+.sweep-chart-card{margin-bottom:16px}
+.sweep-chart-card canvas{display:block;width:100%;height:160px;margin-top:8px}
+.sweep-table-container{max-height:260px;overflow:auto;border:1px solid var(--line);border-radius:6px;background:#fff}
+.sweep-table{width:100%;border-collapse:collapse;font:11px var(--mono);text-align:left}
+.sweep-table th,.sweep-table td{padding:6px 10px;border-bottom:1px solid var(--line);white-space:nowrap}
+.sweep-table th{background:#f4f6ee;color:var(--muted);font-weight:600;position:sticky;top:0;font-size:10px}
+.sweep-table button{padding:3px 7px;font-size:10px;border-radius:4px}
+.sweep-table .badge{display:inline-block;padding:2px 5px;border-radius:3px;font-size:9px;font-weight:600}
+.sweep-table .badge.bound{background:#e2ead5;color:#365737}
+.sweep-table .badge.unbound{background:#f6e2cd;color:#9e4928}
+.sweep-note{font-size:10px;line-height:1.6;margin-top:10px}
 
 @media(min-width:1500px){.stage{height:410px}.plot-card canvas{height:140px}.intro{padding-top:43px;padding-bottom:35px}}
 @media(max-width:1000px){main{padding:0 24px}.masthead{padding:20px 24px}.workspace{grid-template-columns:225px minmax(0,1fr);gap:20px}.controls{padding-right:19px}.intro>p{display:none}.stage-top{inset:17px 17px auto}.simulation-badge{display:none}.stage h2{font-size:12px}.measurements strong{font-size:16px}.balance .text-button{margin-left:0}.model-summary{grid-template-columns:225px 1fr}.result-actions{gap:9px}.scene-legend{top:82px}.plots{gap:12px}.plot-title span{display:none}}
