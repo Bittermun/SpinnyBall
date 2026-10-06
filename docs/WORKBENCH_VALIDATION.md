@@ -4,6 +4,35 @@ Verification recorded on September 30, 2026 against the workbench implementation
 
 ## Commands and results
 
+### October 6, 2026 verification
+
+| Check | Result |
+|---|---|
+| `node --test workbench/tests/physics.test.mjs workbench/tests/audit.test.mjs workbench/tests/plot-data.test.mjs workbench/tests/sweep.test.mjs` | 43 passed, 0 failed (~250 ms) |
+| `python -m unittest discover -s workbench/tests -p "test_*.py"` | 2 passed, 0 failed |
+| `node --check workbench/app.mjs`, `worker.mjs`, `run.mjs`, `audit.mjs`, `plot-data.mjs`, `sweep.mjs` | Syntax checks passed |
+| `git diff --check` | No whitespace errors |
+| `node scripts/code_graph.mjs --stats` | AST symbol graph verified |
+
+### Worked orbital speed sweep example
+
+Using the default circular orbit baseline ($r_0 = 1.85 \times 10^6$ m, duration $16{,}000$ s, $\Delta t = 4.0$ s, $4{,}000$ integration steps per point) with sweep parameters $s_{\text{min}} = 1.3$, $s_{\text{max}} = 1.5$, count = 5 ($20{,}000$ integration steps total, within the $200{,}000$-step budget):
+
+| Speed ratio $s$ | Specific energy $\varepsilon$ (J/kg) | Classification | Status | Final radius $r_{\text{final}}$ (km) | Max scaled $\Delta E$ | Max $\Delta h / h_0$ |
+|---|---|---|---|---|---|---|
+| 1.30 | $-380{,}137.5$ | `bound` | complete | $10{,}142.32$ | $1.02 \times 10^{-6}$ (0.000102%) | $4.45 \times 10^{-15}$ |
+| 1.35 | $-217{,}659.4$ | `bound` | complete | $12{,}889.50$ | $1.15 \times 10^{-6}$ (0.000115%) | $7.89 \times 10^{-15}$ |
+| 1.40 | $-49{,}050.0$ | `bound` | complete | $15{,}380.44$ | $1.28 \times 10^{-6}$ (0.000128%) | $3.70 \times 10^{-15}$ |
+| **$\sqrt{2} \approx 1.4142$** | **$0.0$** | **Analytic boundary** | — | — | — | — |
+| 1.45 | $+125{,}690.6$ | `unbound` | complete | $17{,}687.04$ | $1.42 \times 10^{-6}$ (0.000142%) | $7.35 \times 10^{-15}$ |
+| 1.50 | $+306{,}562.5$ | `unbound` | complete | $19{,}854.61$ | $1.57 \times 10^{-6}$ (0.000157%) | $1.06 \times 10^{-14}$ |
+
+All points maintain maximum energy and momentum residuals well below the 0.1% numerical warning threshold ($< 0.00016\%$).
+- Selecting row $s = 1.45$ loads $1.45$ into the ordinary orbit controls and triggers a full-resolution simulation run.
+- Exporting sweep JSON and re-importing validates schema and range, recomputing all 5 points deterministically while ignoring any fabricated rows or diagnostics.
+
+### September 30, 2026 baseline
+
 | Check | Result |
 |---|---|
 | `node --test workbench/tests/physics.test.mjs` | 19 passed, 0 failed |

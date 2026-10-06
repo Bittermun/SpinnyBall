@@ -22,7 +22,7 @@ jobs:
         with:
           python-version: '3.12'
       - name: Analytic models, convergence, invariants and serialization
-        run: node --test workbench/tests/physics.test.mjs
+        run: node --test workbench/tests/physics.test.mjs workbench/tests/audit.test.mjs workbench/tests/plot-data.test.mjs workbench/tests/sweep.test.mjs
       - name: Local server contract
         run: python -m unittest discover -s workbench/tests -p "test_*.py"
       - name: JavaScript syntax
@@ -30,3 +30,9 @@ jobs:
           node --check workbench/app.mjs
           node --check workbench/worker.mjs
           node --check workbench/run.mjs
+          node --check workbench/audit.mjs
+          node --check workbench/plot-data.mjs
+          node --check workbench/sweep.mjs
+      - name: Python syntax
+        run: |
+          python -m py_compile workbench/__main__.py workbench/tests/test_launcher.py

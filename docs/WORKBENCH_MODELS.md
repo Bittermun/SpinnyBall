@@ -12,6 +12,8 @@ Velocity Verlet advances position and velocity using endpoint accelerations. Spe
 
 For a bound orbit a = −μ/(2ε), e = |s² − 1| and T = 2π √(a³/μ). Tests independently solve Kepler's equation for a periapsis-started ellipse and compare trajectory positions. At ε ≥ 0 the conic is unbound.
 
+When s < 1, launch radius r₀ is apoapsis (r_a = a(1 + e) = r₀) and the semi-major axis is a = r₀ / (2 − s²) < r₀. The analytic Kepler overlay aligns apoapsis at [r₀, 0] via x = a(e + cos E), y = b sin E for eccentric anomaly E ∈ [0, 2π], reaching periapsis at E = π. For s ≥ 1, launch begins at periapsis and uses x = a(cos E − e).
+
 If the next position enters the surface, the run stops at the last exterior state and reports a crossing in the next step. This is not precise event timing or a collision response. The allowed steps are small relative to the surface dynamical time.
 
 Source: [Richard Battin, MIT 16.346, The Two Body Problem](https://ocw.mit.edu/courses/16-346-astrodynamics-fall-2008/resources/lec_01/). [JPL astrodynamic parameters](https://ssd.jpl.nasa.gov/astro_par.html) provide context for physical constants versus ephemerides.
@@ -43,6 +45,23 @@ Energy scale: max(E₀, |Fext ℓ|, 1 J). Momentum scale: max(M|v₀|, √(kM) e
 Internal forces redistribute momentum without changing the total. This example isolates system boundaries and external momentum sources; it does not establish or rule out every orbital control mechanism.
 
 Source: [MIT 16.07, Conservation Laws for Systems of Particles](https://ocw.mit.edu/courses/16-07-dynamics-fall-2009/resources/mit16_07f09_lec11/).
+
+## Orbital speed sweep
+
+The orbital speed sweep evaluates the parameter sensitivity of initial launch speed ratio $s \in [0.1, 2.0]$ holding the current orbit base configuration (initial radius $r_0$, duration, integration step $\Delta t$) constant.
+
+- **Analytic energy boundary**: Specific orbital energy is $\varepsilon = |v|^2/2 - \mu/r_0 = (s^2 - 2)\mu / (2 r_0)$. At $s = \sqrt{2} \approx 1.41421356$, $\varepsilon = 0$. For $s < \sqrt{2}$, $\varepsilon < 0$ and the conic is bound in this idealized two-body potential. For $s \ge \sqrt{2}$, $\varepsilon \ge 0$ and the conic is unbound. The $\sqrt{2}$ marker on the sweep plot is an analytic classification threshold, not an empirical discovery.
+- **Finite run semantics**: Classification as unbound indicates non-negative initial specific energy. It does not establish that the projectile has escaped to infinity within the finite run duration, nor does a large exterior distance at `finalTime` constitute evidence of escape.
+- **Surface stop handling**: If an orbit intercepts the central body surface ($r \le R$), integration stops at the last exterior state and reports status `"stopped before surface crossing"`. It is never reported as an impact at `finalTime`.
+- **Sample retention and balance accountability**: Each sweep point retains exactly 2 samples (initial state at $t = 0$ and final state at $t_{\text{final}}$) to keep memory bounded across batch evaluations. However, maximum energy and angular-momentum balance residuals are monitored across every single integration step, exactly as in full-resolution runs.
+- **Total work limit**: The sweep enforces an integer count of $3 \le N \le 21$ and a total-work limit of $N \times \lceil\text{duration}/\Delta t\rceil \le 200{,}000$ integration steps.
+
+## Diagnostic plot inspection
+
+The Signal and Energy balance time plots support exact-sample inspection via pointer hover/tap or keyboard navigation (`tabindex="0"`, arrow keys, Home/End, Esc):
+
+- **Exact retained samples**: The inspection readout and marker always correspond to a discrete retained sample identified by binary search (`nearestSampleAtTime` in `workbench/plot-data.mjs`). No physical state is interpolated between samples.
+- **Independent comparison time grids**: When a pinned comparison is active, each run is queried against its own retained sample grid. The readout displays each run's own timestamp, value, and units without assuming synchronous sampling or identical step sizes.
 
 ## Accuracy and exports
 

@@ -30,8 +30,10 @@ You can also serve the static `workbench/` directory over HTTP. Opening its HTML
 1. In **Orbital motion**, select **Circular** and press Play. Radius remains nearly constant.
 2. Choose **Pin comparison**, then **Elliptical**. The amber dashed curve is the pinned run.
 3. Change **Speed / circular speed** to **1.42**, then **Apply & run**. Positive specific orbital energy indicates an unbound orbit in this model.
-4. Expand **Duration & numerical resolution**, halve the integration step and rerun. Compare the trajectory and reported balance errors.
-5. **Save experiment** exports parameters, initial conditions, model/version information, retained samples and diagnostics. **Import** recalculates from parameters. **CSV** exports the sampled trajectory.
+4. Hover or focus the diagnostic plots to **Inspect sample** with exact timestamps, values, and units (use arrow keys, Home/End, Esc to clear). When a comparison is pinned, inspect both runs honestly on their own retained time grids.
+5. In **Sweep launch speed** (Orbital motion), enter a speed range (such as 1.3 to 1.5 with 5 points) and click **Run sweep**. The chart and table display deterministic parameter sensitivity with the analytic √2 bound/unbound threshold. Select any row (e.g. 1.45×) to load it into the main controls for full-resolution replay. Save sweep JSON/CSV, or import a sweep JSON to recompute it.
+6. Expand **Duration & numerical resolution**, halve the integration step and rerun. Compare the trajectory and reported balance errors.
+7. **Save experiment** exports parameters, initial conditions, model/version information, retained samples and diagnostics. **Import** recalculates from parameters. **CSV** exports the sampled trajectory.
 
 Playback replays computed samples: the whole run takes approximately 24 seconds at 1×. Pause, scrub or reset without changing the experiment. A comparison is held only in this tab; save it before closing.
 
@@ -42,6 +44,8 @@ Node.js 20+ is needed only for command-line experiments and tests; no npm depend
 ~~~sh
 node --test workbench/tests/physics.test.mjs
 node --test workbench/tests/audit.test.mjs
+node --test workbench/tests/plot-data.test.mjs
+node --test workbench/tests/sweep.test.mjs
 node workbench/run.mjs orbit orbit.json
 node workbench/run.mjs orbit.json replay.json
 node workbench/verify-external.mjs orbit.json --mu 4.905e12
