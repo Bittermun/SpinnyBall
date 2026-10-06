@@ -250,14 +250,13 @@ export function keplerOrbitPoints(c, numPoints = 120) {
   const { energy, eccentricity: e, semiMajorAxis: a } = orbitElements(c);
   if (energy >= 0 || !a || e >= 1) return []; // Open / unbound trajectory
   
-  // Directly matches standard orbit parameterization:
-  // x = a * (cos(E) - e), y = a * sqrt(1 - e^2) * sin(E)
   const b = a * Math.sqrt(1 - e * e);
   const points = [];
+  const isSubCircular = c.speed < 1;
   
   for (let i = 0; i <= numPoints; i++) {
     const E = (TAU * i) / numPoints; // Eccentric anomaly from 0 to 2pi
-    const x = a * (Math.cos(E) - e);
+    const x = isSubCircular ? a * (e + Math.cos(E)) : a * (Math.cos(E) - e);
     const y = b * Math.sin(E);
     points.push([x, y]);
   }

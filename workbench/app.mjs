@@ -326,20 +326,43 @@ try {
       auditedTrajectory = { file: file.name, samples, audit };
       
       const badgeClass = audit.passed ? 'audit-pass' : 'audit-fail';
-      const badgeText = audit.passed ? '✓ PASSED (&lt; 0.1% drift)' : '✗ FAILED (invariants exceeded threshold)';
-      $('auditContent').innerHTML = `
-        <span class="audit-badge ${badgeClass}">${badgeText}</span>
-        <p class="muted">File: <b>${file.name}</b> (${audit.sampleCount} samples, ${audit.duration.toFixed(1)} s duration, μ = ${mu.toExponential(3)} m³/s²)</p>
-        <table class="audit-table">
-          <tr><th>Invariant / Diagnostic</th><th>Value</th><th>Status</th></tr>
-          <tr><td>Max Energy Error</td><td>${(audit.metrics.maxEnergyRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxEnergyRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
-          <tr><td>Max Angular Momentum Error</td><td>${(audit.metrics.maxAngMomRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxAngMomRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
-          <tr><td>Eccentricity Drift (|Δe|)</td><td>${audit.metrics.maxEccentricityDrift.toExponential(3)}</td><td>—</td></tr>
-          <tr><td>Max Residual Acceleration</td><td>${audit.metrics.maxParasiticAccel.toExponential(3)} m/s²</td><td>—</td></tr>
-          <tr><td>Closest Approach</td><td>${(audit.metrics.closestApproach / 1000).toFixed(1)} km</td><td>${audit.metrics.closestApproach > r_body ? 'Clear' : '⚠ Penetrated'}</td></tr>
-        </table>
-        ${audit.warnings.length ? `<div class="audit-warning-box"><strong>Warnings:</strong><br>${audit.warnings.map(w => `• ${w}`).join('<br>')}</div>` : ''}
+      const badgeText = audit.passed ? '✓ PASSED (< 0.1% drift)' : '✗ FAILED (invariants exceeded threshold)';
+      const badge = document.createElement('span');
+      badge.className = `audit-badge ${badgeClass}`;
+      badge.textContent = badgeText;
+
+      const fileP = document.createElement('p');
+      fileP.className = 'muted';
+      fileP.append('File: ');
+      const bold = document.createElement('b');
+      bold.textContent = file.name;
+      fileP.append(bold, ` (${audit.sampleCount} samples, ${audit.duration.toFixed(1)} s duration, μ = ${mu.toExponential(3)} m³/s²)`);
+
+      const table = document.createElement('table');
+      table.className = 'audit-table';
+      table.innerHTML = `
+        <tr><th>Invariant / Diagnostic</th><th>Value</th><th>Status</th></tr>
+        <tr><td>Max Energy Error</td><td>${(audit.metrics.maxEnergyRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxEnergyRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
+        <tr><td>Max Angular Momentum Error</td><td>${(audit.metrics.maxAngMomRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxAngMomRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
+        <tr><td>Eccentricity Drift (|Δe|)</td><td>${audit.metrics.maxEccentricityDrift.toExponential(3)}</td><td>—</td></tr>
+        <tr><td>Max Residual Acceleration</td><td>${audit.metrics.maxParasiticAccel.toExponential(3)} m/s²</td><td>—</td></tr>
+        <tr><td>Closest Approach</td><td>${(audit.metrics.closestApproach / 1000).toFixed(1)} km</td><td>${audit.metrics.closestApproach > r_body ? 'Clear' : '⚠ Penetrated'}</td></tr>
       `;
+
+      $('auditContent').replaceChildren(badge, fileP, table);
+
+      if (audit.warnings.length) {
+        const warnBox = document.createElement('div');
+        warnBox.className = 'audit-warning-box';
+        const strong = document.createElement('strong');
+        strong.textContent = 'Warnings:';
+        warnBox.append(strong);
+        for (const w of audit.warnings) {
+          warnBox.append(document.createElement('br'));
+          warnBox.append(document.createTextNode(`• ${w}`));
+        }
+        $('auditContent').append(warnBox);
+      }
       $('auditModal').showModal();
       needsDraw = true;
       status(`Audited ${file.name}: ${audit.passed ? 'passed conservation checks' : 'invariants drifted'}.`);

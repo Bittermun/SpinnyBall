@@ -200,4 +200,16 @@ test('keplerOrbitPoints generates a closed analytic ellipse matching orbit eleme
   close(apoapsisX, -semiMajorAxis * (1 + eccentricity), 1e-3, 'apoapsis position');
 });
 
+test('keplerOrbitPoints aligns sub-circular launches at apoapsis on initial position', () => {
+  const c = { ...configFor('orbit', 0), speed: 0.8 };
+  const points = keplerOrbitPoints(c, 60);
+  assert.equal(points.length, 61);
+  close(points[0][0], c.radius, 1e-4, 'start x');
+  close(points[0][1], 0, 1e-4, 'start y');
+  close(points.at(-1)[0], c.radius, 1e-4, 'end x');
+  close(points.at(-1)[1], 0, 1e-4, 'end y');
 
+  const { semiMajorAxis, eccentricity } = orbitElements(c);
+  const periapsisX = points[30][0];
+  close(periapsisX, -semiMajorAxis * (1 - eccentricity), 1e-3, 'periapsis position');
+});
