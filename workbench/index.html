@@ -59,9 +59,10 @@
         <div><span id="metricLabel3"></span><strong id="metric3">—</strong></div>
       </div>
       <div class="plots">
-        <section class="plot-card"><div class="plot-title"><h3 id="signalTitle">Trajectory measurement</h3><span>TIME / s</span></div><canvas id="signalPlot" role="img" aria-label="Measured quantity versus simulation time"></canvas></section>
-        <section class="plot-card"><div class="plot-title"><h3>Energy balance error</h3><span>% OF SCALE</span></div><canvas id="energyPlot" role="img" aria-label="Energy balance residual versus simulation time"></canvas></section>
+        <section class="plot-card"><div class="plot-title"><h3 id="signalTitle">Trajectory measurement</h3><span>TIME / s</span></div><canvas id="signalPlot" tabindex="0" role="img" aria-label="Measured quantity versus simulation time"></canvas></section>
+        <section class="plot-card"><div class="plot-title"><h3>Energy balance error</h3><span>% OF SCALE</span></div><canvas id="energyPlot" tabindex="0" role="img" aria-label="Energy balance residual versus simulation time"></canvas></section>
       </div>
+      <div id="plotInspection" class="plot-inspection" aria-live="polite">Inspect sample: hover or focus a plot (arrow keys step, Home/End, Esc to clear).</div>
       <div class="balance"><span id="balanceBadge" class="balance-badge">Computing</span><span id="balanceText"></span><button id="balanceInfo" class="text-button">What does this mean?</button></div>
       <div id="warnings" role="alert" hidden></div>
       <div class="result-actions"><div><button id="pin">＋ Pin comparison</button><button id="clearPin" hidden>Clear</button><span id="pinLabel" class="muted"></span></div><div><button id="auditButton">Audit external run</button><button id="importButton">Import</button><button id="exportJSON">Save experiment ↓</button><button id="exportCSV">CSV ↓</button></div></div>

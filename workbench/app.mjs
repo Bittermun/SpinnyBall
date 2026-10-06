@@ -1,5 +1,6 @@
 import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate, orbitElements, keplerOrbitPoints } from './physics.mjs';
 import { parseTrajectoryData, auditOrbitTrajectory } from './audit.mjs';
+import { nearestSampleAtTime } from './plot-data.mjs';
 
 const $ = id => document.getElementById(id);
 const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b', cyan: '#5dd8ce' };
@@ -7,6 +8,7 @@ let model = 'orbit', draft = configFor(model), result = null, pinned = null, aud
 
 let playing = false, fraction = 0, replaySpeed = 1, previousFrame = 0, requestId = 0;
 let busy = false, dirty = false, worker;
+let inspectedIndex = null, inspectingPlot = 'signal';
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmt = (value, digits = 2) => Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : '—';
 const small = value => value === 0 ? '0' : Math.abs(value) < 0.001 ? value.toExponential(1) : fmt(value, 3);
@@ -29,6 +31,7 @@ function field(item) {
 function configure(nextModel, config, presetIndex = 1) {
   model = nextModel; draft = config;
   result = null; fraction = 0; playing = false; dirty = false;
+  inspectedIndex = null;
   const m = MODELS[model];
   document.querySelectorAll('[data-model]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.model === model)));
   $('modelNumber').textContent = { orbit: '01', spin: '02', exchange: '03' }[model];
@@ -61,6 +64,10 @@ function receive({ data }) {
   busy = false; $('runButton').disabled = false;
   if (data.error) { status(data.error, true); return; }
   result = data.result; fraction = 0; playing = run.autoplay;
+  if (inspectedIndex !== null) {
+    if (result.samples?.length) inspectedIndex = Math.min(inspectedIndex, result.samples.length - 1);
+    else inspectedIndex = null;
+  }
   for (const id of ['play', 'pin', 'exportJSON', 'exportCSV']) $(id).disabled = false;
   $('runButton').firstChild.textContent = dirty ? 'Apply & run ' : 'Run experiment ';
   status(dirty ? 'Parameters changed. Run to update the results.' : `${result.diagnostics.steps.toLocaleString()} steps · ${result.method}`);
@@ -258,8 +265,51 @@ function drawPlot(id, key) {
   const s = selected(), p = point(s);
   line(ctx, [[p[0], top], [p[0], bottom]], '#b8c4b1', 1);
   dot(ctx, ...p, 2.5, '#3e6a49');
+
+  if (inspectedIndex !== null && result.samples[inspectedIndex]) {
+    const isamp = result.samples[inspectedIndex];
+    const ip = point(isamp);
+    line(ctx, [[ip[0], top], [ip[0], bottom]], '#d77845', 1, true);
+    dot(ctx, ...ip, 4, '#d77845');
+    dot(ctx, ...ip, 2, '#f5f3ec');
+    if (pinned?.config.model === model && pinned.samples?.length) {
+      const pinHit = nearestSampleAtTime(pinned.samples, isamp.t);
+      if (pinHit) {
+        const pp = point(pinHit.sample);
+        dot(ctx, ...pp, 3.5, '#bd8150');
+      }
+    }
+  }
+
   label(ctx, '0', left, h - 4, '#75816e'); label(ctx, fmt(timeMax, timeMax > 100 ? 0 : 1), right, h - 4, '#75816e', 'right');
-  $(id).setAttribute('aria-label', `${isEnergy ? 'Energy balance error in percent of scale' : result.signalLabel}. Minimum ${small(Math.min(...result.samples.map(value)))}, maximum ${small(Math.max(...result.samples.map(value)))}. Time 0 to ${result.diagnostics.finalTime} seconds. ${series.length > 1 ? 'Dashed amber line is the pinned run.' : ''}`);
+  const baseAria = `${isEnergy ? 'Energy balance error in percent of scale' : result.signalLabel}. Minimum ${small(Math.min(...result.samples.map(value)))}, maximum ${small(Math.max(...result.samples.map(value)))}. Time 0 to ${result.diagnostics.finalTime} seconds. ${series.length > 1 ? 'Dashed amber line is the pinned run.' : ''}`;
+  const inspectAria = inspectedIndex !== null && result.samples[inspectedIndex]
+    ? ` Inspected sample ${inspectedIndex + 1} of ${result.samples.length}: time ${fmt(result.samples[inspectedIndex].t, 2)} s, value ${small(value(result.samples[inspectedIndex]))}.`
+    : '';
+  $(id).setAttribute('aria-label', baseAria + inspectAria);
+}
+
+function updatePlotInspection() {
+  const el = $('plotInspection');
+  if (!el) return;
+  if (!result || !result.samples?.length || inspectedIndex === null || inspectedIndex < 0 || inspectedIndex >= result.samples.length) {
+    el.textContent = 'Inspect sample: hover or focus a plot (arrow keys step, Home/End, Esc to clear).';
+    return;
+  }
+  const s = result.samples[inspectedIndex];
+  const isEnergy = inspectingPlot === 'energyError';
+  const label = isEnergy ? 'Energy balance error' : result.signalLabel;
+  const val = isEnergy ? `${small(s.energyError * 100)}%` : small(s.signal);
+  let text = `Sample ${inspectedIndex + 1}/${result.samples.length} · t = ${fmt(s.t, model === 'orbit' ? 1 : 2)} s · ${label}: ${val}`;
+  if (pinned && pinned.config.model === model && pinned.samples?.length) {
+    const pinHit = nearestSampleAtTime(pinned.samples, s.t);
+    if (pinHit) {
+      const pinS = pinHit.sample;
+      const pinVal = isEnergy ? `${small(pinS.energyError * 100)}%` : small(pinS.signal);
+      text += ` | Pinned: t = ${fmt(pinS.t, model === 'orbit' ? 1 : 2)} s · ${label}: ${pinVal} (nearest sample)`;
+    }
+  }
+  el.textContent = text;
 }
 
 let needsDraw = true;
@@ -270,7 +320,14 @@ function frame(now) {
     if (fraction === 1) playing = false;
     needsDraw = true;
   }
-  if (needsDraw) { drawScene(); drawPlot('signalPlot', 'signal'); drawPlot('energyPlot', 'energyError'); updateReadout(); needsDraw = false; }
+  if (needsDraw) {
+    drawScene();
+    drawPlot('signalPlot', 'signal');
+    drawPlot('energyPlot', 'energyError');
+    updateReadout();
+    updatePlotInspection();
+    needsDraw = false;
+  }
   requestAnimationFrame(frame);
 }
 
@@ -311,6 +368,68 @@ try {
     try { if (file.size > 8 * 1024 * 1024) throw new Error('Choose an experiment file smaller than 8 MB.'); const config = readExperiment(JSON.parse(await file.text())); configure(config.model, config, -1); }
     catch (error) { status(`Import failed: ${error.message}`, true); }
     finally { event.target.value = ''; }
+  });
+
+  ['signalPlot', 'energyPlot'].forEach(id => {
+    const key = id === 'energyPlot' ? 'energyError' : 'signal';
+    const canvas = $(id);
+    const handlePointer = e => {
+      if (!result || !result.samples?.length) return;
+      const rect = canvas.getBoundingClientRect();
+      const left = 54, right = rect.width - 7;
+      const series = [result];
+      if (pinned?.config.model === model) series.push(pinned);
+      const timeMax = Math.max(...series.map(r => r.diagnostics.finalTime), 1e-9);
+      const frac = Math.max(0, Math.min(1, (e.clientX - rect.left - left) / (right - left)));
+      const hit = nearestSampleAtTime(result.samples, frac * timeMax);
+      if (hit) {
+        inspectedIndex = hit.index;
+        inspectingPlot = key;
+        needsDraw = true;
+      }
+    };
+    canvas.addEventListener('pointermove', e => {
+      if (e.buttons === 0 || e.buttons === 1) handlePointer(e);
+    });
+    canvas.addEventListener('pointerdown', handlePointer);
+    canvas.addEventListener('focus', () => {
+      inspectingPlot = key;
+      if (inspectedIndex === null && result?.samples?.length) {
+        const s = selected();
+        const hit = nearestSampleAtTime(result.samples, s ? s.t : 0);
+        inspectedIndex = hit ? hit.index : 0;
+      }
+      needsDraw = true;
+    });
+    canvas.addEventListener('keydown', e => {
+      if (!result || !result.samples?.length) return;
+      if (inspectedIndex === null) inspectedIndex = 0;
+      if (e.key === 'ArrowLeft') {
+        e.preventDefault();
+        inspectedIndex = Math.max(0, inspectedIndex - 1);
+        inspectingPlot = key;
+        needsDraw = true;
+      } else if (e.key === 'ArrowRight') {
+        e.preventDefault();
+        inspectedIndex = Math.min(result.samples.length - 1, inspectedIndex + 1);
+        inspectingPlot = key;
+        needsDraw = true;
+      } else if (e.key === 'Home') {
+        e.preventDefault();
+        inspectedIndex = 0;
+        inspectingPlot = key;
+        needsDraw = true;
+      } else if (e.key === 'End') {
+        e.preventDefault();
+        inspectedIndex = result.samples.length - 1;
+        inspectingPlot = key;
+        needsDraw = true;
+      } else if (e.key === 'Escape') {
+        e.preventDefault();
+        inspectedIndex = null;
+        needsDraw = true;
+      }
+    });
   });
 
   // External Trajectory Audit Handler
