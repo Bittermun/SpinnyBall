@@ -171,15 +171,21 @@ export function parseTrajectoryData(text) {
   if (lines.length < 2) throw new Error('CSV must have a header row and at least one data row.');
 
   const header = lines[0].toLowerCase().split(',').map(h => h.trim());
-  const col = name => header.indexOf(name);
+  const findCol = names => {
+    for (const name of names) {
+      const idx = header.indexOf(name);
+      if (idx !== -1) return idx;
+    }
+    return -1;
+  };
 
-  const tIdx = [col('time_s'), col('t'), col('time')].find(i => i !== -1);
-  const xIdx = col('x');
-  const yIdx = col('y');
-  const zIdx = col('z');
-  const vxIdx = col('vx');
-  const vyIdx = col('vy');
-  const vzIdx = col('vz');
+  const tIdx = findCol(['time_s', 't', 'time']);
+  const xIdx = findCol(['x_m', 'x', 'pos_x', 'r_x']);
+  const yIdx = findCol(['y_m', 'y', 'pos_y', 'r_y']);
+  const zIdx = findCol(['z_m', 'z', 'pos_z', 'r_z']);
+  const vxIdx = findCol(['vx_m_s', 'vx', 'vel_x', 'v_x']);
+  const vyIdx = findCol(['vy_m_s', 'vy', 'vel_y', 'v_y']);
+  const vzIdx = findCol(['vz_m_s', 'vz', 'vel_z', 'v_z']);
 
   if (xIdx === -1 || yIdx === -1 || vxIdx === -1 || vyIdx === -1) {
     throw new Error('CSV must include at least position (x, y) and velocity (vx, vy) columns.');

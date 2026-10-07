@@ -624,6 +624,14 @@ try {
       if (e.buttons === 0 || e.buttons === 1) handlePointer(e);
     });
     canvas.addEventListener('pointerdown', handlePointer);
+    canvas.addEventListener('pointerleave', () => {
+      if (document.activeElement !== canvas) {
+        inspectedIndex = null;
+        inspectingPlot = null;
+        needsDraw = true;
+        $('plotInspection').textContent = 'Inspect sample: hover or focus a plot (arrow keys step, Home/End, Esc to clear).';
+      }
+    });
     canvas.addEventListener('focus', () => {
       inspectingPlot = key;
       if (inspectedIndex === null && result?.samples?.length) {
@@ -727,22 +735,28 @@ try {
     await handleAuditFile(event.target.files[0]);
     event.target.value = '';
   });
-  $('closeAudit').addEventListener('click', () => $('auditModal').close());
-
-  // Drag and drop onto stage
-  const stage = $('stage');
-  stage.addEventListener('dragover', event => { event.preventDefault(); stage.classList.add('dragover'); });
-  stage.addEventListener('dragleave', () => stage.classList.remove('dragover'));
-  stage.addEventListener('drop', async event => {
-    event.preventDefault(); stage.classList.remove('dragover');
-    const file = event.dataTransfer.files[0];
-    if (file) await handleAuditFile(file);
+  $('closeAudit').addEventListener('click', () => {
+    $('auditModal').close();
+    $('auditButton')?.focus();
   });
 
-  const showNotes = () => $('notes').showModal();
+  // Drag and drop onto stage
+  const stage = $('stage') || document.querySelector('.stage');
+  if (stage) {
+    stage.addEventListener('dragover', event => { event.preventDefault(); stage.classList.add('dragover'); });
+    stage.addEventListener('dragleave', () => stage.classList.remove('dragover'));
+    stage.addEventListener('drop', async event => {
+      event.preventDefault(); stage.classList.remove('dragover');
+      const file = event.dataTransfer.files[0];
+      if (file) await handleAuditFile(file);
+    });
+  }
+
+  let lastFocusedForNotes = null;
+  const showNotes = () => { lastFocusedForNotes = document.activeElement; $('notes').showModal(); };
   $('notesButton').addEventListener('click', showNotes); $('balanceInfo').addEventListener('click', showNotes);
-  $('closeNotes').addEventListener('click', () => $('notes').close());
-  $('notes').addEventListener('click', event => { if (event.target === $('notes')) { const r = $('notes').getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) $('notes').close(); } });
+  $('closeNotes').addEventListener('click', () => { $('notes').close(); lastFocusedForNotes?.focus(); });
+  $('notes').addEventListener('click', event => { if (event.target === $('notes')) { const r = $('notes').getBoundingClientRect(); if (event.clientX < r.left || event.clientX > r.right || event.clientY < r.top || event.clientY > r.bottom) { $('notes').close(); lastFocusedForNotes?.focus(); } } });
   new ResizeObserver(() => { needsDraw = true; if (displayedSweep) drawSweepPlot(displayedSweep); }).observe($('scene'));
   document.addEventListener('visibilitychange', () => { if (document.hidden) { playing = false; needsDraw = true; } });
   configure(model, draft); requestAnimationFrame(frame);

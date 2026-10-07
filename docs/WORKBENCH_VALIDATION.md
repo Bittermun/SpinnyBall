@@ -8,8 +8,9 @@ Verification recorded on September 30, 2026 against the workbench implementation
 
 | Check | Result |
 |---|---|
-| `node --test workbench/tests/physics.test.mjs workbench/tests/audit.test.mjs workbench/tests/plot-data.test.mjs workbench/tests/sweep.test.mjs` | 43 passed, 0 failed (~250 ms) |
+| `node --test workbench/tests/physics.test.mjs workbench/tests/audit.test.mjs workbench/tests/plot-data.test.mjs workbench/tests/sweep.test.mjs` | 44 passed, 0 failed (~235 ms) |
 | `python -m unittest discover -s workbench/tests -p "test_*.py"` | 2 passed, 0 failed |
+| `python scripts/verify_workbench_playwright.py` | Full Playwright E2E passed (0 console errors, mobile 390×844 responsive, plot inspection, sweep export/import, audit scorecard) |
 | `node --check workbench/app.mjs`, `worker.mjs`, `run.mjs`, `audit.mjs`, `plot-data.mjs`, `sweep.mjs` | Syntax checks passed |
 | `git diff --check` | No whitespace errors |
 | `node scripts/code_graph.mjs --stats` | AST symbol graph verified |

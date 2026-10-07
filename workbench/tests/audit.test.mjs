@@ -16,6 +16,17 @@ test('parses SpinnyBall formatted CSV with standard headers', () => {
   assert.deepEqual(samples[0].v, [0, 1800, 0]);
 });
 
+test('parses SpinnyBall exported CSV with unit-annotated headers (x_m, y_m, vx_m_s, vy_m_s)', () => {
+  const csv = `time_s,x_m,y_m,vx_m_s,vy_m_s,energy,signal,external_work_J,scaled_energy_balance_error,scaled_momentum_balance_error
+0,2000000,0,0,1800,-688500,2000000,0,0,0
+10,1999900,18000,-16.2,1799.8,-688500,2000000,0,0,0`;
+  const samples = parseTrajectoryData(csv);
+  assert.equal(samples.length, 2);
+  assert.equal(samples[0].t, 0);
+  assert.deepEqual(samples[0].r, [2000000, 0, 0]);
+  assert.deepEqual(samples[0].v, [0, 1800, 0]);
+});
+
 test('parses generic 3D Cartesian CSV headers (t, x, y, z, vx, vy, vz)', () => {
   const csv = `t,x,y,z,vx,vy,vz
 0,7000000,0,0,0,7500,100

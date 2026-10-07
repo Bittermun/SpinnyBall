@@ -135,13 +135,15 @@ if (args.includes('--stats') || args.length === 0) {
   const totalLoc = graph.fileData.reduce((acc, f) => acc + f.lines, 0);
   const totalSymbols = graph.fileData.reduce((acc, f) => acc + f.symbols.length, 0);
 
-  const jsFiles = graph.fileData.filter(f => f.relPath.endsWith('.mjs') || f.relPath.endsWith('.js'));
-  const pyFiles = graph.fileData.filter(f => f.relPath.endsWith('.py'));
+  const jsFiles = graph.fileData.filter(f => f.relPath.endsWith('.mjs') || f.relPath.endsWith('.js') || f.relPath.endsWith('.ts'));
+  const wbPyFiles = graph.fileData.filter(f => f.relPath.startsWith('workbench/') && f.relPath.endsWith('.py'));
+  const pyResearchFiles = graph.fileData.filter(f => !f.relPath.startsWith('workbench/') && f.relPath.endsWith('.py'));
 
   console.log(`\n=== SpinnyBall Code Graph Stats ===`);
   console.log(`Total Indexed Files:   ${totalFiles}`);
   console.log(`  - JavaScript Engine: ${jsFiles.length} files (${jsFiles.reduce((a, f) => a + f.lines, 0)} LOC)`);
-  console.log(`  - Python Research:   ${pyFiles.length} files (${pyFiles.reduce((a, f) => a + f.lines, 0)} LOC)`);
+  console.log(`  - Workbench Server:  ${wbPyFiles.length} files (${wbPyFiles.reduce((a, f) => a + f.lines, 0)} LOC)`);
+  console.log(`  - Python Research:   ${pyResearchFiles.length} files (${pyResearchFiles.reduce((a, f) => a + f.lines, 0)} LOC)`);
   console.log(`Total Lines of Code:   ${totalLoc.toLocaleString()}`);
   console.log(`Total Indexed Symbols: ${totalSymbols.toLocaleString()}`);
   console.log(`====================================\n`);
