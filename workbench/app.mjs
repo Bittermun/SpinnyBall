@@ -2,6 +2,7 @@ import { MODELS, configFor, validateConfig, readExperiment, toCSV, norm, rotate,
 import { parseTrajectoryData, auditOrbitTrajectory } from './audit.mjs';
 import { nearestSampleAtTime } from './plot-data.mjs';
 import { validateOrbitSweep, toSweepCSV, readOrbitSweep } from './sweep.mjs';
+import { nextImportGeneration, isCurrentImportGeneration, resetInspectionState, sweepWorkerFailureUi } from './app-state.mjs';
 
 const $ = id => document.getElementById(id);
 const colors = { green: '#cbe9a2', orange: '#e4a66f', blue: '#94c8ce', muted: '#66827b', cyan: '#5dd8ce' };
@@ -11,11 +12,16 @@ let playing = false, fraction = 0, replaySpeed = 1, previousFrame = 0, requestId
 let busy = false, dirty = false, worker;
 let inspectedIndex = null, inspectingPlot = 'signal';
 let sweepWorker = null, sweepRequestId = 0, sweepBusy = false, displayedSweep = null;
+let importGeneration = 0;
 const reducedMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const fmt = (value, digits = 2) => Number.isFinite(value) ? value.toLocaleString(undefined, { maximumFractionDigits: digits, minimumFractionDigits: digits }) : '—';
 const small = value => value === 0 ? '0' : Math.abs(value) < 0.001 ? value.toExponential(1) : fmt(value, 3);
 const status = (message, error = false) => { $('status').textContent = message; $('status').classList.toggle('error', error); };
 const setSweepStatus = (message, error = false) => { if ($('sweepStatus')) { $('sweepStatus').textContent = message; $('sweepStatus').classList.toggle('error', error); } };
+
+function clearInspectionState() {
+  ({ inspectedIndex, inspectingPlot } = resetInspectionState());
+}
 
 function field(item) {
   const [key, label, unit, min, max, step, scale] = item;
@@ -34,7 +40,7 @@ function field(item) {
 function configure(nextModel, config, presetIndex = 1) {
   model = nextModel; draft = config;
   result = null; fraction = 0; playing = false; dirty = false;
-  inspectedIndex = null;
+  clearInspectionState();
   const m = MODELS[model];
   document.querySelectorAll('[data-model]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.model === model)));
   $('modelNumber').textContent = { orbit: '01', spin: '02', exchange: '03' }[model];
@@ -71,10 +77,7 @@ function receive({ data }) {
   busy = false; $('runButton').disabled = false;
   if (data.error) { status(data.error, true); return; }
   result = data.result; fraction = 0; playing = run.autoplay;
-  if (inspectedIndex !== null) {
-    if (result.samples?.length) inspectedIndex = Math.min(inspectedIndex, result.samples.length - 1);
-    else inspectedIndex = null;
-  }
+  clearInspectionState();
   for (const id of ['play', 'pin', 'exportJSON', 'exportCSV']) $(id).disabled = false;
   $('runButton').firstChild.textContent = dirty ? 'Apply & run ' : 'Run experiment ';
   status(dirty ? 'Parameters changed. Run to update the results.' : `${result.diagnostics.steps.toLocaleString()} steps · ${result.method}`);
@@ -344,17 +347,30 @@ function download(filename, content, type) {
 }
 
 function initSweepWorker() {
-  sweepWorker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
-  sweepWorker.addEventListener('message', ({ data }) => handleSweepWorkerMessage(data));
-  sweepWorker.addEventListener('error', () => {
-    sweepBusy = false;
-    $('runSweepButton').disabled = false;
-    $('cancelSweepButton').hidden = true;
-    setSweepStatus('The sweep worker encountered an error.', true);
+  const activeWorker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
+  sweepWorker = activeWorker;
+  activeWorker.addEventListener('message', ({ data }) => handleSweepWorkerMessage(data, activeWorker));
+  const handleWorkerFailure = message => {
+    if (activeWorker !== sweepWorker) return;
+    activeWorker.terminate();
+    sweepRequestId++;
+    initSweepWorker();
+    const ui = sweepWorkerFailureUi(message);
+    sweepBusy = ui.sweepBusy;
+    $('runSweepButton').disabled = ui.runSweepDisabled;
+    $('cancelSweepButton').hidden = ui.cancelSweepHidden;
+    setSweepStatus(ui.statusMessage, ui.statusError);
+  };
+  activeWorker.addEventListener('error', () => {
+    handleWorkerFailure('Sweep worker failed before completion. Try running the sweep again.');
+  });
+  activeWorker.addEventListener('messageerror', () => {
+    handleWorkerFailure('Sweep worker sent unreadable data. Try running the sweep again.');
   });
 }
 
-function handleSweepWorkerMessage(data) {
+function handleSweepWorkerMessage(data, sourceWorker = sweepWorker) {
+  if (sourceWorker !== sweepWorker) return;
   if (data.id !== sweepRequestId) return;
   if (data.kind === 'sweep-progress') {
     setSweepStatus(`Running sweep: completed ${data.completed} of ${data.total} points…`);
@@ -580,21 +596,30 @@ try {
   $('importButton').addEventListener('click', () => $('importFile').click());
   $('importFile').addEventListener('change', async event => {
     const file = event.target.files[0]; if (!file) return;
+    const generation = nextImportGeneration(importGeneration);
+    importGeneration = generation;
     try {
       if (file.size > 8 * 1024 * 1024) throw new Error('Choose an experiment file smaller than 8 MB.');
-      const parsed = JSON.parse(await file.text());
+      const text = await file.text();
+      if (!isCurrentImportGeneration(generation, importGeneration)) return;
+      const parsed = JSON.parse(text);
+      if (!isCurrentImportGeneration(generation, importGeneration)) return;
       if (parsed?.kind === 'orbit-speed-sweep') {
         const { baseConfig, range } = readOrbitSweep(parsed);
+        if (!isCurrentImportGeneration(generation, importGeneration)) return;
         $('sweepMinSpeed').value = range.minSpeed;
         $('sweepMaxSpeed').value = range.maxSpeed;
         $('sweepCount').value = range.count;
         configure('orbit', baseConfig, -1);
+        if (!isCurrentImportGeneration(generation, importGeneration)) return;
         startSweep();
       } else {
         const config = readExperiment(parsed);
+        if (!isCurrentImportGeneration(generation, importGeneration)) return;
         configure(config.model, config, -1);
       }
     } catch (error) {
+      if (!isCurrentImportGeneration(generation, importGeneration)) return;
       status(`Import failed: ${error.message}`, true);
       setSweepStatus(`Import failed: ${error.message}`, true);
     } finally {
@@ -666,7 +691,7 @@ try {
         needsDraw = true;
       } else if (e.key === 'Escape') {
         e.preventDefault();
-        inspectedIndex = null;
+        clearInspectionState();
         needsDraw = true;
       }
     });
@@ -699,14 +724,30 @@ try {
 
       const table = document.createElement('table');
       table.className = 'audit-table';
-      table.innerHTML = `
-        <tr><th>Invariant / Diagnostic</th><th>Value</th><th>Status</th></tr>
-        <tr><td>Max Energy Error</td><td>${(audit.metrics.maxEnergyRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxEnergyRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
-        <tr><td>Max Angular Momentum Error</td><td>${(audit.metrics.maxAngMomRelError * 100).toFixed(4)}%</td><td>${audit.metrics.maxAngMomRelError <= 0.001 ? '✓ &lt; 0.1%' : '⚠ Exceeded'}</td></tr>
-        <tr><td>Eccentricity Drift (|Δe|)</td><td>${audit.metrics.maxEccentricityDrift.toExponential(3)}</td><td>—</td></tr>
-        <tr><td>Max Residual Acceleration</td><td>${audit.metrics.maxParasiticAccel.toExponential(3)} m/s²</td><td>—</td></tr>
-        <tr><td>Closest Approach</td><td>${(audit.metrics.closestApproach / 1000).toFixed(1)} km</td><td>${audit.metrics.closestApproach > r_body ? 'Clear' : '⚠ Penetrated'}</td></tr>
-      `;
+      const makeCell = (tag, text) => {
+        const cell = document.createElement(tag);
+        cell.textContent = text;
+        return cell;
+      };
+      const rows = [
+        ['Max Energy Error', `${(audit.metrics.maxEnergyRelError * 100).toFixed(4)}%`, audit.metrics.maxEnergyRelError <= 0.001 ? '✓ < 0.1%' : '⚠ Exceeded'],
+        ['Max Angular Momentum Error', `${(audit.metrics.maxAngMomRelError * 100).toFixed(4)}%`, audit.metrics.maxAngMomRelError <= 0.001 ? '✓ < 0.1%' : '⚠ Exceeded'],
+        ['Eccentricity Drift (|Δe|)', audit.metrics.maxEccentricityDrift.toExponential(3), '—'],
+        ['Max Residual Acceleration', `${audit.metrics.maxParasiticAccel.toExponential(3)} m/s²`, '—'],
+        ['Closest Approach', `${(audit.metrics.closestApproach / 1000).toFixed(1)} km`, audit.metrics.closestApproach > r_body ? 'Clear' : '⚠ Penetrated'],
+      ];
+      const headerRow = document.createElement('tr');
+      headerRow.append(
+        makeCell('th', 'Invariant / Diagnostic'),
+        makeCell('th', 'Value'),
+        makeCell('th', 'Status'),
+      );
+      table.append(headerRow);
+      for (const [labelText, valueText, statusText] of rows) {
+        const row = document.createElement('tr');
+        row.append(makeCell('td', labelText), makeCell('td', valueText), makeCell('td', statusText));
+        table.append(row);
+      }
 
       $('auditContent').replaceChildren(badge, fileP, table);
 
@@ -761,4 +802,3 @@ try {
   document.addEventListener('visibilitychange', () => { if (document.hidden) { playing = false; needsDraw = true; } });
   configure(model, draft); requestAnimationFrame(frame);
 } catch (error) { status(`Could not start: ${error.message}. Serve this folder over localhost with python -m workbench.`, true); }
-
