@@ -47,6 +47,17 @@ test('parses JSON trajectory format', () => {
   assert.equal(samples[0].t, 0);
 });
 
+test('rejects non-finite and non-monotonic trajectory samples', () => {
+  assert.throws(
+    () => parseTrajectoryData('[{"t":0,"r":[1000,0],"v":[0,50]},{"t":0,"r":[1000,50],"v":[-1,50]}]'),
+    /strictly increasing/
+  );
+  assert.throws(
+    () => parseTrajectoryData('time_s,x,y,vx,vy\n0,1000,0,0,50\nNaN,1000,50,-1,50'),
+    /Non-finite numeric value/
+  );
+});
+
 test('sampleOrbitInvariants calculates energy, angular momentum, and eccentricity vector', () => {
   const mu = 4.905e12;
   const r0 = 2000000;
