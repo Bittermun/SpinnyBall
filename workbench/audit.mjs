@@ -16,6 +16,22 @@ const cross = (a, b) => [
 ];
 const scale = (v, s) => v.map(x => x * s);
 
+function validateTrajectorySamples(samples) {
+  for (let i = 0; i < samples.length; i++) {
+    const sample = samples[i];
+    const validVector = vector => Array.isArray(vector)
+      && (vector.length === 2 || vector.length === 3)
+      && vector.every(value => Number.isFinite(value));
+
+    if (!sample || !Number.isFinite(sample.t) || !validVector(sample.r) || !validVector(sample.v)) {
+      throw new Error(`Invalid trajectory sample at index ${i}: time, position, and velocity must be finite.`);
+    }
+    if (i > 0 && sample.t <= samples[i - 1].t) {
+      throw new Error(`Trajectory times must be strictly increasing (index ${i - 1} to ${i}).`);
+    }
+  }
+}
+
 /**
  * Computes specific orbital invariants for a single state vector in a central gravity field (μ).
  * @param {{ t: number, r: number[], v: number[] }} sample
@@ -57,6 +73,7 @@ export function auditOrbitTrajectory(samples, options) {
   if (typeof mu !== 'number' || !Number.isFinite(mu) || mu <= 0) {
     throw new Error('Valid gravitational parameter mu > 0 is required.');
   }
+  validateTrajectorySamples(samples);
 
   // Baseline invariants at t0
   const initial = sampleOrbitInvariants(samples[0], mu);
@@ -149,7 +166,8 @@ export function parseTrajectoryData(text) {
   if (trimmed.startsWith('[') || trimmed.startsWith('{')) {
     const parsed = JSON.parse(trimmed);
     const list = Array.isArray(parsed) ? parsed : (parsed.samples || []);
-    return list.map(item => {
+    if (!Array.isArray(list)) throw new Error('JSON trajectory must be an array or an object with a samples array.');
+    const samples = list.map(item => {
       const t = item.t ?? item.time ?? item.time_s ?? 0;
       let r, v;
       if (item.r && item.v) {
@@ -164,6 +182,8 @@ export function parseTrajectoryData(text) {
       }
       return { t: Number(t), r, v };
     });
+    validateTrajectorySamples(samples);
+    return samples;
   }
 
   // Parse CSV
@@ -197,11 +217,12 @@ export function parseTrajectoryData(text) {
     const t = tIdx !== undefined && tIdx !== -1 ? parts[tIdx] : (i - 1);
     const r = [parts[xIdx], parts[yIdx], zIdx !== -1 ? parts[zIdx] : 0];
     const v = [parts[vxIdx], parts[vyIdx], vzIdx !== -1 ? parts[vzIdx] : 0];
-    if (r.some(x => !Number.isFinite(x)) || v.some(x => !Number.isFinite(x))) {
+    if (!Number.isFinite(t) || r.some(x => !Number.isFinite(x)) || v.some(x => !Number.isFinite(x))) {
       throw new Error(`Non-finite numeric value on CSV line ${i + 1}`);
     }
     samples.push({ t, r, v });
   }
 
+  validateTrajectorySamples(samples);
   return samples;
 }
